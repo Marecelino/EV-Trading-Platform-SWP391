@@ -1,16 +1,14 @@
 // src/App.tsx
-
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-
-
 import UserLayout from './layouts/UserLayout';
-
+import { AuthProvider } from './contexts/AuthContext'; 
 import HomePage from './pages/HomePage';
 
 
 
 function App() {
   return (
+     <AuthProvider>
     <Router>
       <Routes>
         {/* Tất cả các Route bên trong đây sẽ sử dụng chung UserLayout */}
@@ -34,6 +32,7 @@ function App() {
         */}
       </Routes>
     </Router>
+    </AuthProvider>
   );
 }
 
