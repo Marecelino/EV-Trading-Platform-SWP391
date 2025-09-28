@@ -1,0 +1,95 @@
+// src/components/modules/HeroSection/HeroSection.scss
+@import '../../../styles/variables';
+
+.hero-section {
+  background: linear-gradient(rgba(44, 62, 80, 0.7), rgba(44, 62, 80, 0.7)), url('/path-to-your-background-image.jpg');
+  background-size: cover;
+  background-position: center;
+  padding: 80px 0;
+  color: $white-color;
+  text-align: center;
+
+  &__content {
+    h1 {
+      font-size: 2.8rem;
+      margin-bottom: 1rem;
+    }
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 2.5rem;
+      opacity: 0.9;
+    }
+  }
+}
+
+.search-form {
+  background-color: $white-color;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  max-width: 800px;
+  margin: 0 auto;
+
+  &__tabs {
+      display: flex;
+      margin-bottom: 15px;
+  }
+  
+  &__tab {
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 1rem;
+      color: lighten($text-color, 30%);
+      position: relative;
+      
+      &.active {
+          color: $primary-color;
+          font-weight: 600;
+          &::after {
+              content: '';
+              position: absolute;
+              bottom: -2px;
+              left: 0;
+              width: 100%;
+              height: 3px;
+              background-color: $primary-color;
+          }
+      }
+  }
+
+  &__main {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 15px;
+    align-items: center;
+  }
+
+  &__input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    .search-form__icon {
+      position: absolute;
+      left: 15px;
+      color: lighten($text-color, 50%);
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 15px 12px 45px;
+      border: 1px solid $border-color;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+  }
+
+  &__select {
+    padding: 12px 15px;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+}

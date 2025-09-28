@@ -1,0 +1,70 @@
+// src/components/layout/Footer.scss
+@import '../../styles/variables';
+
+.footer {
+  background-color: $text-color;
+  color: lighten($white-color, 15%);
+  padding-top: 60px;
+
+  &__container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 40px;
+    padding-bottom: 40px;
+  }
+  
+  &__logo {
+      color: $primary-color;
+      font-size: 1.8rem;
+      margin-top: 0;
+  }
+
+  &__column--about {
+    p {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      opacity: 0.7;
+    }
+  }
+
+  &__title {
+    font-size: 1.1rem;
+    color: $white-color;
+    margin-bottom: 20px;
+  }
+  
+  &__link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    margin-bottom: 12px;
+    transition: color 0.2s;
+
+    &:hover {
+      color: $primary-color;
+    }
+  }
+
+  &__socials {
+    display: flex;
+    gap: 15px;
+  }
+  
+  &__social-link {
+    color: inherit;
+    &:hover {
+      color: $primary-color;
+    }
+  }
+  
+  &__bottom {
+    border-top: 1px solid lighten($text-color, 10%);
+    text-align: center;
+    padding: 20px 0;
+    font-size: 0.9rem;
+    opacity: 0.7;
+    p {
+        margin: 0;
+    }
+  }
+}

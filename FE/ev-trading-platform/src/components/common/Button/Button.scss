@@ -1,0 +1,38 @@
+// src/components/common/Button/Button.scss
+@import '../../../styles/variables';
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
+  &--primary {
+    background-color: $primary-color;
+    color: $white-color;
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  &--secondary {
+    background-color: $secondary-color;
+    color: $white-color;
+     &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  &--outline {
+    background-color: transparent;
+    color: $primary-color;
+    border: 2px solid $primary-color;
+    &:hover {
+      background-color: $primary-color;
+      color: $white-color;
+    }
+  }
+}

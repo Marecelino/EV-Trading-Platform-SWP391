@@ -1,0 +1,88 @@
+// src/components/layout/Header.scss
+@import '../../styles/variables';
+
+.header {
+  height: $header-height;
+  background-color: $white-color;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+
+  &__container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  &__logo {
+    color: $primary-color;
+    text-decoration: none;
+    font-size: 1.8rem;
+    font-weight: 700;
+  }
+
+  &__nav {
+    display: flex;
+    gap: 30px;
+
+    @media (max-width: 768px) {
+      display: none; // Ẩn trên mobile, sẽ xử lý menu mobile sau
+    }
+  }
+
+  &__nav-link {
+    text-decoration: none;
+    color: $text-color;
+    font-weight: 500;
+    transition: color 0.2s;
+
+    &:hover {
+      color: $primary-color;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  &__login-link {
+    text-decoration: none;
+    color: $text-color;
+    font-weight: 500;
+    margin-right: 10px;
+    &:hover {
+      color: $primary-color;
+    }
+  }
+
+  &__icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: lighten($text-color, 20%);
+    padding: 5px;
+    display: flex;
+    align-items: center;
+
+    &:hover {
+      color: $primary-color;
+    }
+  }
+
+  &__menu-toggle {
+    display: none; // Mặc định ẩn
+    background: none;
+    border: none;
+    cursor: pointer;
+    
+    @media (max-width: 768px) {
+      display: block; // Hiện trên mobile
+    }
+  }
+}
