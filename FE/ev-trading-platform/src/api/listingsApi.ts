@@ -18,6 +18,9 @@ const listingsApi = {
   getAll: (): Promise<ApiResponse<Product[]>> => {
     return axiosClient.get('/listings');
   },
+  getById: (id: string): Promise<ApiResponse<Product>> => {
+    return axiosClient.get(`/listings/${id}`);
+  },
  
 };
 

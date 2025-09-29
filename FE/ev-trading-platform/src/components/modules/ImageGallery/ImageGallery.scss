@@ -1,0 +1,32 @@
+// src/components/modules/ImageGallery/ImageGallery.scss
+@import '../../../styles/variables';
+.image-gallery {
+  .main-swiper {
+    border-radius: 12px;
+    margin-bottom: 10px;
+    .swiper-slide img {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+    }
+  }
+  .thumbs-swiper {
+    .swiper-slide {
+      opacity: 0.5;
+      cursor: pointer;
+      border-radius: 6px;
+      overflow: hidden;
+      &.swiper-slide-thumb-active {
+        opacity: 1;
+        border: 2px solid $primary-color;
+      }
+      img {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16 / 10;
+        object-fit: cover;
+      }
+    }
+  }
+}

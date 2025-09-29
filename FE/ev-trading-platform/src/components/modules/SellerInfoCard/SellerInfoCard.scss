@@ -1,0 +1,36 @@
+// src/components/modules/SellerInfoCard/SellerInfoCard.scss
+.seller-card {
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  &__avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  &__info {
+    display: flex;
+    flex-direction: column;
+  }
+  &__name {
+    font-weight: 600;
+  }
+  &__status {
+    font-size: 0.9rem;
+    color: #555;
+  }
+  &__actions {
+    display: flex;
+    gap: 10px;
+    .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+  }
+}

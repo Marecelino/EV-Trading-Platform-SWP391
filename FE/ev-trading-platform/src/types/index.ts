@@ -1,32 +1,37 @@
 // src/types/index.ts
 export interface IEVDetails {
-  manufacturing_year?: number;
-  mileage_km?: number;
-  battery_capacity_kwh?: number;
-  battery_health_percent?: number;
-  // Thêm các trường khác khi cần
+mileage: number;
+  year_of_manufacture: number;
+  battery_capacity: number;
+  range: number;
+  color?: string;
+  seats?: number;
+  features?: string[];
 }
 
 export interface IBatteryDetails {
-  capacity_kwh?: number;
-  health_percent?: number;
-  cycle_count?: number;
+  capacity: number;
+  state_of_health: number;
+  cycle_count: number;
 }
 
 export interface Product {
   _id: string;
-  seller_id: string;
-  category_id: string; // 'electric_vehicle' hoặc 'battery'
+  seller_id: string; 
+  brand_id: string;  
+  model_id: string;  
   title: string;
-  description?: string;
+  description: string;
   price: number;
-  condition: 'excellent' | 'good' | 'fair' | 'poor';
-  status: 'draft' | 'pending' | 'published' | 'sold' | 'rejected';
-  city?: string;
-  images: { url: string; is_primary?: boolean }[];
+  condition: 'new' | 'like_new' | 'good' | 'fair';
+  status: 'pending' | 'active' | 'sold' | 'rejected';
+  location: ILocation;
+  images: string[]; 
+  views: number;
   is_verified: boolean;
-  view_count: number;
-  created_at: string; // Dùng string để dễ xử lý
+  is_featured: boolean;
+  created_at: string; 
+
   
   ev_details?: IEVDetails;
   battery_details?: IBatteryDetails;
@@ -37,7 +42,29 @@ export interface User {
   email: string;
   full_name: string;
   role: 'member' | 'admin';
+  avatar_url?: string;
   phone?: string;
   status: 'active' | 'suspended';
 }
+export interface Review {
+    _id: string;
+    reviewer_id: User; 
+    rating: number; 
+    comment?: string;
+    created_at: string;
+}
 
+export interface Notification {
+    _id: string;
+    type: string; // Ví dụ: 'listing_approved', 'review_received'
+    title: string;
+    message: string;
+    is_read: boolean;
+    created_at: string;
+}
+
+export interface ILocation {
+  city: string;
+  district?: string;
+  address?: string;
+}

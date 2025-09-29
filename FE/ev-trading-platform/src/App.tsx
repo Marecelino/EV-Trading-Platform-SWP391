@@ -5,7 +5,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import HomePage from "./pages/HomePage";
 import ProductListPage from "./pages/ProductList/ProductListPage";
 import LoginPage from "./pages/LoginPage/LoginPage";
-
+import ProductDetailPage from './pages/ProductDetailPage/ProductDetailPage';
 function App() {
   return (
     <AuthProvider>
@@ -18,6 +18,7 @@ function App() {
 
             <Route path="login" element={<LoginPage />} />
             <Route path="products" element={<ProductListPage />} />
+            <Route path="products/:id" element={<ProductDetailPage />} />
           </Route>
 
           {/*  các route cho admin

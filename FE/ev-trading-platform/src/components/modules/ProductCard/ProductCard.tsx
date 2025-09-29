@@ -1,30 +1,33 @@
 // src/components/modules/ProductCard/ProductCard.tsx
 import React from 'react';
 import { Heart, MessageSquare } from 'lucide-react';
-import type { Product } from '../../../types';
-import './ProductCard.scss';
-import Button from '../../common/Button/Button';
 import { Link } from 'react-router-dom';
+
+import type { Product } from '../../../types'; // Import type đã cập nhật
+import Button from '../../common/Button/Button';
+import './ProductCard.scss';
+
+const formatNumber = (num: number) => num.toLocaleString('vi-VN');
 
 interface ProductCardProps {
   product: Product;
-  variant?: 'default' | 'detailed'; 
+  variant?: 'default' | 'detailed';
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' }) => { // <-- NHẬN PROP MỚI
+const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' }) => {
   const formatPrice = (price: number) => {
     if (typeof price !== 'number') return 'Thương lượng';
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
 
-  const primaryImage = product.images?.[0]?.url || 'https://via.placeholder.com/400x300.png/EAECEE/2C3E50?text=No+Image';
-  const details = product.category_id === 'electric_vehicle' ? product.ev_details : product.battery_details;
-  const timeSince = (date: string) => "2 giờ trước";
+  const primaryImage = product.images?.[0] || 'https://via.placeholder.com/600x400.png/EAECEE/2C3E50?text=No+Image';
 
-  // Dựa vào variant để render UI tương ứng
+  const timeSince = (date: string) => {
+    return "Vài giờ trước";
+  };
+
   if (variant === 'detailed') {
     return (
-      // Giao diện chi tiết cho trang danh sách
       <div className="product-card--detailed">
         <Link to={`/products/${product._id}`} className="product-card__image-link">
           <div className="product-card__image-container">
@@ -37,16 +40,24 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
             <Link to={`/products/${product._id}`}>{product.title}</Link>
           </h3>
           <p className="product-card__price">{formatPrice(product.price)}</p>
+          
           <div className="product-card__specs-detailed">
-            {details && 'manufacturing_year' in details && details.manufacturing_year && (
-              <span>{details.manufacturing_year}</span>
+            {product.ev_details && (
+              <>
+                <span>{product.ev_details.year_of_manufacture}</span>
+                <span>- {formatNumber(product.ev_details.mileage)} km</span>
+              </>
             )}
-            {details && 'mileage_km' in details && details.mileage_km && (
-              <span>- {details.mileage_km.toLocaleString('vi-VN')} km</span>
+             {product.battery_details && (
+              <>
+                <span>{formatNumber(product.battery_details.capacity)} Ah</span>
+                <span>- {product.battery_details.state_of_health}%</span>
+              </>
             )}
           </div>
+
           <div className="product-card__footer">
-            <span className="product-card__location">{product.city}</span>
+            <span className="product-card__location">{product.location.city}</span>
             <span className="product-card__time">{timeSince(product.created_at)}</span>
           </div>
           <div className="product-card__actions">
@@ -58,7 +69,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
     );
   }
 
-  // Giao diện mặc định (gọn nhẹ) cho trang chủ
+  //  HOMEPAGE CAROUSEL) 
   return (
     <div className="product-card">
       <div className="product-card__image-container">
@@ -70,14 +81,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
         <h3 className="product-card__name">{product.title}</h3>
         <p className="product-card__price">{formatPrice(product.price)}</p>
         <div className="product-card__specs">
-          {details && 'manufacturing_year' in details && details.manufacturing_year && (
-            <span>{details.manufacturing_year}</span>
+          {/* SỬA LỖI: Truy cập dữ liệu chi tiết lồng nhau */}
+          {product.ev_details && (
+            <>
+              <span>{product.ev_details.year_of_manufacture}</span>
+              <span>•</span>
+              <span>{formatNumber(product.ev_details.mileage)} km</span>
+            </>
           )}
-          {details && 'mileage_km' in details && details.mileage_km && (
-            <><span>•</span><span>{details.mileage_km.toLocaleString('vi-VN')} km</span></>
+           {product.battery_details && (
+            <>
+              <span>{formatNumber(product.battery_details.capacity)} Ah</span>
+              <span>•</span>
+              <span>Sức khỏe: {product.battery_details.state_of_health}%</span>
+            </>
           )}
         </div>
-        <p className="product-card__location">{product.city}</p>
+        <p className="product-card__location">{product.location.city}</p>
       </div>
     </div>
   );
