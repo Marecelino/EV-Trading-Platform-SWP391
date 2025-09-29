@@ -17,7 +17,8 @@
   &__image-container {
     position: relative;
     width: 100%;
-    padding-top: 75%; // Tỷ lệ 4:3
+    padding-top: 56.25%; 
+    background-color: #f0f2f5;
     
     .product-card__image {
       position: absolute;
@@ -93,5 +94,110 @@
     font-size: 0.85rem;
     color: lighten($text-color, 40%);
     margin: 0;
+  }
+  
+}
+
+.product-card--detailed {
+  display: flex;
+  background-color: $white-color;
+  border-radius: 8px;
+  box-shadow: $box-shadow-light;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease-in-out;
+  border: 1px solid $border-color;
+
+  &:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  }
+
+  .product-card__image-link {
+    width: 240px; // Kích thước ảnh cố định
+    flex-shrink: 0;
+  }
+  
+  .product-card__image-container {
+      width: 100%;
+      height: auto;
+      position: relative;
+      padding-top: 100%;
+      background-color: #f0f2f5;
+      .product-card__image {
+        position: absolute;
+         top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+  }
+
+  .product-card__info {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+  
+  .product-card__name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+      a {
+          text-decoration: none;
+          color: $text-color;
+          &:hover {
+              color: $primary-color;
+          }
+      }
+  }
+
+  .product-card__price {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: $primary-color;
+      margin: 0 0 12px 0;
+  }
+  
+  .product-card__specs-detailed {
+      display: flex;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: lighten($text-color, 30%);
+      margin-bottom: auto; // Đẩy footer xuống dưới cùng
+  }
+
+  .product-card__footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: lighten($text-color, 40%);
+      margin: 16px 0;
+      padding-top: 12px;
+      border-top: 1px solid $border-color;
+  }
+
+  .product-card__actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .btn {
+          padding: 6px 12px;
+          font-size: 0.9rem;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+      }
+  }
+
+  .product-card__favorite-btn--detailed {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: lighten($text-color, 30%);
+      &:hover {
+          color: red;
+      }
   }
 }

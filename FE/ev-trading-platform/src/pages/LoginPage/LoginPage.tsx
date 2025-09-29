@@ -1,9 +1,9 @@
 // src/pages/LoginPage.tsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Button from '../components/common/Button/Button';
+import Button from '../../components/common/Button/Button';
 import './LoginPage.scss'; // Sẽ tạo file style ngay sau đây
-import { useAuth } from '../contexts/AuthContext'; 
+import { useAuth } from '../../contexts/AuthContext'; 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

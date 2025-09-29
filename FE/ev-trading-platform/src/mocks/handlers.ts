@@ -1,7 +1,7 @@
 // src/mocks/handlers.ts
 import { http, HttpResponse } from 'msw';
 import type { Product } from '../types';
-
+import type { RequestHandler } from 'msw'
 const mockProducts: Product[] = [
   // Xe điện (EV)
   {
@@ -15,8 +15,8 @@ const mockProducts: Product[] = [
     status: 'published',
     city: 'Quận 1, TP.HCM',
     images: [
-      { url: 'https://via.placeholder.com/600x400.png/27AE60/FFFFFF?text=VF8+Front' },
-      { url: 'https://via.placeholder.com/600x400.png/2C3E50/FFFFFF?text=VF8+Side' }
+      { url: 'https://th.bing.com/th/id/R.bd1a7cfa7dabf44ab3d68e6d1d11a346?rik=dF9QwI0ew9CfxQ&pid=ImgRaw&r=0' },
+      { url: 'https://tse4.mm.bing.net/th/id/OIP.1wwj5LlTaLhmQKixoCtp_wAAAA?rs=1&pid=ImgDetMain&o=7&rm=3' }
     ],
     is_verified: true,
     view_count: 1250,
@@ -39,7 +39,7 @@ const mockProducts: Product[] = [
     condition: 'good',
     status: 'published',
     city: 'Cầu Giấy, Hà Nội',
-    images: [{ url: 'https://via.placeholder.com/600x400.png/3498DB/FFFFFF?text=Battery' }],
+    images: [{ url: 'https://tse1.mm.bing.net/th/id/OIP.vAwXhEYDS6syXzZwSKv9NwHaF3?rs=1&pid=ImgDetMain&o=7&rm=3' }],
     is_verified: false,
     view_count: 890,
     created_at: new Date().toISOString(),
@@ -60,7 +60,7 @@ const mockProducts: Product[] = [
     condition: 'good',
     status: 'published',
     city: 'Hải Châu, Đà Nẵng',
-    images: [{ url: 'https://via.placeholder.com/600x400.png/F1C40F/2C3E50?text=EV6' }],
+    images: [{ url: 'https://tse3.mm.bing.net/th/id/OIP.UiS1UGABELrRAAnnOT-bvgHaEo?rs=1&pid=ImgDetMain&o=7&rm=3' }],
     is_verified: true,
     view_count: 2300,
     created_at: new Date().toISOString(),
@@ -84,8 +84,8 @@ const mockProducts: Product[] = [
     status: 'published',
     city: 'Thanh Xuân, Hà Nội',
     images: [
-      { url: 'https://via.placeholder.com/600x400.png/34495E/FFFFFF?text=Model3+Front' },
-      { url: 'https://via.placeholder.com/600x400.png/2ECC71/FFFFFF?text=Model3+Rear' }
+      { url: 'https://th.bing.com/th/id/R.32c6525a32f25089fa126a85c47a7400?rik=WZu3qRH3ulNT0A&pid=ImgRaw&r=0' },
+      { url: 'https://tse2.mm.bing.net/th/id/OIP.5Byc7KcalBC1HRI7bmmThQHaFj?rs=1&pid=ImgDetMain&o=7&rm=3' }
     ],
     is_verified: true,
     view_count: 3100,
@@ -107,7 +107,7 @@ const mockProducts: Product[] = [
     condition: 'excellent',
     status: 'published',
     city: 'Thủ Đức, TP.HCM',
-    images: [{ url: 'https://via.placeholder.com/600x400.png/1ABC9C/FFFFFF?text=Ioniq5' }],
+    images: [{ url: 'https://tse1.mm.bing.net/th/id/OIP.hzr-5H4juXlbhA7zqXjEyQHaEK?rs=1&pid=ImgDetMain&o=7&rm=3' }],
     is_verified: true,
     view_count: 1780,
     created_at: new Date().toISOString(),
@@ -128,7 +128,7 @@ const mockProducts: Product[] = [
     condition: 'fair',
     status: 'published',
     city: 'Cần Thơ',
-    images: [{ url: 'https://via.placeholder.com/600x400.png/9B59B6/FFFFFF?text=Leaf' }],
+    images: [{ url: 'https://tse4.mm.bing.net/th/id/OIP.aFcMXl3lugsod4chM8eXGQAAAA?rs=1&pid=ImgDetMain&o=7&rm=3' }],
     is_verified: false,
     view_count: 960,
     created_at: new Date().toISOString(),
@@ -433,7 +433,7 @@ const mockProducts: Product[] = [
 ];
 
 
-export const handlers = [
+export const handlers :  RequestHandler[] =  [
   http.get('http://localhost:5000/api/listings', () => {
     return HttpResponse.json({
       success: true,

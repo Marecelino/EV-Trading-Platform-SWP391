@@ -1,0 +1,33 @@
+// src/pages/ProductListPage.scss
+.product-list-page {
+  padding-top: 40px;
+  padding-bottom: 60px;
+
+  .page-header {
+    margin-bottom: 30px;
+  }
+
+  .page-content {
+    display: grid;
+    grid-template-columns: 1fr 300px; // Cột chính và sidebar 300px
+    gap: 30px;
+  }
+
+  .product-grid {
+    display: grid;
+    grid-template-columns: 1fr; // 1 cột cho mobile
+    gap: 20px;
+  }
+
+  
+  @media (min-width: 768px) {
+    .product-grid {
+        
+    }
+  }
+  @media (min-width: 1024px) {
+    .product-grid {
+       
+    }
+  }
+}

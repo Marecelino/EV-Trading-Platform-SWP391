@@ -1,0 +1,47 @@
+// src/components/modules/SidebarFilter/SidebarFilter.scss
+@import '../../../styles/variables';
+
+.sidebar-filter {
+  background-color: $white-color;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid $border-color;
+  height: fit-content;
+
+  h4 {
+    margin-top: 0;
+    margin-bottom: 20px;
+  }
+  
+  .filter-group {
+    margin-bottom: 24px;
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+    
+    input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid $border-color;
+      margin-bottom: 10px;
+    }
+  }
+
+  .apply-filter-btn {
+      width: 100%;
+      padding: 12px;
+      background-color: $primary-color;
+      color: $white-color;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      &:hover {
+          opacity: 0.9;
+      }
+  }
+}
