@@ -1,0 +1,51 @@
+// src/components/modules/FeaturedProducts/FeaturedProducts.scss
+@import '../../../styles/variables';
+
+.featured-products {
+  padding: 60px 15px;
+  position: relative; // Cần thiết để định vị các nút mũi tên
+
+  .section-title {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 2rem;
+  }
+}
+
+.product-carousel {
+  // Ghi đè style mặc định của Swiper
+  .swiper-button-prev,
+  .swiper-button-next {
+    width: 48px;
+    height: 48px;
+    background-color: $white-color;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    color: $text-color; // Màu của icon mũi tên
+    transition: opacity 0.2s;
+
+    // Ẩn nút nếu không thể cuộn
+    &.swiper-button-disabled {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    &::after {
+      font-size: 1.2rem; // Kích thước icon mũi tên
+      font-weight: 700;
+    }
+  }
+  
+  // Điều chỉnh vị trí của nút
+  .swiper-button-prev {
+      left: -24px; // Đưa nút ra ngoài một chút
+  }
+  .swiper-button-next {
+      right: -24px;
+  }
+}
+
+.view-more-container {
+  text-align: center;
+  margin-top: 40px;
+}

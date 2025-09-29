@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import type { Product } from '../types';
 
 const mockProducts: Product[] = [
-  // Mẫu cho Xe điện (EV)
+  // Xe điện (EV)
   {
     _id: '6515a8b5e7c8a5b8e4e6b1c1',
     seller_id: 'user1',
@@ -14,7 +14,10 @@ const mockProducts: Product[] = [
     condition: 'excellent',
     status: 'published',
     city: 'Quận 1, TP.HCM',
-    images: [{ url: 'https://via.placeholder.com/600x400.png/27AE60/FFFFFF?text=VF8+Front' }, { url: 'https://via.placeholder.com/600x400.png/2C3E50/FFFFFF?text=VF8+Side' }],
+    images: [
+      { url: 'https://via.placeholder.com/600x400.png/27AE60/FFFFFF?text=VF8+Front' },
+      { url: 'https://via.placeholder.com/600x400.png/2C3E50/FFFFFF?text=VF8+Side' }
+    ],
     is_verified: true,
     view_count: 1250,
     created_at: new Date().toISOString(),
@@ -25,7 +28,7 @@ const mockProducts: Product[] = [
       battery_health_percent: 98,
     },
   },
-  // Mẫu cho Pin (Battery)
+  // Pin
   {
     _id: '6515a8b5e7c8a5b8e4e6b1c2',
     seller_id: 'user2',
@@ -46,10 +49,11 @@ const mockProducts: Product[] = [
       cycle_count: 150,
     },
   },
-  // Thêm một mẫu xe khác
+  // Xe điện khác
   {
     _id: '6515a8b5e7c8a5b8e4e6b1c3',
     seller_id: 'user3',
+    category_id: 'electric_vehicle',
     title: 'Kia EV6 GT-Line 2022',
     description: 'Bản full option, nóc trời toàn cảnh. Xe nhập khẩu nguyên chiếc. Giá có thương lượng cho người thiện chí.',
     price: 1250000000,
@@ -67,17 +71,377 @@ const mockProducts: Product[] = [
       battery_health_percent: 97,
     },
   },
+
+  // ===== Thêm 5 mẫu EV =====
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1c4',
+    seller_id: 'user4',
+    category_id: 'electric_vehicle',
+    title: 'Tesla Model 3 Standard Range 2021',
+    description: 'Xe nhập Mỹ, đã chạy 30,000 km. Pin chuẩn, bảo dưỡng định kỳ đầy đủ.',
+    price: 950000000,
+    condition: 'good',
+    status: 'published',
+    city: 'Thanh Xuân, Hà Nội',
+    images: [
+      { url: 'https://via.placeholder.com/600x400.png/34495E/FFFFFF?text=Model3+Front' },
+      { url: 'https://via.placeholder.com/600x400.png/2ECC71/FFFFFF?text=Model3+Rear' }
+    ],
+    is_verified: true,
+    view_count: 3100,
+    created_at: new Date().toISOString(),
+    ev_details: {
+      manufacturing_year: 2021,
+      mileage_km: 30000,
+      battery_capacity_kwh: 54,
+      battery_health_percent: 94,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1c5',
+    seller_id: 'user5',
+    category_id: 'electric_vehicle',
+    title: 'Hyundai Ioniq 5 Premium 2022',
+    description: 'Xe lướt mới 98%, chính chủ, bảo dưỡng định kỳ. Tích hợp nhiều công nghệ hiện đại.',
+    price: 1180000000,
+    condition: 'excellent',
+    status: 'published',
+    city: 'Thủ Đức, TP.HCM',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/1ABC9C/FFFFFF?text=Ioniq5' }],
+    is_verified: true,
+    view_count: 1780,
+    created_at: new Date().toISOString(),
+    ev_details: {
+      manufacturing_year: 2022,
+      mileage_km: 12000,
+      battery_capacity_kwh: 72.6,
+      battery_health_percent: 97,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1c6',
+    seller_id: 'user6',
+    category_id: 'electric_vehicle',
+    title: 'Nissan Leaf 2019',
+    description: 'Xe gia đình, chạy tiết kiệm, nội thất còn mới. Giá rẻ cho sinh viên hoặc người dùng lần đầu.',
+    price: 520000000,
+    condition: 'fair',
+    status: 'published',
+    city: 'Cần Thơ',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/9B59B6/FFFFFF?text=Leaf' }],
+    is_verified: false,
+    view_count: 960,
+    created_at: new Date().toISOString(),
+    ev_details: {
+      manufacturing_year: 2019,
+      mileage_km: 55000,
+      battery_capacity_kwh: 40,
+      battery_health_percent: 88,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1c7',
+    seller_id: 'user7',
+    category_id: 'electric_vehicle',
+    title: 'Audi e-tron Sportback 2021',
+    description: 'SUV điện hạng sang, ngoại hình thể thao. Cam kết không tai nạn, ngập nước.',
+    price: 2100000000,
+    condition: 'excellent',
+    status: 'published',
+    city: 'Ba Đình, Hà Nội',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/E74C3C/FFFFFF?text=e-tron' }],
+    is_verified: true,
+    view_count: 4200,
+    created_at: new Date().toISOString(),
+    ev_details: {
+      manufacturing_year: 2021,
+      mileage_km: 18000,
+      battery_capacity_kwh: 95,
+      battery_health_percent: 96,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1c8',
+    seller_id: 'user8',
+    category_id: 'electric_vehicle',
+    title: 'Porsche Taycan 4S 2020',
+    description: 'Siêu xe điện, tăng tốc nhanh. Xe nhập Đức, màu trắng ngọc trai.',
+    price: 3800000000,
+    condition: 'good',
+    status: 'published',
+    city: 'Quận 7, TP.HCM',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/BDC3C7/2C3E50?text=Taycan' }],
+    is_verified: true,
+    view_count: 5100,
+    created_at: new Date().toISOString(),
+    ev_details: {
+      manufacturing_year: 2020,
+      mileage_km: 35000,
+      battery_capacity_kwh: 93,
+      battery_health_percent: 92,
+    },
+  },
+
+  // ===== Thêm 5 mẫu Pin =====
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1c9',
+    seller_id: 'user9',
+    category_id: 'battery',
+    title: 'Pin Lithium-ion 60V cho xe máy điện',
+    description: 'Pin tháo xe, còn 90% dung lượng. Dùng cho nhiều dòng xe điện phổ biến.',
+    price: 4200000,
+    condition: 'fair',
+    status: 'published',
+    city: 'Hà Đông, Hà Nội',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/16A085/FFFFFF?text=60V+Battery' }],
+    is_verified: false,
+    view_count: 640,
+    created_at: new Date().toISOString(),
+    battery_details: {
+      capacity_kwh: 2,
+      health_percent: 90,
+      cycle_count: 220,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1d0',
+    seller_id: 'user10',
+    category_id: 'battery',
+    title: 'Pin LFP 72V cho ô tô điện mini',
+    description: 'Pin LFP bền, sạc nhanh, phù hợp xe điện mini. Mới sử dụng 6 tháng.',
+    price: 9800000,
+    condition: 'good',
+    status: 'published',
+    city: 'Ninh Kiều, Cần Thơ',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/D35400/FFFFFF?text=72V+LFP' }],
+    is_verified: true,
+    view_count: 1020,
+    created_at: new Date().toISOString(),
+    battery_details: {
+      capacity_kwh: 5,
+      health_percent: 94,
+      cycle_count: 180,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1d1',
+    seller_id: 'user11',
+    category_id: 'battery',
+    title: 'Pack pin Tesla 85 kWh',
+    description: 'Pin tháo từ xe Tesla Model S, còn 85%. Phù hợp DIY, lưu trữ năng lượng.',
+    price: 95000000,
+    condition: 'fair',
+    status: 'published',
+    city: 'Bình Thạnh, TP.HCM',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/2C3E50/FFFFFF?text=Tesla+Pack' }],
+    is_verified: false,
+    view_count: 560,
+    created_at: new Date().toISOString(),
+    battery_details: {
+      capacity_kwh: 85,
+      health_percent: 85,
+      cycle_count: 1200,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1d2',
+    seller_id: 'user12',
+    category_id: 'battery',
+    title: 'Pin xe đạp điện 48V',
+    description: 'Pin 48V, dung lượng 15Ah, sử dụng 1 năm. Vẫn còn ổn định, thích hợp thay thế.',
+    price: 2500000,
+    condition: 'good',
+    status: 'published',
+    city: 'Nam Từ Liêm, Hà Nội',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/8E44AD/FFFFFF?text=48V+Bike+Battery' }],
+    is_verified: false,
+    view_count: 430,
+    created_at: new Date().toISOString(),
+    battery_details: {
+      capacity_kwh: 0.72,
+      health_percent: 88,
+      cycle_count: 300,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1d3',
+    seller_id: 'user13',
+    category_id: 'battery',
+    title: 'Pin Vinfast VF e34 42 kWh',
+    description: 'Pin chuẩn tháo xe VF e34, dung lượng còn 92%. Thích hợp thay thế hoặc tái sử dụng.',
+    price: 75000000,
+    condition: 'good',
+    status: 'published',
+    city: 'Quận 2, TP.HCM',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/27AE60/FFFFFF?text=VF+e34+Battery' }],
+    is_verified: true,
+    view_count: 850,
+    created_at: new Date().toISOString(),
+    battery_details: {
+      capacity_kwh: 42,
+      health_percent: 92,
+      cycle_count: 800,
+    },
+  },
+  // ===== Thêm 3 EV để đủ 10 =====
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1d4',
+    seller_id: 'user14',
+    category_id: 'electric_vehicle',
+    title: 'BMW iX3 2021',
+    description: 'SUV điện sang trọng, chính chủ, odo 20,000 km. Nội thất cao cấp, xe còn bảo hành.',
+    price: 1600000000,
+    condition: 'excellent',
+    status: 'published',
+    city: 'Tân Bình, TP.HCM',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/2E86C1/FFFFFF?text=iX3' }],
+    is_verified: true,
+    view_count: 2900,
+    created_at: new Date().toISOString(),
+    ev_details: {
+      manufacturing_year: 2021,
+      mileage_km: 20000,
+      battery_capacity_kwh: 74,
+      battery_health_percent: 95,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1d5',
+    seller_id: 'user15',
+    category_id: 'electric_vehicle',
+    title: 'Mercedes EQC 400 4Matic 2020',
+    description: 'Xe lướt, chạy 25,000 km. Bản 4Matic dẫn động 4 bánh, tiện nghi đầy đủ.',
+    price: 2300000000,
+    condition: 'good',
+    status: 'published',
+    city: 'Hải Phòng',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/C0392B/FFFFFF?text=EQC+400' }],
+    is_verified: true,
+    view_count: 3400,
+    created_at: new Date().toISOString(),
+    ev_details: {
+      manufacturing_year: 2020,
+      mileage_km: 25000,
+      battery_capacity_kwh: 80,
+      battery_health_percent: 93,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1d6',
+    seller_id: 'user16',
+    category_id: 'electric_vehicle',
+    title: 'MG4 Electric 2023',
+    description: 'Xe mới chạy 5,000 km, ngoại hình thể thao, tiết kiệm điện. Giá tốt cho người mua nhanh.',
+    price: 780000000,
+    condition: 'excellent',
+    status: 'published',
+    city: 'Đống Đa, Hà Nội',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/27AE60/FFFFFF?text=MG4' }],
+    is_verified: false,
+    view_count: 1200,
+    created_at: new Date().toISOString(),
+    ev_details: {
+      manufacturing_year: 2023,
+      mileage_km: 5000,
+      battery_capacity_kwh: 64,
+      battery_health_percent: 99,
+    },
+  },
+
+  // ===== Thêm 4 Pin để đủ 10 =====
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1d7',
+    seller_id: 'user17',
+    category_id: 'battery',
+    title: 'Pin CATL 100 kWh cho ô tô điện',
+    description: 'Pin tháo xe điện Trung Quốc, dung lượng 100 kWh. Còn 93% dung lượng.',
+    price: 120000000,
+    condition: 'good',
+    status: 'published',
+    city: 'Biên Hòa, Đồng Nai',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/1F618D/FFFFFF?text=CATL+100kWh' }],
+    is_verified: true,
+    view_count: 640,
+    created_at: new Date().toISOString(),
+    battery_details: {
+      capacity_kwh: 100,
+      health_percent: 93,
+      cycle_count: 900,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1d8',
+    seller_id: 'user18',
+    category_id: 'battery',
+    title: 'Pin NMC 36V cho xe đạp điện',
+    description: 'Pin tháo từ xe đạp điện, mới dùng 1 năm. Phù hợp cho học sinh, sinh viên.',
+    price: 1800000,
+    condition: 'fair',
+    status: 'published',
+    city: 'Huế',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/F39C12/2C3E50?text=36V+NMC' }],
+    is_verified: false,
+    view_count: 300,
+    created_at: new Date().toISOString(),
+    battery_details: {
+      capacity_kwh: 0.5,
+      health_percent: 85,
+      cycle_count: 400,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1d9',
+    seller_id: 'user19',
+    category_id: 'battery',
+    title: 'Pin LG Chem 60 kWh',
+    description: 'Pin tháo từ xe Hyundai Kona Electric, còn 90% dung lượng. Phù hợp thay thế.',
+    price: 65000000,
+    condition: 'good',
+    status: 'published',
+    city: 'Nha Trang',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/27AE60/FFFFFF?text=LG+60kWh' }],
+    is_verified: true,
+    view_count: 750,
+    created_at: new Date().toISOString(),
+    battery_details: {
+      capacity_kwh: 60,
+      health_percent: 90,
+      cycle_count: 950,
+    },
+  },
+  {
+    _id: '6515a8b5e7c8a5b8e4e6b1e0',
+    seller_id: 'user20',
+    category_id: 'battery',
+    title: 'Pin Panasonic 2170 cho Tesla',
+    description: 'Pin cell rời Panasonic 2170, tháo từ Tesla Model 3. Thích hợp DIY hoặc lưu trữ.',
+    price: 35000000,
+    condition: 'fair',
+    status: 'published',
+    city: 'Đà Lạt',
+    images: [{ url: 'https://via.placeholder.com/600x400.png/95A5A6/2C3E50?text=Panasonic+2170' }],
+    is_verified: false,
+    view_count: 520,
+    created_at: new Date().toISOString(),
+    battery_details: {
+      capacity_kwh: 3.6,
+      health_percent: 87,
+      cycle_count: 1100,
+    },
+  },
+
 ];
+
 
 export const handlers = [
   http.get('http://localhost:5000/api/listings', () => {
     return HttpResponse.json({
-        success: true,
-        message: 'Lấy danh sách tin đăng thành công!',
-        data: mockProducts,
-        pagination: {
-            page: 1, limit: 10, total: mockProducts.length, pages: 1,
-        }
+      success: true,
+      message: 'Lấy danh sách tin đăng thành công!',
+      data: mockProducts,
+      pagination: {
+        page: 1, limit: 10, total: mockProducts.length, pages: 1,
+      }
     });
   }),
 
@@ -85,18 +449,18 @@ export const handlers = [
     const { email, password } = await request.json() as Record<string, unknown>;
     if (email === 'member@example.com' && password === '123456') {
       return HttpResponse.json({
-          success: true,
-          message: 'Đăng nhập thành công',
-          data: {
-            user: {
-              _id: 'user123', email: 'member@example.com', full_name: 'Thành viên Demo', role: 'member', status: 'active',
-            },
-            token: 'fake-jwt-token-string'
-          }
+        success: true,
+        message: 'Đăng nhập thành công',
+        data: {
+          user: {
+            _id: 'user123', email: 'member@example.com', full_name: 'Thành viên Demo', role: 'member', status: 'active',
+          },
+          token: 'fake-jwt-token-string'
+        }
       });
     } else {
       return HttpResponse.json({
-          success: false, message: 'Email hoặc mật khẩu không chính xác.',
+        success: false, message: 'Email hoặc mật khẩu không chính xác.',
       }, { status: 401 });
     }
   }),
