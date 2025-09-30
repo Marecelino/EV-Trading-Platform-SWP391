@@ -1,4 +1,6 @@
 // src/types/index.ts
+
+
 export interface IEVDetails {
 mileage: number;
   year_of_manufacture: number;
@@ -72,6 +74,31 @@ export interface ILocation {
 export interface PaginatedListingsResponse {
   success: boolean;
   data: Product[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+export interface ITransaction {
+  _id: string;
+  listing_id: Product; 
+  buyer_id: User;    
+  seller_id: User;   
+  amount: number;
+  status: 'pending' | 'completed' | 'cancelled';
+  created_at: string;
+  transaction_date?: string; 
+}
+export interface PaginatedTransactionsResponse {
+    success: boolean;
+    data: ITransaction[];
+    pagination: { /* ... */ };
+}
+export interface PaginatedUsersResponse {
+  success: boolean;
+  data: User[];
   pagination: {
     page: number;
     limit: number;

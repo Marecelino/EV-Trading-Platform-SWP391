@@ -1,28 +1,38 @@
 // src/pages/AdminUserManagementPage/AdminUserManagementPage.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState ,useCallback  } from 'react';
 import adminApi from '../../api/adminApi';
 import type { User } from '../../types';
 import './AdminUserManagementPage.scss';
+import Pagination from '../../components/common/Pagination/Pagination'; 
 
 const AdminUserManagementPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
+  const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
+  const ITEMS_PER_PAGE = 5;
+  
+  const fetchUsers = useCallback((page: number) => {
     setIsLoading(true);
-    adminApi.getUsers().then(response => {
+    adminApi.getUsers(page, ITEMS_PER_PAGE).then(response => {
       if (response.data.success) {
         setUsers(response.data.data);
+        setPagination({
+          currentPage: response.data.pagination.page,
+          totalPages: response.data.pagination.pages,
+        });
       }
     }).finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetchUsers(pagination.currentPage);
+  }, [pagination.currentPage, fetchUsers]);
 
   const handleStatusToggle = (userId: string, currentStatus: 'active' | 'suspended') => {
     const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
     
     adminApi.updateUserStatus(userId, newStatus).then(response => {
       if (response.data.success) {
-        
         setUsers(currentUsers => 
           currentUsers.map(user => 
             user._id === userId ? { ...user, status: newStatus } : user
@@ -75,6 +85,11 @@ const AdminUserManagementPage: React.FC = () => {
           </tbody>
         </table>
       </div>
+      <Pagination 
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        onPageChange={(page) => setPagination(prev => ({...prev, currentPage: page}))}
+      />
     </div>
   );
 };

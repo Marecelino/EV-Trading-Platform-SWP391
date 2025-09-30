@@ -1,12 +1,8 @@
 // src/mocks/handlers.ts
 import { http, HttpResponse } from 'msw';
 import type { Product, User } from '../types'; // Import interface đã được cập nhật
+import type { ITransaction } from '../types';
 
-const mockSellers: Record<string, User> = {
-  user01: { _id: 'user01', full_name: 'Lê Minh Tuấn', avatar_url: 'https://i.pravatar.cc/150?u=user01', role: 'member', status: 'active', email: 'tuan@demo.com' },
-  user02: { _id: 'user02', full_name: 'Trần Thị Bích', avatar_url: 'https://i.pravatar.cc/150?u=user02', role: 'member', status: 'active', email: 'bich@demo.com' },
-  user03: { _id: 'user03', full_name: 'Nguyễn Văn Hùng', avatar_url: 'https://i.pravatar.cc/150?u=user03', role: 'member', status: 'active', email: 'hung@demo.com' },
-};
 
 let mockProducts: Product[] = [
   // Mẫu 1: Xe điện (EV)
@@ -237,6 +233,10 @@ let mockProducts: Product[] = [
     created_at: new Date().toISOString(),
     ev_details: { mileage: 10000, year_of_manufacture: 2023, battery_capacity: 60, range: 480 },
   },
+   { _id: 'prod011', seller_id: 'user06', brand_id: 'brand_vinfast', model_id: 'model_vf9', title: 'Vinfast VF9 6 chỗ bản Plus', description: 'Bản cao cấp nhất, nội thất da, ODO 8000km.', price: 1850000000, condition: 'like_new', status: 'pending', location: { city: 'TP. Hồ Chí Minh', district: 'Quận 7' }, images: ['https://via.placeholder.com/800x600.png/16A085/FFFFFF?text=VF9'], is_verified: false, is_featured: true, views: 20, created_at: new Date('2025-09-18T22:00:00Z').toISOString(), ev_details: { mileage: 8000, year_of_manufacture: 2023, battery_capacity: 92, range: 438, color: 'Xanh rêu', seats: 6 }, },
+  { _id: 'prod012', seller_id: 'user07', brand_id: 'brand_porsche', model_id: 'model_taycan', title: 'Porsche Taycan 4S 2021', description: 'Xe thể thao điện hiệu năng cao, màu xanh Gentian.', price: 4100000000, condition: 'good', status: 'active', location: { city: 'TP. Hồ Chí Minh', district: 'Quận 2' }, images: ['https://via.placeholder.com/800x600.png/2980B9/FFFFFF?text=Taycan'], is_verified: true, is_featured: true, views: 5500, created_at: new Date('2025-09-17T14:00:00Z').toISOString(), ev_details: { mileage: 28000, year_of_manufacture: 2021, battery_capacity: 93.4, range: 463, color: 'Xanh Gentian', seats: 4 }, },
+  { _id: 'prod013', seller_id: 'user08', brand_id: 'brand_mercedes', model_id: 'model_eqs', title: 'Mercedes EQS 580 4MATIC 2023', description: 'Sedan điện hạng sang, nội thất Hyperscreen, ODO 3000km.', price: 4900000000, condition: 'like_new', status: 'active', location: { city: 'Hà Nội', district: 'Long Biên' }, images: ['https://via.placeholder.com/800x600.png/2C3E50/FFFFFF?text=EQS'], is_verified: true, is_featured: false, views: 2800, created_at: new Date('2025-09-16T19:00:00Z').toISOString(), ev_details: { mileage: 3000, year_of_manufacture: 2023, battery_capacity: 107.8, range: 676, color: 'Đen', seats: 5 }, },
+  { _id: 'prod014', seller_id: 'user10', brand_id: 'brand_byd', model_id: 'model_dolphin', title: 'BYD Dolphin 2023 giá tốt', description: 'Xe nhỏ gọn cho đô thị, tiết kiệm năng lượng.', price: 550000000, condition: 'like_new', status: 'pending', location: { city: 'Bình Dương', district: 'Thủ Dầu Một' }, images: ['https://via.placeholder.com/800x600.png/E67E22/FFFFFF?text=Dolphin'], is_verified: false, is_featured: false, views: 5, created_at: new Date('2025-09-15T09:00:00Z').toISOString(), ev_details: { mileage: 9000, year_of_manufacture: 2023, battery_capacity: 44.9, range: 405, color: 'Hồng', seats: 5 }, },
 ];
 let mockUsers: User[] = [
    { _id: 'user01', full_name: 'Lê Minh Tuấn', avatar_url: 'https://i.pravatar.cc/150?u=user01', role: 'member', status: 'active', email: 'tuan@demo.com' },
@@ -244,58 +244,104 @@ let mockUsers: User[] = [
    { _id: 'user03', full_name: 'Nguyễn Văn Hùng', avatar_url: 'https://i.pravatar.cc/150?u=user03', role: 'member', status: 'active', email: 'hung@demo.com' },
   { _id: 'user04', full_name: 'Phạm Văn Đồng', email: 'dong.pv@example.com', role: 'member', status: 'suspended', avatar_url: 'https://i.pravatar.cc/150?u=user04' },
   { _id: 'user05', full_name: 'Hồ Thị Mai', email: 'mai.ht@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user05' },
+{ _id: 'admin001', full_name: 'Quản trị viên', email: 'admin@example.com', role: 'admin', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=admin' },
+  { _id: 'user06', full_name: 'Đặng Thị Lan', email: 'lan.dt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user06' },
+  { _id: 'user07', full_name: 'Võ Thành Trung', email: 'trung.vt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user07' },
+  { _id: 'user08', full_name: 'Bùi Minh Anh', email: 'anh.bm@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user08' },
+  { _id: 'user09', full_name: 'Lý Hoàng Phúc', email: 'phuc.lh@example.com', role: 'member', status: 'suspended', avatar_url: 'https://i.pravatar.cc/150?u=user09' },
+  { _id: 'user10', full_name: 'Mai Thị Thảo', email: 'thao.mt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user10' },
+];
+const mockSellers: Record<string, User> = mockUsers.reduce((acc, user) => {
+  acc[user._id] = user;
+  return acc;
+}, {} as Record<string, User>);
+
+const mockTransactions: ITransaction[] = [
+  {
+    _id: 'txn_001',
+    listing_id: mockProducts[0], 
+    buyer_id: mockUsers[1],
+    seller_id: mockUsers[0],
+    amount: 850000000,
+    status: 'pending',
+    created_at: new Date('2025-09-29T10:00:00Z').toISOString(),
+  },
+  {
+    _id: 'txn_002',
+    listing_id: mockProducts[2], // Kia EV6
+    buyer_id: mockUsers[0],
+    seller_id: mockUsers[2],
+    amount: 1250000000,
+    status: 'completed',
+    created_at: new Date('2025-09-28T14:30:00Z').toISOString(),
+    transaction_date: new Date('2025-09-29T18:00:00Z').toISOString(),
+  },
+  {
+    _id: 'txn_003',
+    listing_id: mockProducts[1], // Pin LG
+    buyer_id: mockUsers[2],
+    seller_id: mockUsers[1],
+    amount: 5500000,
+    status: 'cancelled',
+    created_at: new Date('2025-09-27T08:00:00Z').toISOString(),
+  },
+  { _id: 'txn_004', listing_id: mockProducts[3], buyer_id: mockUsers[5], seller_id: mockUsers[3], amount: 950000000, status: 'completed', created_at: new Date('2025-09-26T11:00:00Z').toISOString(), transaction_date: new Date('2025-09-27T10:00:00Z').toISOString() },
+  { _id: 'txn_005', listing_id: mockProducts[4], buyer_id: mockUsers[6], seller_id: mockUsers[4], amount: 890000000, status: 'pending', created_at: new Date('2025-09-25T16:00:00Z').toISOString() },
+  { _id: 'txn_006', listing_id: mockProducts[5], buyer_id: mockUsers[7], seller_id: mockUsers[0], amount: 4500000, status: 'completed', created_at: new Date('2025-09-24T13:00:00Z').toISOString(), transaction_date: new Date('2025-09-25T09:00:00Z').toISOString() },
+  { _id: 'txn_007', listing_id: mockProducts[6], buyer_id: mockUsers[8], seller_id: mockUsers[1], amount: 520000000, status: 'cancelled', created_at: new Date('2025-09-23T19:00:00Z').toISOString() },
+  { _id: 'txn_008', listing_id: mockProducts[8], buyer_id: mockUsers[9], seller_id: mockUsers[4], amount: 630000000, status: 'completed', created_at: new Date('2025-09-22T21:00:00Z').toISOString(), transaction_date: new Date('2025-09-23T15:00:00Z').toISOString() },
+  { _id: 'txn_009', listing_id: mockProducts[13], buyer_id: mockUsers[0], seller_id: mockUsers[7], amount: 4100000000, status: 'pending', created_at: new Date('2025-09-21T15:00:00Z').toISOString() },
+  { _id: 'txn_010', listing_id: mockProducts[14], buyer_id: mockUsers[1], seller_id: mockUsers[8], amount: 4900000000, status: 'completed', created_at: new Date('2025-09-20T20:00:00Z').toISOString(), transaction_date: new Date('2025-09-21T18:00:00Z').toISOString() },
 ];
 
 export const handlers = [
+   // GET /api/listings
   http.get('http://localhost:5000/api/listings', () => {
     return HttpResponse.json({
       success: true,
       message: 'Lấy danh sách tin đăng thành công!',
-      data: mockProducts,
+      data: mockProducts.filter(p => p.status === 'active'),
       pagination: {
         page: 1, limit: 10, total: mockProducts.length, pages: 1,
       }
     });
   }),
-
+// POST /api/auth/login
   http.post('http://localhost:5000/api/auth/login', async ({ request }) => {
     const { email, password } = await request.json() as Record<string, unknown>;
-    
-    if (email === 'admin@example.com' && password === 'admin123') {
-      return HttpResponse.json({
-        success: true,
-        message: 'Admin đăng nhập thành công',
-        data: {
-          user: {
-            _id: 'admin001', email: 'admin@example.com', full_name: 'Quản trị viên', role: 'admin', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=admin'
-          },
-          token: 'fake-admin-jwt-token'
-        }
-      });
+
+    const user = mockUsers.find(u => u.email === email);
+
+    if (!user) {
+      return HttpResponse.json({ success: false, message: 'Email hoặc mật khẩu không chính xác.' }, { status: 401 });
     }
-    if (email === 'member@example.com' && password === '123456') {
+
+    const isAdminLogin = user.role === 'admin' && password === 'admin123';
+    const isMemberLogin = user.role === 'member' && password === '123456';
+
+    if (isAdminLogin || isMemberLogin) {
+      if (user.status === 'suspended') {
+        return HttpResponse.json({ success: false, message: 'Tài khoản của bạn đã bị khóa.' }, { status: 403 });
+      }
       return HttpResponse.json({
         success: true,
         message: 'Đăng nhập thành công',
         data: {
-          user: {
-            _id: 'user123', email: 'member@example.com', full_name: 'Thành viên Demo', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150'
-          },
-          token: 'fake-jwt-token-string-updated'
+          user: user,
+          token: `fake-jwt-token-for-${user._id}`
         }
       });
     } else {
-      return HttpResponse.json({
-        success: false, message: 'Email hoặc mật khẩu không chính xác.',
-      }, { status: 401 });
+      return HttpResponse.json({ success: false, message: 'Email hoặc mật khẩu không chính xác.' }, { status: 401 });
     }
   }),
+
   http.get('http://localhost:5000/api/listings/:id', ({ params }) => {
     const { id } = params;
     const product = mockProducts.find(p => p._id === id);
 
     if (product) {
-      const sellerInfo = mockSellers[product.seller_id];
+      const sellerInfo = mockSellers[product.seller_id as string];
       const productWithSeller = {
         ...product,
         seller_id: sellerInfo, 
@@ -312,25 +358,73 @@ export const handlers = [
       }, { status: 404 });
     }
   }),
-  http.get('http://localhost:5000/api/admin/dashboard/stats', () => {
+
+   http.get('http://localhost:5000/api/admin/dashboard/stats', () => {
+    const totalUsers = mockUsers.length;
+    const pendingListings = mockProducts.filter(p => p.status === 'pending').length;
+    const totalTransactions = mockTransactions.length;
+    const totalRevenue = mockTransactions
+      .filter(t => t.status === 'completed')
+      .reduce((sum, t) => sum + t.amount, 0);
+
     return HttpResponse.json({
-      success: true,
-      message: 'Lấy dữ liệu thống kê thành công',
-      data: {
-        totalUsers: 150,
-        pendingListings: 12,
-        totalTransactions: 340,
-        totalRevenue: 56700000
-      }
-    })
-  }),
-  http.get('http://localhost:5000/api/admin/users', () => {
-    return HttpResponse.json({
-      success: true,
-      message: 'Lấy danh sách người dùng thành công',
-      data: mockUsers,
+        success: true,
+        message: 'Lấy dữ liệu thống kê thành công',
+        data: {
+            totalUsers,
+            pendingListings,
+            totalTransactions,
+            totalRevenue,
+        }
     });
   }),
+
+  http.get('http://localhost:5000/api/admin/dashboard/trends', () => {
+    return HttpResponse.json({
+      success: true,
+      data: {
+        labels: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6'],
+        datasets: [
+          {
+            label: 'Lượng tin đăng mới',
+            data: [65, 59, 80, 81, 56, 55],
+            borderColor: 'rgb(39, 174, 96)',
+            backgroundColor: 'rgba(39, 174, 96, 0.2)',
+            yAxisID: 'y',
+          },
+          {
+            label: 'Giá trung bình (Triệu VND)',
+            data: [850, 870, 865, 890, 910, 900],
+            borderColor: 'rgb(52, 152, 219)',
+            backgroundColor: 'rgba(52, 152, 219, 0.2)',
+            yAxisID: 'y1',
+          },
+        ],
+      }
+    });
+  }),
+
+   http.get('http://localhost:5000/api/admin/users', ({ request }) => {
+        const url = new URL(request.url);
+        const page = parseInt(url.searchParams.get('page') || '1');
+        const limit = parseInt(url.searchParams.get('limit') || '5');
+
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedData = mockUsers.slice(startIndex, endIndex);
+
+        return HttpResponse.json({
+            success: true,
+            message: 'Lấy danh sách người dùng thành công',
+            data: paginatedData,
+            pagination: {
+                page,
+                limit,
+                total: mockUsers.length,
+                pages: Math.ceil(mockUsers.length / limit),
+            }
+        });
+    }),
 
   
   http.put('http://localhost:5000/api/admin/users/:id/status', async ({ request, params }) => {
@@ -417,6 +511,43 @@ export const handlers = [
 
     if (updatedListing) return HttpResponse.json({ success: true, data: updatedListing });
     return HttpResponse.json({ success: false, message: 'Không tìm thấy' }, { status: 404 });
+  }),
+
+  http.get('http://localhost:5000/api/admin/transactions', ({ request }) => {
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status');
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const limit = 3;
+
+    const filteredData = status ? mockTransactions.filter(t => t.status === status) : mockTransactions;
+    
+    const paginatedData = filteredData.slice((page - 1) * limit, page * limit);
+
+    return HttpResponse.json({
+      success: true,
+      data: paginatedData,
+      pagination: {
+        page, limit, total: filteredData.length, pages: Math.ceil(filteredData.length / limit),
+      }
+    });
+  }),
+  http.get('http://localhost:5000/api/listings/my', ({ request }) => {
+    
+    const currentUserId = 'user01'; 
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status');
+
+    let userListings = mockProducts.filter(p => p.seller_id === currentUserId);
+
+    if (status) {
+      userListings = userListings.filter(p => p.status === status);
+    }
+    
+    return HttpResponse.json({
+      success: true,
+      message: 'Lấy tin đăng cá nhân thành công',
+      data: userListings,
+    });
   }),
 
 ];

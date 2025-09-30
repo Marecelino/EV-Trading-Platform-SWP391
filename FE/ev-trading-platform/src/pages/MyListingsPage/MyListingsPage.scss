@@ -1,0 +1,84 @@
+// src/pages/MyListingsPage/MyListingsPage.scss
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.my-listings-page {
+  padding-top: 40px;
+  padding-bottom: 60px;
+
+  .page-title {
+    margin-bottom: 30px;
+  }
+}
+
+.listings-list {
+  .listing-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 0;
+    border-bottom: 1px solid $border-color;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__image {
+    width: 120px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  &__details {
+    flex-grow: 1;
+  }
+  
+  &__title {
+    font-weight: 600;
+    color: $text-color;
+    text-decoration: none;
+    margin-bottom: 8px;
+    display: block;
+    &:hover {
+      color: $primary-color;
+    }
+  }
+
+  &__price {
+    font-weight: 700;
+    color: $primary-color;
+    margin: 0 0 8px 0;
+  }
+  
+  &__date {
+    font-size: 0.9rem;
+    color: lighten($text-color, 40%);
+    margin: 0;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 10px;
+
+    .action-button {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid $border-color;
+      background-color: $white-color;
+      cursor: pointer;
+      font-weight: 500;
+
+      &:hover {
+        background-color: #f8f9fa;
+      }
+
+      &.btn-boost {
+        border-color: $accent-color;
+        color: darken($accent-color, 10%);
+      }
+    }
+  }
+}

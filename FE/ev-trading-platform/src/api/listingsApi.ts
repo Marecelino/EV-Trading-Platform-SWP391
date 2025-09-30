@@ -21,6 +21,9 @@ const listingsApi = {
   getById: (id: string): Promise<ApiResponse<Product>> => {
     return axiosClient.get(`/listings/${id}`);
   },
+   getMyListings: (status?: string): Promise<{ data: { success: boolean, data: Product[] } }> => {
+    return axiosClient.get('/listings/my', { params: { status } });
+  },
  
 };
 

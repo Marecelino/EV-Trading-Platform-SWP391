@@ -11,6 +11,8 @@ import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboardPage from "./pages/AdminDashboardPage/AdminDashboardPage";
 import AdminUserManagementPage from "./pages/AdminUserManagementPage/AdminUserManagementPage";
 import AdminListingManagementPage from './pages/AdminListingManagementPage/AdminListingManagementPage';
+import AdminTransactionManagementPage from './pages/AdminTransactionManagementPage/AdminTransactionManagementPage';
+import MyListingsPage from './pages/MyListingsPage/MyListingsPage';
 
 function App() {
   return (
@@ -25,6 +27,8 @@ function App() {
             <Route path="login" element={<LoginPage />} />
             <Route path="products" element={<ProductListPage />} />
             <Route path="products/:id" element={<ProductDetailPage />} />
+            <Route path="/dashboard/my-listings" element={<MyListingsPage />} />
+
           </Route>
 
           {/* === ADMIN ROUTES === */}
@@ -33,7 +37,7 @@ function App() {
               <Route path="dashboard" element={<AdminDashboardPage />} />
               <Route path="users" element={<AdminUserManagementPage />} />
               <Route path="listings" element={<AdminListingManagementPage />} />
-
+              <Route path="transactions" element={<AdminTransactionManagementPage />} />
             </Route>
           </Route>
         </Routes>
