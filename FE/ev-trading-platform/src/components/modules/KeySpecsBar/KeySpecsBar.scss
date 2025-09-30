@@ -1,0 +1,29 @@
+
+// src/components/modules/KeySpecsBar/KeySpecsBar.scss
+@import '../../../styles/variables';
+.key-specs-bar {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 16px;
+  background-color: lighten($background-color, 2%);
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  margin: 24px 0;
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.spec-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #555;
+  svg {
+    flex-shrink: 0;
+    color: $primary-color;
+  }
+  strong {
+    color: $text-color;
+  }
+}

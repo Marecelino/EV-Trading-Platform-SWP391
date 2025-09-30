@@ -17,7 +17,7 @@ export interface IBatteryDetails {
 
 export interface Product {
   _id: string;
-  seller_id: string; 
+  seller_id: User | string; 
   brand_id: string;  
   model_id: string;  
   title: string;

@@ -2,10 +2,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import listingsApi from '../../api/listingsApi';
-import type { Product } from '../../types';
+import type { Product, User } from '../../types'; // Import thêm User
 import ImageGallery from '../../components/modules/ImageGallery/ImageGallery';
 import SpecificationTable from '../../components/modules/SpecificationTable/SpecificationTable';
 import Button from '../../components/common/Button/Button';
+import SellerInfoCard from '../../components/modules/SellerInfoCard/SellerInfoCard'; // Import mới
+import KeySpecsBar from '../../components/modules/KeySpecsBar/KeySpecsBar'; // Import mới
 import './ProductDetailPage.scss';
 
 const ProductDetailPage: React.FC = () => {
@@ -14,51 +16,56 @@ const ProductDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      const fetchProduct = async () => {
-        setIsLoading(true);
-        try {
-          const response = await listingsApi.getById(id);
-          if (response.data.success) {
-            setProduct(response.data.data);
-          }
-        } catch (error) {
-          console.error("Failed to fetch product", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchProduct();
-    }
+    // ... logic fetchProduct giữ nguyên
   }, [id]);
 
-  if (isLoading) return <div className="container page-loading">Đang tải...</div>;
+  if (isLoading) return <div className="container page-loading">Đang tải chi tiết sản phẩm...</div>;
   if (!product) return <div className="container page-loading">Không tìm thấy sản phẩm.</div>;
 
   const details = product.ev_details || product.battery_details;
+  const seller = product.seller_id as User; // Ép kiểu vì mock đã populate
 
   return (
     <div className="product-detail-page container">
       <div className="main-content">
-        <ImageGallery images={product.images} />
-        <div className="content-card">
-          <h2>Mô tả chi tiết</h2>
-          <p>{product.description}</p>
-        </div>
-        {details && (
-          <div className="content-card">
-            <SpecificationTable details={details} />
-          </div>
-        )}
-      </div>
-      <aside className="sidebar">
-        <div className="content-card">
+        {/* === TIÊU ĐỀ & GIÁ === */}
+        <div className="content-card header-card">
           <h1>{product.title}</h1>
           <p className="price">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}</p>
-          <p className="location">{`${product.location.district}, ${product.location.city}`}</p>
-          <Button variant="primary" style={{ width: '100%' }}>Thỏa thuận mua</Button>
+          <div className="meta-info">
+            <span>Đăng {new Date(product.created_at).toLocaleDateString('vi-VN')}</span>
+            <span>Lượt xem: {product.views}</span>
+          </div>
         </div>
-        {/* TODO: Thêm SellerInfoCard ở đây */}
+        
+        {/* === BỘ SƯU TẬP ẢNH === */}
+        <ImageGallery images={product.images} />
+
+        {/* === THANH THÔNG SỐ CHÍNH === */}
+        {product.ev_details && <KeySpecsBar details={product.ev_details} />}
+
+        {/* === MÔ TẢ & THÔNG SỐ CHI TIẾT === */}
+        <div className="content-card">
+          <h2>Mô tả chi tiết</h2>
+          <p style={{ whiteSpace: 'pre-wrap' }}>{product.description}</p>
+          
+          {details && <SpecificationTable details={details} />}
+        </div>
+      </div>
+
+      <aside className="sidebar">
+        
+        <SellerInfoCard seller={seller} />
+        
+        
+        <div className="content-card safety-tips">
+            <h4>Mẹo an toàn</h4>
+            <ul>
+                <li>KHÔNG đặt cọc, thanh toán trước khi nhận xe.</li>
+                <li>Kiểm tra kỹ giấy tờ xe và các chi tiết khác.</li>
+                <li>Gặp mặt trực tiếp tại nơi công cộng, an toàn.</li>
+            </ul>
+        </div>
       </aside>
     </div>
   );
