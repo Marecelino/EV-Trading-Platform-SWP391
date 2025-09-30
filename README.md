@@ -68,9 +68,12 @@ Dự án được xây dựng dựa trên các công nghệ hiện đại và ph
   - **`/api/favorites`**: Các API quản lý danh sách yêu thích.
   - **`/api/admin`**: Các API dành riêng cho quản trị viên (quản lý người dùng, duyệt tin,...).
 Một vài  screen dự án 
-  - <img width="955" height="452" alt="image" src="https://github.com/user-attachments/assets/327b6280-738a-43c1-be16-0d0f4016aca8" />
+  <img width="955" height="452" alt="image" src="https://github.com/user-attachments/assets/327b6280-738a-43c1-be16-0d0f4016aca8" />
+  
   <img width="948" height="385" alt="image" src="https://github.com/user-attachments/assets/22bedc1d-c305-4696-958f-bc702481abfc" />
+  
   <img width="946" height="449" alt="image" src="https://github.com/user-attachments/assets/31c54e7f-3575-4f50-a14f-a668c81c463b" />
+  
   <img width="952" height="448" alt="image" src="https://github.com/user-attachments/assets/20a9b4af-d02c-439f-8613-de00615c74da" />
 
 
