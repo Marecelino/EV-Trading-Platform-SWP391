@@ -1,0 +1,104 @@
+// src/pages/AdminUserManagementPage/AdminUserManagementPage.scss
+@import '../../styles/variables';
+
+.admin-page {
+  h1 {
+    font-size: 2rem;
+    color: $text-color;
+    margin-bottom: 30px;
+  }
+}
+
+.admin-table-container {
+  background-color: $white-color;
+  border-radius: 12px;
+  box-shadow: $box-shadow-light;
+  overflow-x: auto; // Cho phép cuộn ngang trên màn hình nhỏ
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead {
+    background-color: lighten($background-color, 3%);
+    tr th {
+      padding: 16px 20px;
+      text-align: left;
+      font-size: 0.9rem;
+      color: lighten($text-color, 30%);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid $border-color;
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+    td {
+      padding: 16px 20px;
+      vertical-align: middle;
+    }
+  }
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  span {
+    font-weight: 500;
+  }
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  
+  &.status--active {
+    background-color: lighten($primary-color, 40%);
+    color: $primary-color;
+  }
+  
+  &.status--suspended {
+    background-color: #fdeaea;
+    color: #e74c3c;
+  }
+}
+
+.action-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.8;
+  }
+  
+  &.btn--lock {
+    background-color: #fdeaea;
+    color: #e74c3c;
+  }
+  
+  &.btn--unlock {
+    background-color: lighten($primary-color, 40%);
+    color: $primary-color;
+  }
+}

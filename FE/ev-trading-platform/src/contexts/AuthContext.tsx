@@ -26,11 +26,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState(false);
-  
-  // TODO: Thêm hàm useEffect để lấy profile user khi có token
 
-  const login = async (email: string, password: string) => {
-    setIsLoading(true);
+
+ const login = async (email: string, password: string): Promise<User> => { 
     try {
       const response = await authApi.login(email, password);
       if (response.data.success) {
@@ -38,9 +36,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(loggedInUser);
         setToken(newToken);
         localStorage.setItem('token', newToken);
+        return loggedInUser; 
       }
+      
+      throw new Error(response.data.message || 'Đăng nhập thất bại');
     } catch (error: any) {
-      // Ném lỗi ra để component LoginPage có thể bắt và hiển thị
+      
       throw new Error(error.response?.data?.message || 'Lỗi không xác định');
     } finally {
       setIsLoading(false);
@@ -58,7 +59,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook để sử dụng AuthContext dễ dàng hơn
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

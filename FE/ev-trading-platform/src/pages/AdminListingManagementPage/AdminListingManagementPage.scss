@@ -1,0 +1,127 @@
+// src/pages/AdminListingManagementPage/AdminListingManagementPage.scss
+@import '../../styles/variables';
+@import '../../styles/mixins'; // Giả sử bạn có file mixins
+
+.admin-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid $border-color;
+  
+  button {
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    color: lighten($text-color, 30%);
+    border-bottom: 3px solid transparent;
+
+    &.active {
+      color: $primary-color;
+      border-bottom-color: $primary-color;
+    }
+  }
+}
+
+.product-cell {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  img {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+  .product-info {
+    display: flex;
+    flex-direction: column;
+    a {
+      font-weight: 600;
+      color: $text-color;
+      text-decoration: none;
+      &:hover { color: $primary-color; }
+    }
+    span {
+      font-size: 0.85rem;
+      color: lighten($text-color, 40%);
+    }
+  }
+}
+
+.actions-cell {
+  display: flex;
+  gap: 10px;
+}
+
+.action-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &.btn--approve {
+    // Gọi mixin với 2 tham số: màu nền và màu chữ
+    @include status-badge(lighten($primary-color, 45%), $primary-color);
+  }
+  &.btn--reject {
+    @include status-badge(#fdeaea, #e74c3c);
+  }
+}
+.admin-table tbody td {
+  padding: 16px 20px;
+  vertical-align: middle; 
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    
+    &.round { border-radius: 24px; }
+    &:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      &.round { border-radius: 50%; }
+    }
+  }
+
+  input:checked + .slider {
+    background-color: $primary-color;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(20px);
+  }
+}
+@include switch-toggle;

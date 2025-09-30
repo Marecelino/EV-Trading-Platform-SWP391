@@ -5,7 +5,13 @@ import { AuthProvider } from "./contexts/AuthContext";
 import HomePage from "./pages/HomePage";
 import ProductListPage from "./pages/ProductList/ProductListPage";
 import LoginPage from "./pages/LoginPage/LoginPage";
-import ProductDetailPage from './pages/ProductDetailPage/ProductDetailPage';
+import ProductDetailPage from "./pages/ProductDetailPage/ProductDetailPage";
+import AdminRoute from "./routes/AdminRoute";
+import AdminLayout from "./layouts/AdminLayout";
+import AdminDashboardPage from "./pages/AdminDashboardPage/AdminDashboardPage";
+import AdminUserManagementPage from "./pages/AdminUserManagementPage/AdminUserManagementPage";
+import AdminListingManagementPage from './pages/AdminListingManagementPage/AdminListingManagementPage';
+
 function App() {
   return (
     <AuthProvider>
@@ -21,11 +27,15 @@ function App() {
             <Route path="products/:id" element={<ProductDetailPage />} />
           </Route>
 
-          {/*  các route cho admin
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-          </Route> 
-        */}
+          {/* === ADMIN ROUTES === */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route path="dashboard" element={<AdminDashboardPage />} />
+              <Route path="users" element={<AdminUserManagementPage />} />
+              <Route path="listings" element={<AdminListingManagementPage />} />
+
+            </Route>
+          </Route>
         </Routes>
       </Router>
     </AuthProvider>

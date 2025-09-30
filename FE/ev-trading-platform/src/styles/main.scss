@@ -1,7 +1,7 @@
 // src/styles/main.scss
 
 @import './variables';
-
+@import './mixins'; 
 body {
   margin: 0;
   font-family: $primary-font;

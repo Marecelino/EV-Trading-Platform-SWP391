@@ -68,3 +68,14 @@ export interface ILocation {
   district?: string;
   address?: string;
 }
+
+export interface PaginatedListingsResponse {
+  success: boolean;
+  data: Product[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}

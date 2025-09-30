@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button/Button';
-import './LoginPage.scss'; // Sẽ tạo file style ngay sau đây
+import './LoginPage.scss'; 
 import { useAuth } from '../../contexts/AuthContext'; 
+import { User } from '../../types'; 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,8 +17,14 @@ const LoginPage: React.FC = () => {
     setError(null);
     
     try {
-      await login(email, password);
-      navigate('/'); // Chuyển hướng về trang chủ sau khi login thành công
+      
+      const loggedInUser = await login(email, password); 
+      
+      if (loggedInUser.role === 'admin') {
+        navigate('/admin/dashboard'); 
+      } else {
+        navigate('/'); 
+      }
     } catch (err: any) {
       setError(err.message);
     }

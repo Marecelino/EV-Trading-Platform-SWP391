@@ -1,0 +1,12 @@
+// src/layouts/AdminLayout.scss
+.admin-layout {
+  display: flex;
+  
+  .admin-content {
+    margin-left: 260px; // Bằng chiều rộng của sidebar
+    flex-grow: 1;
+    padding: 30px;
+    background-color: #f0f2f5;
+    min-height: 100vh;
+  }
+}
