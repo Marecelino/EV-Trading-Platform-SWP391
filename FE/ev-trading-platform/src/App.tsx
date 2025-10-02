@@ -13,6 +13,7 @@ import AdminUserManagementPage from "./pages/AdminUserManagementPage/AdminUserMa
 import AdminListingManagementPage from './pages/AdminListingManagementPage/AdminListingManagementPage';
 import AdminTransactionManagementPage from './pages/AdminTransactionManagementPage/AdminTransactionManagementPage';
 import MyListingsPage from './pages/MyListingsPage/MyListingsPage';
+import CreateListingPage from './pages/CreateListingPage/CreateListingPage';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
             <Route path="products" element={<ProductListPage />} />
             <Route path="products/:id" element={<ProductDetailPage />} />
             <Route path="/dashboard/my-listings" element={<MyListingsPage />} />
+            <Route path="/listings/create" element={<CreateListingPage />} />
 
           </Route>
 

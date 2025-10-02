@@ -15,14 +15,13 @@ const AdminListingManagementPage: React.FC = () => {
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
   const ITEMS_PER_PAGE = 3;
 
-  // Đã loại bỏ useCallback để đảm bảo hàm luôn nhận được state mới nhất
   const fetchListings = (status: ListingStatus, page: number) => {
     setIsLoading(true);
     adminApi.getListings(status, page, ITEMS_PER_PAGE).then(response => {
       if (response.data.success) {
         setListings(response.data.data);
         setPagination({
-          // Đảm bảo có giá trị mặc định để tránh lỗi
+
           currentPage: response.data.pagination.page || 1,
           totalPages: response.data.pagination.pages || 1,
         });

@@ -1,7 +1,7 @@
 // src/mocks/handlers.ts
 import { http, HttpResponse } from 'msw';
 import type { Product, User } from '../types'; // Import interface đã được cập nhật
-import type { ITransaction } from '../types';
+import type { ITransaction  } from '../types';
 
 
 let mockProducts: Product[] = [
@@ -548,6 +548,24 @@ export const handlers = [
       message: 'Lấy tin đăng cá nhân thành công',
       data: userListings,
     });
+  }),
+  //post product for seller 
+  http.post('http://localhost:5000/api/listings', async ({ request }) => {
+    const newListingData = await request.json();
+    console.log("Đã nhận dữ liệu tin đăng mới:", newListingData);
+
+    const createdListing = {
+      _id: `new_${Math.random().toString(36).substr(2, 9)}`,
+      ...newListingData,
+      status: 'pending', 
+      created_at: new Date().toISOString(),
+    };
+
+    return HttpResponse.json({
+      success: true,
+      message: 'Đăng tin thành công! Tin của bạn đang chờ duyệt.',
+      data: createdListing,
+    }, { status: 201 });
   }),
 
 ];

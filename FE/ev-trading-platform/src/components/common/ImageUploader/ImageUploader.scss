@@ -1,0 +1,66 @@
+// src/components/common/ImageUploader/ImageUploader.scss
+@import '../../../styles/variables';
+
+.image-uploader {
+  .dropzone {
+    border: 2px dashed $border-color;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+    background-color: #fcfcfc;
+
+    &:hover {
+      border-color: $primary-color;
+      background-color: lighten($primary-color, 48%);
+    }
+
+    svg { color: $primary-color; }
+    span { display: block; font-weight: 600; margin-top: 10px; }
+    p { font-size: 0.9rem; color: #999; margin: 5px 0 0 0; }
+    input {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
+    }
+  }
+
+  .upload-loader {
+    text-align: center;
+    padding: 10px;
+    font-style: italic;
+  }
+  
+  .preview-area {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 15px;
+  }
+
+  .preview-item {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: 8px;
+    overflow: hidden;
+    
+    img { width: 100%; height: 100%; object-fit: cover; }
+
+    .remove-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background-color: rgba(0,0,0,0.6);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+  }
+}

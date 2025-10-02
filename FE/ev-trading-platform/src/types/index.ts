@@ -1,6 +1,4 @@
 // src/types/index.ts
-
-
 export interface IEVDetails {
 mileage: number;
   year_of_manufacture: number;

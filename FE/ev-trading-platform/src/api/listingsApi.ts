@@ -24,6 +24,9 @@ const listingsApi = {
    getMyListings: (status?: string): Promise<{ data: { success: boolean, data: Product[] } }> => {
     return axiosClient.get('/listings/my', { params: { status } });
   },
+  create: (listingData: Partial<Product>): Promise<{ data: any }> => {
+    return axiosClient.post('/listings', listingData);
+  },
  
 };
 
