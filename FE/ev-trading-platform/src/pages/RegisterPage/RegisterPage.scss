@@ -1,7 +1,7 @@
 // src/pages/LoginPage.scss
 @import '../../styles/variables';
 
-.login-page {
+.register-page {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -9,7 +9,7 @@
   padding: 40px 20px;
 }
 
-.login-form-container {
+.register-form-container {
   width: 100%;
   max-width: 450px;
   background-color: $white-color;

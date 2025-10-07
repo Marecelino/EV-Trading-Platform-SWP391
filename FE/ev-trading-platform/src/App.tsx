@@ -14,6 +14,8 @@ import AdminListingManagementPage from './pages/AdminListingManagementPage/Admin
 import AdminTransactionManagementPage from './pages/AdminTransactionManagementPage/AdminTransactionManagementPage';
 import MyListingsPage from './pages/MyListingsPage/MyListingsPage';
 import CreateListingPage from './pages/CreateListingPage/CreateListingPage';
+import RegisterPage from './pages/RegisterPage/RegisterPage';
+
 
 function App() {
   return (
@@ -24,6 +26,7 @@ function App() {
           <Route path="/" element={<UserLayout />}>
             {/* Khi người dùng truy cập vào "/", Outlet trong UserLayout sẽ render HomePage */}
             <Route index element={<HomePage />} />
+            <Route path="register" element={<RegisterPage />} />
 
             <Route path="login" element={<LoginPage />} />
             <Route path="products" element={<ProductListPage />} />

@@ -567,5 +567,21 @@ export const handlers = [
       data: createdListing,
     }, { status: 201 });
   }),
+  // HANDLER MỚI: Đăng ký tài khoản
+  http.post('http://localhost:5000/api/auth/register', async ({ request }) => {
+    const { fullName, email } = await request.json() as any;
+    // Giả lập kiểm tra email tồn tại
+    if (email === 'member@example.com') {
+        return HttpResponse.json({ success: false, message: 'Email đã được sử dụng.'}, { status: 400 });
+    }
+    return HttpResponse.json({
+        success: true,
+        message: 'Đăng ký thành công!',
+        data: {
+            user: { _id: `user_${Date.now()}`, email, full_name: fullName, role: 'member', status: 'active' },
+            token: 'fake-new-user-jwt-token'
+        }
+    }, { status: 201 });
+  }),
 
 ];

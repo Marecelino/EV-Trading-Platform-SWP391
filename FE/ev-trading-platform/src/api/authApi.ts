@@ -6,6 +6,10 @@ const authApi = {
   login: (email: string, password: string) => {
     return axiosClient.post('/auth/login', { email, password });
   },
+  // register
+  register: (fullName: string, email: string, password: string) => {
+    return axiosClient.post('/auth/register', { full_name: fullName, email, password });
+  },
  
 };
 

@@ -17,6 +17,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  register: (fullName: string, email: string, password: string) => Promise<User>;
+
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,10 +56,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('token');
   };
 
-  const value = { user, token, login, logout, isLoading };
+  const register = async (fullName: string, email: string, password: string): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const response = await authApi.register(fullName, email, password);
+      if (response.data.success) {
+        const { user: registeredUser, token: newToken } = response.data.data;
+        setUser(registeredUser);
+        setToken(newToken);
+        localStorage.setItem('token', newToken);
+        return registeredUser;
+      }
+      throw new Error(response.data.message || 'Đăng ký thất bại');
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi không xác định');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  const value = { user, token, login, logout, isLoading, register }; // Thêm register
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
