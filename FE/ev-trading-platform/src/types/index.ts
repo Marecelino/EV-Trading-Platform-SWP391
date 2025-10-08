@@ -31,8 +31,8 @@ export interface Product {
   is_verified: boolean;
   is_featured: boolean;
   created_at: string; 
-
-  
+  listing_type: 'direct_sale' | 'auction';
+  auction_id?: string; 
   ev_details?: IEVDetails;
   battery_details?: IBatteryDetails;
 }
@@ -131,3 +131,24 @@ export interface Review {
   comment: string | undefined;
   created_at: string;
 }
+
+export interface Bid {
+  _id: string;
+  user_id: User | string;
+  amount: number;
+  created_at: string;
+}
+
+export interface Auction {
+  _id: string;
+  listing_id: string;
+  seller_id: string;
+  start_time: string;
+  end_time: string;
+  starting_price: number;
+  current_price: number;
+  min_increment: number;
+  buy_now_price?: number;
+  status: 'scheduled' | 'live' | 'ended' | 'cancelled';
+  winner_id?: string;
+  bids: Bid[];

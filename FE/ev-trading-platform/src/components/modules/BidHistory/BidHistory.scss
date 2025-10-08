@@ -1,0 +1,66 @@
+// src/components/modules/BidHistory/BidHistory.scss
+@import '../../../styles/variables';
+
+.bid-history {
+  h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+  }
+
+  .bid-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px; // Giới hạn chiều cao và cho phép cuộn
+    overflow-y: auto;
+  }
+
+  .bid-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid $border-color;
+
+    &:first-child { // Lượt trả giá cao nhất sẽ nổi bật
+      background-color: lighten($accent-color, 35%);
+      margin: 0 -24px; // Mở rộng nền ra sát viền card
+      padding: 12px 24px;
+
+      .bid-user, .bid-amount {
+        font-weight: 700;
+      }
+    }
+
+    .bid-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+      
+      img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+      }
+    }
+    
+    .bid-amount {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: $text-color;
+    }
+
+    .bid-time {
+      font-size: 0.8rem;
+      color: #999;
+    }
+  }
+
+  .no-bids {
+    text-align: center;
+    padding: 30px;
+    color: #999;
+    font-style: italic;
+  }
+}

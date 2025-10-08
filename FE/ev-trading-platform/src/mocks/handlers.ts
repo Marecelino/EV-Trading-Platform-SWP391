@@ -1,11 +1,24 @@
 // src/mocks/handlers.ts
 import { http, HttpResponse } from 'msw';
-import type { Product, User, Review } from '../types'; // Import interface đã được cập nhật
-import type { ITransaction } from '../types';
+import type { Product, User, ITransaction, Auction, Bid, Review } from '../types';
 
+
+let mockUsers: User[] = [
+    { _id: 'user01', full_name: 'Lê Minh Tuấn', avatar_url: 'https://i.pravatar.cc/150?u=user01', role: 'member', status: 'active', email: 'tuan@demo.com' },
+    { _id: 'user02', full_name: 'Trần Thị Bích', avatar_url: 'https://i.pravatar.cc/150?u=user02', role: 'member', status: 'active', email: 'bich@demo.com' },
+    { _id: 'user03', full_name: 'Nguyễn Văn Hùng', avatar_url: 'https://i.pravatar.cc/150?u=user03', role: 'member', status: 'active', email: 'hung@demo.com' },
+    { _id: 'user04', full_name: 'Phạm Văn Đồng', email: 'dong.pv@example.com', role: 'member', status: 'suspended', avatar_url: 'https://i.pravatar.cc/150?u=user04' },
+    { _id: 'user05', full_name: 'Hồ Thị Mai', email: 'mai.ht@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user05' },
+    { _id: 'admin001', full_name: 'Quản trị viên', email: 'admin@example.com', role: 'admin', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=admin' },
+    { _id: 'user06', full_name: 'Đặng Thị Lan', email: 'lan.dt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user06' },
+    { _id: 'user07', full_name: 'Võ Thành Trung', email: 'trung.vt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user07' },
+    { _id: 'user08', full_name: 'Bùi Minh Anh', email: 'anh.bm@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user08' },
+    { _id: 'user09', full_name: 'Lý Hoàng Phúc', email: 'phuc.lh@example.com', role: 'member', status: 'suspended', avatar_url: 'https://i.pravatar.cc/150?u=user09' },
+    { _id: 'user10', full_name: 'Mai Thị Thảo', email: 'thao.mt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user10' },
+];
 
 let mockProducts: Product[] = [
-  // Mẫu 1: Xe điện (EV)
+  // CẬP NHẬT: Thêm listing_type và auction_id cho tất cả sản phẩm
   {
     _id: '6515a8b5e7c8a5b8e4e6b1c1',
     seller_id: 'user01',
@@ -14,15 +27,12 @@ let mockProducts: Product[] = [
     title: 'Vinfast VF8 Eco 2023 còn như mới, ODO siêu lướt',
     description: 'Xe gia đình sử dụng kỹ, còn mới 99%. Bảo hành chính hãng còn dài đến 2030.',
     price: 850000000,
+    listing_type: 'direct_sale', // Bán trực tiếp
+    auction_id: undefined,
     condition: 'like_new',
     status: 'active',
     location: { city: 'TP. Hồ Chí Minh', district: 'Quận 1' },
-    images: [
-      'https://storage.googleapis.com/vinfast-data-01/Xe-SUV-VinFast-VF-8-so-huu-ngoai-that-sang-trong-thiet-ke-hop-voi-noi-thanh_1663170557.jpg',  // ảnh ngoại thất
-      'https://storage.googleapis.com/vinfast-data-01/Ngo%E1%BA%A1i%20th%E1%BA%A5t%20VF%208_1642069586.jpg',
-      'https://th.bing.com/th/id/R.c14328fc2b9e090942e72e8268d9f50c?rik=CTXsOEB33fglsg&pid=ImgRaw&r=0',
-      'https://images2.thanhnien.vn/Uploaded/chicuong/2022_09_20/307648302-5401989936547901-8526041155941997652-n-8186.jpg'  // ảnh nội thất
-    ],
+    images: [ 'https://storage.googleapis.com/vinfast-data-01/Xe-SUV-VinFast-VF-8-so-huu-ngoai-that-sang-trong-thiet-ke-hop-voi-noi-thanh_1663170557.jpg', 'https://storage.googleapis.com/vinfast-data-01/Ngo%E1%BA%A1i%20th%E1%BA%A5t%20VF%208_1642069586.jpg', 'https://th.bing.com/th/id/R.c14328fc2b9e090942e72e8268d9f50c?rik=CTXsOEB33fglsg&pid=ImgRaw&r=0', 'https://images2.thanhnien.vn/Uploaded/chicuong/2022_09_20/307648302-5401989936547901-8526041155941997652-n-8186.jpg' ],
     is_verified: true,
     is_featured: true,
     views: 1250,
@@ -37,6 +47,8 @@ let mockProducts: Product[] = [
     title: 'Pin Lithium-ion LG Chem 48V - 50Ah cho xe máy điện',
     description: 'Pin thay thế cho các dòng xe Vinfast Klara, Ludo. Dùng 3 tháng còn bảo hành.',
     price: 5500000,
+    listing_type: 'direct_sale',
+    auction_id: undefined,
     condition: 'good',
     status: 'active',
     location: { city: 'Hà Nội', district: 'Cầu Giấy' },
@@ -55,6 +67,8 @@ let mockProducts: Product[] = [
     title: 'Kia EV6 GT-Line 2022 màu đỏ',
     description: 'Bản full option, xe nhập khẩu nguyên chiếc.',
     price: 1250000000,
+    listing_type: 'direct_sale',
+    auction_id: undefined,
     condition: 'good',
     status: 'active',
     location: { city: 'Đà Nẵng', district: 'Hải Châu' },
@@ -65,8 +79,6 @@ let mockProducts: Product[] = [
     created_at: new Date().toISOString(),
     ev_details: { mileage: 22000, year_of_manufacture: 2022, battery_capacity: 77.4, range: 510, color: 'Đỏ', seats: 5 },
   },
-
-  // Thêm mới
   {
     _id: 'prod004',
     seller_id: 'user04',
@@ -75,13 +87,12 @@ let mockProducts: Product[] = [
     title: 'Tesla Model 3 Standard Range 2021',
     description: 'Xe nhập Mỹ, đã qua sử dụng 2 năm, pin zin chưa thay.',
     price: 950000000,
+    listing_type: 'direct_sale',
+    auction_id: undefined,
     condition: 'good',
     status: 'active',
     location: { city: 'TP. Hồ Chí Minh', district: 'Bình Thạnh' },
-    images: [
-      'https://cdn-bodfj.nitrocdn.com/PkAzgiiWmWHBbfSpqeQLrEoLMQsjWQTV/assets/images/optimized/rev-08e74e5/wp-content/uploads/2023/01/tesla-model-3.jpg',
-
-    ],
+    images: [ 'https://cdn-bodfj.nitrocdn.com/PkAzgiiWmWHBbfSpqeQLrEoLMQsjWQTV/assets/images/optimized/rev-08e74e5/wp-content/uploads/2023/01/tesla-model-3.jpg' ],
     is_verified: true,
     is_featured: true,
     views: 3100,
@@ -96,13 +107,12 @@ let mockProducts: Product[] = [
     title: 'Hyundai Ioniq 5 bản tiêu chuẩn 2022',
     description: 'Xe gia đình, bảo dưỡng định kỳ, màu bạc thời trang.',
     price: 890000000,
+    listing_type: 'direct_sale',
+    auction_id: undefined,
     condition: 'like_new',
     status: 'active',
     location: { city: 'Hà Nội', district: 'Ba Đình' },
-    images: [
-      'https://greencarscompare.com/upload/iblock/dcd/9ba848mebia59ui6w1gc6s3t2q5ots1i.jpg',
-
-    ],
+    images: [ 'https://greencarscompare.com/upload/iblock/dcd/9ba848mebia59ui6w1gc6s3t2q5ots1i.jpg' ],
     is_verified: true,
     is_featured: false,
     views: 1900,
@@ -117,6 +127,8 @@ let mockProducts: Product[] = [
     title: 'Pin VinES 42Ah cho Vinfast Feliz S',
     description: 'Pin tháo xe mới, tình trạng như mới, còn bảo hành 11 tháng.',
     price: 4500000,
+    listing_type: 'direct_sale',
+    auction_id: undefined,
     condition: 'like_new',
     status: 'active',
     location: { city: 'Hải Phòng', district: 'Lê Chân' },
@@ -135,6 +147,8 @@ let mockProducts: Product[] = [
     title: 'Nissan Leaf 2019 đã qua sử dụng',
     description: 'Xe chạy gia đình, pin thay mới 2023.',
     price: 520000000,
+    listing_type: 'direct_sale',
+    auction_id: undefined,
     condition: 'fair',
     status: 'active',
     location: { city: 'TP. Hồ Chí Minh', district: 'Thủ Đức' },
@@ -153,6 +167,8 @@ let mockProducts: Product[] = [
     title: 'Pin CATL 60Ah tháo xe điện cũ',
     description: 'Pin tháo từ xe tải điện, dung lượng chuẩn.',
     price: 8000000,
+    listing_type: 'direct_sale',
+    auction_id: undefined,
     condition: 'good',
     status: 'active',
     location: { city: 'Bình Dương', district: 'Dĩ An' },
@@ -171,6 +187,8 @@ let mockProducts: Product[] = [
     title: 'MG ZS EV 2020 màu trắng',
     description: 'Xe nhập Thái Lan, sử dụng gia đình.',
     price: 630000000,
+    listing_type: 'direct_sale',
+    auction_id: undefined,
     condition: 'good',
     status: 'active',
     location: { city: 'Cần Thơ', district: 'Ninh Kiều' },
@@ -189,12 +207,12 @@ let mockProducts: Product[] = [
     title: 'Pack pin Panasonic 2170 cells',
     description: 'Pin tháo Tesla Model S, dung lượng lớn, thích hợp tái sử dụng.',
     price: 15000000,
+    listing_type: 'direct_sale',
+    auction_id: undefined,
     condition: 'fair',
     status: 'active',
     location: { city: 'Hà Nội', district: 'Hoàn Kiếm' },
-    images: [
-      'https://energy.panasonic.com/na/business/products/lithium-ion'
-    ],
+    images: [ 'https://energy.panasonic.com/na/business/products/lithium-ion' ],
     is_verified: false,
     is_featured: false,
     views: 430,
@@ -209,8 +227,10 @@ let mockProducts: Product[] = [
     title: 'Tesla Model Y 2022 màu đen còn mới',
     description: 'Cần bán gấp Tesla Model Y, xe ít đi, chủ yếu trùm mền. ODO chỉ 5000km.',
     price: 1450000000,
+    listing_type: 'direct_sale',
+    auction_id: undefined,
     condition: 'like_new',
-    status: 'pending', // <-- TIN CHỜ DUYỆT
+    status: 'pending',
     location: { city: 'Hà Nội', district: 'Tây Hồ' },
     images: ['https://via.placeholder.com/800x600.png/34495E/FFFFFF?text=Tesla+Y'],
     is_verified: false, is_featured: false, views: 0,
@@ -225,33 +245,21 @@ let mockProducts: Product[] = [
     title: 'BYD Atto 3 2023',
     description: 'Thông tin không rõ ràng, giá quá thấp',
     price: 200000000,
+    listing_type: 'direct_sale',
+    auction_id: undefined,
     condition: 'good',
-    status: 'rejected', // <-- TIN BỊ TỪ CHỐI
+    status: 'rejected',
     location: { city: 'Hải Phòng', district: 'Lê Chân' },
     images: ['https://via.placeholder.com/800x600.png/95A5A6/FFFFFF?text=BYD'],
     is_verified: false, is_featured: false, views: 10,
     created_at: new Date().toISOString(),
     ev_details: { mileage: 10000, year_of_manufacture: 2023, battery_capacity: 60, range: 480 },
   },
-  { _id: 'prod011', seller_id: 'user06', brand_id: 'brand_vinfast', model_id: 'model_vf9', title: 'Vinfast VF9 6 chỗ bản Plus', description: 'Bản cao cấp nhất, nội thất da, ODO 8000km.', price: 1850000000, condition: 'like_new', status: 'pending', location: { city: 'TP. Hồ Chí Minh', district: 'Quận 7' }, images: ['https://via.placeholder.com/800x600.png/16A085/FFFFFF?text=VF9'], is_verified: false, is_featured: true, views: 20, created_at: new Date('2025-09-18T22:00:00Z').toISOString(), ev_details: { mileage: 8000, year_of_manufacture: 2023, battery_capacity: 92, range: 438, color: 'Xanh rêu', seats: 6 }, },
-  { _id: 'prod012', seller_id: 'user07', brand_id: 'brand_porsche', model_id: 'model_taycan', title: 'Porsche Taycan 4S 2021', description: 'Xe thể thao điện hiệu năng cao, màu xanh Gentian.', price: 4100000000, condition: 'good', status: 'active', location: { city: 'TP. Hồ Chí Minh', district: 'Quận 2' }, images: ['https://via.placeholder.com/800x600.png/2980B9/FFFFFF?text=Taycan'], is_verified: true, is_featured: true, views: 5500, created_at: new Date('2025-09-17T14:00:00Z').toISOString(), ev_details: { mileage: 28000, year_of_manufacture: 2021, battery_capacity: 93.4, range: 463, color: 'Xanh Gentian', seats: 4 }, },
-  { _id: 'prod013', seller_id: 'user08', brand_id: 'brand_mercedes', model_id: 'model_eqs', title: 'Mercedes EQS 580 4MATIC 2023', description: 'Sedan điện hạng sang, nội thất Hyperscreen, ODO 3000km.', price: 4900000000, condition: 'like_new', status: 'active', location: { city: 'Hà Nội', district: 'Long Biên' }, images: ['https://via.placeholder.com/800x600.png/2C3E50/FFFFFF?text=EQS'], is_verified: true, is_featured: false, views: 2800, created_at: new Date('2025-09-16T19:00:00Z').toISOString(), ev_details: { mileage: 3000, year_of_manufacture: 2023, battery_capacity: 107.8, range: 676, color: 'Đen', seats: 5 }, },
-  { _id: 'prod014', seller_id: 'user10', brand_id: 'brand_byd', model_id: 'model_dolphin', title: 'BYD Dolphin 2023 giá tốt', description: 'Xe nhỏ gọn cho đô thị, tiết kiệm năng lượng.', price: 550000000, condition: 'like_new', status: 'pending', location: { city: 'Bình Dương', district: 'Thủ Dầu Một' }, images: ['https://via.placeholder.com/800x600.png/E67E22/FFFFFF?text=Dolphin'], is_verified: false, is_featured: false, views: 5, created_at: new Date('2025-09-15T09:00:00Z').toISOString(), ev_details: { mileage: 9000, year_of_manufacture: 2023, battery_capacity: 44.9, range: 405, color: 'Hồng', seats: 5 }, },
+  { _id: 'prod011', seller_id: 'user06', brand_id: 'brand_vinfast', model_id: 'model_vf9', title: 'Vinfast VF9 6 chỗ bản Plus', description: 'Bản cao cấp nhất, nội thất da, ODO 8000km.', price: 1850000000, listing_type: 'direct_sale', auction_id: undefined, condition: 'like_new', status: 'pending', location: { city: 'TP. Hồ Chí Minh', district: 'Quận 7' }, images: ['https://via.placeholder.com/800x600.png/16A085/FFFFFF?text=VF9'], is_verified: false, is_featured: true, views: 20, created_at: new Date('2025-09-18T22:00:00Z').toISOString(), ev_details: { mileage: 8000, year_of_manufacture: 2023, battery_capacity: 92, range: 438, color: 'Xanh rêu', seats: 6 }, },
+  { _id: 'prod012', seller_id: 'user07', brand_id: 'brand_porsche', model_id: 'model_taycan', title: 'Porsche Taycan 4S 2021', description: 'Xe thể thao điện hiệu năng cao, màu xanh Gentian.', price: 4100000000, listing_type: 'direct_sale', auction_id: undefined, condition: 'good', status: 'active', location: { city: 'TP. Hồ Chí Minh', district: 'Quận 2' }, images: ['https://via.placeholder.com/800x600.png/2980B9/FFFFFF?text=Taycan'], is_verified: true, is_featured: true, views: 5500, created_at: new Date('2025-09-17T14:00:00Z').toISOString(), ev_details: { mileage: 28000, year_of_manufacture: 2021, battery_capacity: 93.4, range: 463, color: 'Xanh Gentian', seats: 4 }, },
+  { _id: 'prod013', seller_id: 'user08', brand_id: 'brand_mercedes', model_id: 'model_eqs', title: 'Mercedes EQS 580 4MATIC 2023', description: 'Sedan điện hạng sang, nội thất Hyperscreen, ODO 3000km.', price: 4900000000, listing_type: 'direct_sale', auction_id: undefined, condition: 'like_new', status: 'active', location: { city: 'Hà Nội', district: 'Long Biên' }, images: ['https://via.placeholder.com/800x600.png/2C3E50/FFFFFF?text=EQS'], is_verified: true, is_featured: false, views: 2800, created_at: new Date('2025-09-16T19:00:00Z').toISOString(), ev_details: { mileage: 3000, year_of_manufacture: 2023, battery_capacity: 107.8, range: 676, color: 'Đen', seats: 5 }, },
+  { _id: 'prod014', seller_id: 'user10', brand_id: 'brand_byd', model_id: 'model_dolphin', title: 'BYD Dolphin 2023 giá tốt', description: 'Xe nhỏ gọn cho đô thị, tiết kiệm năng lượng.', price: 550000000, listing_type: 'direct_sale', auction_id: undefined, condition: 'like_new', status: 'pending', location: { city: 'Bình Dương', district: 'Thủ Dầu Một' }, images: ['https://via.placeholder.com/800x600.png/E67E22/FFFFFF?text=Dolphin'], is_verified: false, is_featured: false, views: 5, created_at: new Date('2025-09-15T09:00:00Z').toISOString(), ev_details: { mileage: 9000, year_of_manufacture: 2023, battery_capacity: 44.9, range: 405, color: 'Hồng', seats: 5 }, },
 ];
-let mockUsers: User[] = [
-  { _id: 'user01', full_name: 'Lê Minh Tuấn', avatar_url: 'https://i.pravatar.cc/150?u=user01', role: 'member', status: 'active', email: 'tuan@demo.com' },
-  { _id: 'user02', full_name: 'Trần Thị Bích', avatar_url: 'https://i.pravatar.cc/150?u=user02', role: 'member', status: 'active', email: 'bich@demo.com' },
-  { _id: 'user03', full_name: 'Nguyễn Văn Hùng', avatar_url: 'https://i.pravatar.cc/150?u=user03', role: 'member', status: 'active', email: 'hung@demo.com' },
-  { _id: 'user04', full_name: 'Phạm Văn Đồng', email: 'dong.pv@example.com', role: 'member', status: 'suspended', avatar_url: 'https://i.pravatar.cc/150?u=user04' },
-  { _id: 'user05', full_name: 'Hồ Thị Mai', email: 'mai.ht@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user05' },
-  { _id: 'admin001', full_name: 'Quản trị viên', email: 'admin@example.com', role: 'admin', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=admin' },
-  { _id: 'user06', full_name: 'Đặng Thị Lan', email: 'lan.dt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user06' },
-  { _id: 'user07', full_name: 'Võ Thành Trung', email: 'trung.vt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user07' },
-  { _id: 'user08', full_name: 'Bùi Minh Anh', email: 'anh.bm@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user08' },
-  { _id: 'user09', full_name: 'Lý Hoàng Phúc', email: 'phuc.lh@example.com', role: 'member', status: 'suspended', avatar_url: 'https://i.pravatar.cc/150?u=user09' },
-  { _id: 'user10', full_name: 'Mai Thị Thảo', email: 'thao.mt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user10' },
-];
-// Removed unused mockSellers variable
 
 let mockTransactions: ITransaction[] = [
   {
@@ -299,6 +307,27 @@ let mockReviews: Review[] = [
 let mockFavorites = [
     { _id: 'fav001', user_id: 'user01', listing_id: '6515a8b5e7c8a5b8e4e6b1c3' }, // User Lê Minh Tuấn thích Kia EV6
 ];
+let mockAuctions: Auction[] = [
+  {
+    _id: 'auction001',
+    listing_id: '6515a8b5e7c8a5b8e4e6b1c1', // Vinfast VF8
+    seller_id: 'user01',
+    start_time: new Date('2025-10-08T10:00:00Z').toISOString(),
+    end_time: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // Kết thúc sau 2 ngày
+    starting_price: 800000000,
+    current_price: 815000000,
+    min_increment: 5000000,
+    buy_now_price: 900000000,
+    status: 'live',
+    bids: [
+      { _id: 'bid01', user_id: 'user02', amount: 815000000, created_at: new Date().toISOString() },
+      { _id: 'bid02', user_id: 'user03', amount: 810000000, created_at: new Date().toISOString() },
+    ]
+  },
+];
+// Cập nhật mockProducts để có tin đấu giá
+mockProducts[0].listing_type = 'auction';
+mockProducts[0].auction_id = 'auction001';
 const getUserIdFromToken = (request: Request): string | null => {
   const authorization = request.headers.get('Authorization');
   if (authorization && authorization.startsWith('Bearer fake-jwt-token-for-')) {
@@ -721,5 +750,30 @@ export const handlers = [
 
     mockFavorites = mockFavorites.filter(fav => !(fav.user_id === userId && fav.listing_id === listing_id));
     return HttpResponse.json({ success: true, message: 'Đã xóa khỏi danh sách yêu thích' });
+  }),
+  // HANDLER MỚI: Lấy chi tiết một phiên đấu giá
+  http.get('http://localhost:5000/api/auctions/:id', ({ params }) => {
+    const auction = mockAuctions.find(a => a._id === params.id);
+    if (auction) {
+      // Đính kèm thông tin sản phẩm
+      const listing = mockProducts.find(p => p._id === auction.listing_id);
+      return HttpResponse.json({ success: true, data: { ...auction, listing } });
+    }
+    return HttpResponse.json({ success: false, message: 'Not Found' }, { status: 404 });
+  }),
+
+  // HANDLER MỚI: Đặt giá
+  http.post('http://localhost:5000/api/auctions/:id/bids', async ({ request, params }) => {
+    const { amount } = await request.json() as { amount: number };
+    const auction = mockAuctions.find(a => a._id === params.id);
+    const userId = getUserIdFromToken(request) || 'user_anonymous';
+
+    if (auction && amount > auction.current_price) {
+      auction.current_price = amount;
+      const newBid = { _id: `bid_${Date.now()}`, user_id: userId, amount, created_at: new Date().toISOString() };
+      auction.bids.unshift(newBid);
+      return HttpResponse.json({ success: true, message: 'Đặt giá thành công!', data: newBid });
+    }
+    return HttpResponse.json({ success: false, message: 'Giá đặt không hợp lệ' }, { status: 400 });
   }),
 ];

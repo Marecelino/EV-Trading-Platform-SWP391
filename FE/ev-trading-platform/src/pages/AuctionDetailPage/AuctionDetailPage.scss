@@ -1,0 +1,35 @@
+// src/pages/AuctionDetailPage/AuctionDetailPage.scss
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.auction-detail-page {
+  display: grid;
+  grid-template-columns: 1fr; 
+  gap: 30px;
+  padding-top: 40px;
+  padding-bottom: 60px;
+  
+  @include desktop {
+    grid-template-columns: minmax(0, 2.5fr) minmax(320px, 1fr);
+  }
+
+  .content-card {
+    background-color: $white-color;
+    padding: 24px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    border: 1px solid $border-color;
+  }
+  
+  aside.sidebar {
+    position: sticky;
+    top: 100px; 
+  }
+}
+
+.page-loading {
+    padding: 60px 0;
+    text-align: center;
+    font-size: 1.2rem;
+    grid-column: 1 / -1; 
+}

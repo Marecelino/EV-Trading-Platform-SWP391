@@ -1,0 +1,94 @@
+// src/components/modules/AuctionStatusPanel/AuctionStatusPanel.scss
+@import '../../../styles/variables';
+
+.auction-panel {
+  border: 2px solid $primary-color; // Viền nổi bật
+  background-color: lighten($primary-color, 48%);
+
+  .timer {
+    text-align: center;
+    margin-bottom: 20px;
+    
+    &__label {
+      font-size: 0.9rem;
+      color: #555;
+      display: block;
+      margin-bottom: 8px;
+    }
+    
+    &__time {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: $primary-color;
+      letter-spacing: 2px;
+    }
+  }
+
+  .price-info {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid lighten($primary-color, 35%);
+    
+    span {
+      font-size: 1rem;
+      font-weight: 500;
+      color: $text-color;
+    }
+    
+    p {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: $text-color;
+      margin: 5px 0 0 0;
+    }
+  }
+
+  .bid-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+    
+    input {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.2rem;
+      text-align: center;
+      border: 1px solid $border-color;
+      border-radius: 8px;
+      font-weight: 600;
+
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px lighten($primary-color, 40%);
+      }
+    }
+    
+    .min-bid-note {
+      font-size: 0.85rem;
+      text-align: center;
+      color: #777;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+  }
+  
+  // Nút Mua ngay
+  .btn-buy-now {
+    width: 100%;
+    margin-top: 10px;
+    background-color: #e67e22; // Màu cam nổi bật
+    border-color: #e67e22;
+
+    &:hover {
+      background-color: darken(#e67e22, 5%);
+    }
+  }
+}

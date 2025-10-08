@@ -21,6 +21,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import UserProfilePage from './pages/UserProfilePage/UserProfilePage';
 import { FavoritesProvider } from './contexts/FavoritesContext';
 import FavoritesPage from './pages/FavoritesPage/FavoritesPage';
+import AuctionDetailPage from './pages/AuctionDetailPage/AuctionDetailPage';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
             <Route path="/dashboard/my-listings" element={<MyListingsPage />} />
             <Route path="/listings/create" element={<CreateListingPage />} />
             <Route path="/compare" element={<ComparePage />} />
+            <Route path="/auctions/:id" element={<AuctionDetailPage />} />
 
           </Route>
             <Route path="/dashboard" element={<DashboardLayout />}>
