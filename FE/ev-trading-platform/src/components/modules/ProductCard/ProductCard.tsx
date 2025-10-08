@@ -2,12 +2,10 @@
 import React from 'react';
 import { Heart, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useComparison } from '../../../contexts/ComparisonContext'; // Import hook mới
-import StarRating from '../../common/StarRating/StarRating';
+
 import type { Product } from '../../../types'; // Import type đã cập nhật
-//import Button from '../../common/Button/Button';
+import Button from '../../common/Button/Button';
 import './ProductCard.scss';
-import { useFavorites } from '../../../contexts/FavoritesContext';
 
 const formatNumber = (num: number) => num.toLocaleString('vi-VN');
 
@@ -27,25 +25,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
   const timeSince = (date: string) => {
     return "Vài giờ trước";
   };
-  const { addItem, removeItem, isInCompare } = useComparison(); 
-  
-  const handleCompareChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      addItem(product);
-    } else {
-      removeItem(product._id);
-    }
-  };
- const { isFavorite, toggleFavorite } = useFavorites(); // Lấy hàm từ context
-  const isLiked = isFavorite(product._id); // Kiểm tra trạng thái "thích"
 
-  const handleFavoriteClick = (e: React.MouseEvent) => {
-      e.stopPropagation(); // Ngăn việc click vào nút tim điều hướng cả thẻ card
-      toggleFavorite(product._id);
-  }
   if (variant === 'detailed') {
-        const seller = typeof product.seller_id === 'object' ? product.seller_id : null;
-
     return (
       <div className="product-card--detailed">
         <Link to={`/products/${product._id}`} className="product-card__image-link">
@@ -75,31 +56,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
             )}
           </div>
 
-            <div className="product-card__footer">
-    <span className="product-card__location">{product.location.city}</span>
-    
-  </div>
+          <div className="product-card__footer">
+            <span className="product-card__location">{product.location.city}</span>
+            <span className="product-card__time">{timeSince(product.created_at)}</span>
+          </div>
           <div className="product-card__actions">
-              {seller && (
-                <div className="seller-info">
-                  <img src={seller.avatar_url} alt={seller.full_name} className="seller-info__avatar" />
-                  <div className="seller-info__details">
-                    <span className="seller-info__name">{seller.full_name}</span>
-                    {/* SỬ DỤNG COMPONENT STAR RATING */}
-                    {seller.rating ? (
-                      <StarRating rating={seller.rating.average} count={seller.rating.count} />
-                    ) : (
-                      <span className="no-rating">Chưa có đánh giá</span>
-                    )}
-                  </div>
-                </div>
-              )}
-            <button 
-    className={`product-card__favorite-btn ${isLiked ? 'liked' : ''}`}
-    onClick={handleFavoriteClick}
-  >
-    <Heart size={20} />
-  </button>
+            <Button variant='outline'><MessageSquare size={16} /><span>Chat</span></Button>
+            <button className="product-card__favorite-btn--detailed"><Heart size={20} /></button>
           </div>
         </div>
       </div>

@@ -67,27 +67,4 @@
           text-decoration: none;
       }
   }
-  .divider {
-  margin: 25px 0;
-  text-align: center;
-  position: relative;
-  color: #aaa;
-  
-  &::before, &::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    width: 40%;
-    height: 1px;
-    background-color: #ddd;
-  }
-  &::before { left: 0; }
-  &::after { right: 0; }
-}
-
-.social-login-group {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 }

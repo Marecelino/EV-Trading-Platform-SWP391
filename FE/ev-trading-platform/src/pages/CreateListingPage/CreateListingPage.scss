@@ -87,7 +87,7 @@
   &.full-width { grid-column: 1 / -1; }
   label { margin-bottom: 8px; font-weight: 500; }
   input, textarea, select {
-    width: 80%;
+    width: 100%;
     padding: 12px 15px;
     border: 1px solid $border-color;
     border-radius: 8px;

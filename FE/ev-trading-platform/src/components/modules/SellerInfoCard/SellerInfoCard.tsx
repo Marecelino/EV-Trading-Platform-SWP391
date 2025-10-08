@@ -4,7 +4,7 @@ import { Phone, MessageSquare } from 'lucide-react';
 import type { User } from '../../../types';
 import Button from '../../common/Button/Button';
 import './SellerInfoCard.scss';
-import StarRating from '../../common/StarRating/StarRating'; 
+
 interface SellerInfoCardProps {
   seller: User;
 }
@@ -19,13 +19,6 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller }) => {
           <span className="seller-card__status">Cá nhân</span>
         </div>
       </div>
-      <div className="seller-card__rating">
-                {seller.rating ? (
-                    <StarRating rating={seller.rating.average} count={seller.rating.count} />
-                ) : (
-                    <p className="no-rating">Người bán chưa có đánh giá</p>
-                )}
-            </div>
       <div className="seller-card__actions">
         <Button variant="primary" style={{ flex: 1 }}>
           <Phone size={18} /> 090... Hiện số
