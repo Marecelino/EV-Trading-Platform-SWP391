@@ -293,6 +293,13 @@ const mockTransactions: ITransaction[] = [
   { _id: 'txn_009', listing_id: mockProducts[13], buyer_id: mockUsers[0], seller_id: mockUsers[7], amount: 4100000000, status: 'pending', created_at: new Date('2025-09-21T15:00:00Z').toISOString() },
   { _id: 'txn_010', listing_id: mockProducts[14], buyer_id: mockUsers[1], seller_id: mockUsers[8], amount: 4900000000, status: 'completed', created_at: new Date('2025-09-20T20:00:00Z').toISOString(), transaction_date: new Date('2025-09-21T18:00:00Z').toISOString() },
 ];
+const getUserIdFromToken = (request: Request): string | null => {
+    const authorization = request.headers.get('Authorization');
+    if (authorization && authorization.startsWith('Bearer fake-jwt-token-for-')) {
+        return authorization.replace('Bearer fake-jwt-token-for-', '');
+    }
+    return null;
+}
 
 export const handlers = [
    // GET /api/listings
@@ -309,7 +316,6 @@ export const handlers = [
 // POST /api/auth/login
   http.post('http://localhost:5000/api/auth/login', async ({ request }) => {
     const { email, password } = await request.json() as Record<string, unknown>;
-
     const user = mockUsers.find(u => u.email === email);
 
     if (!user) {
@@ -335,7 +341,37 @@ export const handlers = [
       return HttpResponse.json({ success: false, message: 'Email hoặc mật khẩu không chính xác.' }, { status: 401 });
     }
   }),
+  http.get('http://localhost:5000/api/listings/my*', ({ request }) => {
+    // Lấy ID người dùng từ token một cách linh hoạt
+    const currentUserId = getUserIdFromToken(request);
 
+    // Nếu không có token hợp lệ, trả về lỗi
+    if (!currentUserId) {
+        return HttpResponse.json(
+            { success: false, message: 'Yêu cầu không hợp lệ, thiếu thông tin xác thực.' },
+            { status: 401 }
+        );
+    }
+
+    // Lấy tham số `status` từ URL (ví dụ: ?status=active)
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status');
+    
+    // Lọc các tin đăng thuộc về đúng người dùng đã xác thực
+    let userListings = mockProducts.filter(p => p.seller_id === currentUserId);
+    
+    // Nếu có tham số status, tiếp tục lọc theo status
+    if (status) {
+      userListings = userListings.filter(p => p.status === status);
+    }
+    
+    // Trả về dữ liệu đã lọc với status 200 OK
+    return HttpResponse.json({
+      success: true,
+      message: 'Lấy tin đăng cá nhân thành công',
+      data: userListings,
+    });
+}),
   http.get('http://localhost:5000/api/listings/:id', ({ params }) => {
     const { id } = params;
     const product = mockProducts.find(p => p._id === id);
@@ -453,7 +489,7 @@ export const handlers = [
   }),
   http.get('http://localhost:5000/api/admin/listings', ({ request }) => {
     const url = new URL(request.url);
-    const status = url.searchParams.get('status') as ListingStatus | null;
+    const status = url.searchParams.get('status') as 'pending' | 'active' | 'sold' | 'rejected' | null;
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '10');
 
@@ -531,45 +567,43 @@ export const handlers = [
       }
     });
   }),
-  http.get('http://localhost:5000/api/listings/my', ({ request }) => {
-    
-    const currentUserId = 'user01'; 
-    const url = new URL(request.url);
-    const status = url.searchParams.get('status');
-
-    let userListings = mockProducts.filter(p => p.seller_id === currentUserId);
-
-    if (status) {
-      userListings = userListings.filter(p => p.status === status);
-    }
-    
-    return HttpResponse.json({
-      success: true,
-      message: 'Lấy tin đăng cá nhân thành công',
-      data: userListings,
-    });
-  }),
   //post product for seller 
+  // CẬP NHẬT HANDLER TẠO TIN ĐĂNG
   http.post('http://localhost:5000/api/listings', async ({ request }) => {
-    const newListingData = await request.json();
-    console.log("Đã nhận dữ liệu tin đăng mới:", newListingData);
+    const newListingData = await request.json() as Partial<Product>;
+    
+    // Sử dụng helper function để lấy ID người bán từ token
+    const sellerId = getUserIdFromToken(request);
 
-    const createdListing = {
-      _id: `new_${Math.random().toString(36).substr(2, 9)}`,
-      ...newListingData,
-      status: 'pending', 
+    if (!sellerId) {
+        return HttpResponse.json({ success: false, message: 'Yêu cầu không hợp lệ, thiếu thông tin xác thực.' }, { status: 401 });
+    }
+
+    const createdListing: Product = {
+      _id: `prod_${Date.now()}`,
+      brand_id: newListingData.brand_id || '',
+      model_id: newListingData.model_id || '',
+      title: newListingData.title || '',
+      description: newListingData.description || '',
+      price: newListingData.price || 0,
+      condition: newListingData.condition || 'good',
+      location: newListingData.location || { city: '', district: '' },
+      images: newListingData.images || [],
+      ev_details: newListingData.ev_details,
+      battery_details: newListingData.battery_details,
+      seller_id: sellerId, // Gán ID người bán đã xác thực
+      status: 'pending',
+      views: 0,
+      is_verified: false,
+      is_featured: false,
       created_at: new Date().toISOString(),
     };
-
-    return HttpResponse.json({
-      success: true,
-      message: 'Đăng tin thành công! Tin của bạn đang chờ duyệt.',
-      data: createdListing,
-    }, { status: 201 });
+    mockProducts.unshift(createdListing);
+    return HttpResponse.json({ success: true, message: 'Đăng tin thành công!', data: createdListing }, { status: 201 });
   }),
   // HANDLER MỚI: Đăng ký tài khoản
   http.post('http://localhost:5000/api/auth/register', async ({ request }) => {
-    const { fullName, email } = await request.json() as any;
+    const { fullName, email } = await request.json() as { fullName: string; email: string };
     // Giả lập kiểm tra email tồn tại
     if (email === 'member@example.com') {
         return HttpResponse.json({ success: false, message: 'Email đã được sử dụng.'}, { status: 400 });

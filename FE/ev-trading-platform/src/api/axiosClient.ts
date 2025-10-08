@@ -9,12 +9,13 @@ const axiosClient = axios.create({
 });
 
 
-// axiosClient.interceptors.request.use(async (config) => {
-//   const token = localStorage.getItem('jwt_token');
-//   if (token) {
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-//   return config;
-// });
+axiosClient.interceptors.request.use(async (config) => {
+  const token = localStorage.getItem('token'); // Lấy token đã lưu khi đăng nhập
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 
 export default axiosClient;

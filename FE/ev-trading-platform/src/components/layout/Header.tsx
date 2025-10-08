@@ -1,6 +1,6 @@
 // src/components/layout/Header.tsx
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link  , useNavigate } from "react-router-dom";
 import { Menu, X, Bell, User } from "lucide-react";
 import Button from "../common/Button/Button";
 import "./Header.scss";
@@ -9,6 +9,10 @@ import { useAuth } from "../../contexts/AuthContext";
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+    const handleRegisterClick = () => {
+    navigate("/register"); 
+  };
   return (
     <header className="header">
       <div className="container header__container">
@@ -57,7 +61,7 @@ const Header: React.FC = () => {
               <Button
                 variant="primary"
                 onClick={() => {
-                  /* Navigate to register page */
+                  handleRegisterClick()
                 }}
               >
                 Đăng ký
