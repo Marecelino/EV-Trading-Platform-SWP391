@@ -34,3 +34,12 @@
     }
   }
 }
+.seller-card__rating {
+  margin-top: 10px; // Tạo khoảng cách với tên người bán
+}
+
+.no-rating {
+  font-size: 0.9rem;
+  color: #777;
+  font-style: italic;
+}

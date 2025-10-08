@@ -1,17 +1,20 @@
 // src/styles/variables.scss
 
 // 1. Brand Colors
-$primary-color: #27AE60;    // Green
-$secondary-color: #3498DB; // Light Blue
-$accent-color: #F1C40F;     // Yellow/Gold Accent
+$primary-color: #27AE60;    
+$secondary-color: #3498DB; 
+$accent-color: #F1C40F;     
 $background-color: #F7F9F9;
 $text-color: #2C3E50;
 $white-color: #FFFFFF;
 $border-color: #EAECEE;
-
+$text-primary: #333; 
+$text-secondary: #6B7280;
 // 2. Typography
-$primary-font: 'Roboto', sans-serif; // Hoặc font bạn chọn
-
+$primary-font: 'Roboto', sans-serif;
+$light-bg: #F3FAF6;
+$light-bg-alt: #EEF8F1;
+$surface-bg: #FFFFFF;  
 // 3. Layout Dimensions
 $header-height: 70px;
 $container-max-width: 1200px;

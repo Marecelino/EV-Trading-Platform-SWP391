@@ -208,5 +208,22 @@
     &:hover {
       color: red;
     }
+    &.liked {
+    color: #e74c3c; // Màu đỏ
+    svg {
+      fill: #e74c3c; // Tô đầy trái tim
+    }
   }
+  }
+}
+.seller-info__details {
+    display: flex;
+    flex-direction: column;
+
+
+    .no-rating { 
+        font-size: 0.8rem;
+        color: #888;
+        font-style: italic;
+    }
 }

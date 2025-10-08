@@ -1,0 +1,9 @@
+// src/pages/FavoritesPage/FavoritesPage.scss
+.favorites-page {
+  padding: 40px 15px;
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+  }
+}

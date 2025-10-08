@@ -17,11 +17,15 @@ import CreateListingPage from './pages/CreateListingPage/CreateListingPage';
 import RegisterPage from './pages/RegisterPage/RegisterPage';
 import { ComparisonProvider } from './contexts/ComparisonContext';
 import ComparePage from './pages/ComparePage/ComparePage';
-
+import DashboardLayout from './layouts/DashboardLayout';
+import UserProfilePage from './pages/UserProfilePage/UserProfilePage';
+import { FavoritesProvider } from './contexts/FavoritesContext';
+import FavoritesPage from './pages/FavoritesPage/FavoritesPage';
 
 function App() {
   return (
     <AuthProvider>
+       <FavoritesProvider>
        <ComparisonProvider>
       <Router>
         <Routes>
@@ -39,6 +43,13 @@ function App() {
             <Route path="/compare" element={<ComparePage />} />
 
           </Route>
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route path="profile" element={<UserProfilePage />} />
+              <Route path="my-listings" element={<MyListingsPage />} />
+              <Route path="listings/create" element={<CreateListingPage />} />
+              <Route path="transactions" element={<div>Trang Lịch sử Giao dịch chi tiết</div>} />
+              <Route path="favorites" element={<FavoritesPage/>} />
+            </Route>
 
           {/* === ADMIN ROUTES === */}
           <Route element={<AdminRoute />}>
@@ -52,6 +63,7 @@ function App() {
         </Routes>
       </Router>
       </ComparisonProvider>
+      </FavoritesProvider>
     </AuthProvider>
   );
 }

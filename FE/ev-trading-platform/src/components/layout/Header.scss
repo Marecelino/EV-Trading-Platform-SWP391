@@ -30,7 +30,7 @@
     gap: 30px;
 
     @media (max-width: 768px) {
-      display: none; // Ẩn trên mobile, sẽ xử lý menu mobile sau
+      display: none;
     }
   }
 
@@ -76,13 +76,112 @@
   }
 
   &__menu-toggle {
-    display: none; // Mặc định ẩn
+    display: none;
     background: none;
     border: none;
     cursor: pointer;
     
     @media (max-width: 768px) {
-      display: block; // Hiện trên mobile
+      display: block;
     }
+  }
+}
+
+.user-menu {
+  position: relative;
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: transparent;
+    border: none;
+    border-radius: 20px;
+    padding: 4px 12px 4px 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: #f0f2f5;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    span {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+  }
+
+  // Menu dropdown với padding-top để tạo vùng hover liên tục
+  .dropdown-menu {
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s ease-in-out;
+    
+    position: absolute;
+    top: 100%; // Không có gap, nối liền với button
+    right: 0;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
+    width: 200px;
+    z-index: 100;
+    border: 1px solid #eee;
+    
+    // Thêm padding-top để tạo vùng hover "ẩn" giữa button và menu
+    padding-top: 18px;
+    margin-top: -8px; // Offset để menu không bị đẩy xuống
+    
+    // Container bên trong chứa các items thực sự
+    &-inner {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 8px;
+      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
+      border: 1px solid #eee;
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+      color: $text-color;
+      font-size: 0.9rem;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      transition: background-color 0.15s;
+
+      &:hover {
+        background-color: #f8f9fa;
+      }
+
+      &--logout {
+        color: #e74c3c;
+        margin-top: 5px;
+        border-top: 1px solid #eee;
+        padding-top: 15px;
+      }
+    }
+  }
+
+  
+  &.is-open .dropdown-menu {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
   }
 }

@@ -45,10 +45,15 @@ export interface User {
   avatar_url?: string;
   phone?: string;
   status: 'active' | 'suspended';
+  rating?: {
+    average: number;
+    count: number;
+  };
 }
 export interface Review {
     _id: string;
-    reviewer_id: User; 
+    reviewer_id: string; 
+    reviewee_id: string;
     rating: number; 
     comment?: string;
     created_at: string;
@@ -92,7 +97,12 @@ export interface ITransaction {
 export interface PaginatedTransactionsResponse {
     success: boolean;
     data: ITransaction[];
-    pagination: { /* ... */ };
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+    };
 }
 export interface PaginatedUsersResponse {
   success: boolean;
@@ -107,9 +117,17 @@ export interface PaginatedUsersResponse {
 export interface Attribute {
   key: string;
   label: string;
-  format?: (value: any) => string;
+  format?: (value: unknown) => string;
 }
 export interface AttributeGroup {
   title: string;
   attributes: Attribute[];
+}
+export interface Review {
+  _id: string;
+  reviewer_id: string;
+  reviewee_id: string;
+  rating: number;
+  comment: string | undefined;
+  created_at: string;
 }
