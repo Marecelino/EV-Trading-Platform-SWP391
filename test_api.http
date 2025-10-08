@@ -1,0 +1,25 @@
+# Test Google OAuth API Endpoints
+
+## 1. Test basic login (mock)
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+
+## 2. Test Google OAuth redirect
+GET http://localhost:3000/auth/google
+
+## 3. Test profile endpoint (requires token)
+GET http://localhost:3000/auth/profile
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+## 4. Test Google credential login (from frontend)
+POST http://localhost:3000/auth/google/callback
+Content-Type: application/json
+
+{
+  "credential": "GOOGLE_JWT_CREDENTIAL_HERE"
+}

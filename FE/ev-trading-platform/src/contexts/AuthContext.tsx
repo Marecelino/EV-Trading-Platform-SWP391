@@ -1,23 +1,25 @@
 // src/contexts/AuthContext.tsx
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import authApi from '../api/authApi'; 
+import { createContext, useState, useContext } from 'react';
+import type { ReactNode } from 'react';
+import authApi from '../api/authApi';
 
+// Định nghĩa kiểu dữ liệu User
 interface User {
   _id: string;
   email: string;
   full_name: string;
   role: 'member' | 'admin';
+  picture?: string;
 }
 
 // Định nghĩa những gì Context sẽ cung cấp
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  googleLogin: (credential: string) => Promise<User>;
   logout: () => void;
   isLoading: boolean;
-  register: (fullName: string, email: string, password: string) => Promise<User>;
-
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,7 +31,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
 
 
- const login = async (email: string, password: string): Promise<User> => { 
+  const login = async (email: string, password: string): Promise<User> => { 
+    setIsLoading(true);
     try {
       const response = await authApi.login(email, password);
       if (response.data.success) {
@@ -42,8 +45,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       throw new Error(response.data.message || 'Đăng nhập thất bại');
     } catch (error: any) {
-      
       throw new Error(error.response?.data?.message || 'Lỗi không xác định');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const googleLogin = async (credential: string): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const response = await authApi.googleLogin(credential);
+      if (response.data.success) {
+        const { user: loggedInUser, token: newToken } = response.data.data;
+        setUser(loggedInUser);
+        setToken(newToken);
+        localStorage.setItem('token', newToken);
+        return loggedInUser;
+      }
+      
+      throw new Error(response.data.message || 'Đăng nhập Google thất bại');
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Lỗi đăng nhập Google');
     } finally {
       setIsLoading(false);
     }
@@ -55,29 +77,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('token');
   };
 
-  const register = async (fullName: string, email: string, password: string): Promise<User> => {
-    setIsLoading(true);
-    try {
-      const response = await authApi.register(fullName, email, password);
-      if (response.data.success) {
-        const { user: registeredUser, token: newToken } = response.data.data;
-        setUser(registeredUser);
-        setToken(newToken);
-        localStorage.setItem('token', newToken);
-        return registeredUser;
-      }
-      throw new Error(response.data.message || 'Đăng ký thất bại');
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Lỗi không xác định');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const value = { user, token, login, googleLogin, logout, isLoading };
 
-  const value = { user, token, login, logout, isLoading, register }; // Thêm register
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

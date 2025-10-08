@@ -1,0 +1,68 @@
+// src/components/common/GoogleLoginButton/GoogleLoginButton.scss
+.google-login-button-container {
+  position: relative;
+  width: 100%;
+  margin: 1rem 0;
+
+  .google-signin-button {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 4px;
+    transition: opacity 0.3s ease;
+
+    &.disabled {
+      pointer-events: none;
+      cursor: not-allowed;
+    }
+  }
+
+  .button-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: #666;
+    pointer-events: none;
+  }
+
+  &::before {
+    content: "";
+    display: block;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #666;
+  }
+}
+
+// Divider styles
+.login-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
+  color: #666;
+  font-size: 0.9rem;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #e0e0e0;
+  }
+
+  &::before {
+    margin-right: 1rem;
+  }
+
+  &::after {
+    margin-left: 1rem;
+  }
+}

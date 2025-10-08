@@ -4,7 +4,6 @@ import listingsApi from '../../api/listingsApi';
 import type { Product } from '../../types';
 import { Link } from 'react-router-dom';
 import './MyListingsPage.scss';
-import MyListingItem from '../../components/modules/MyListingItem/MyListingItem'; 
 
 type ListingStatus = 'active' | 'pending' | 'rejected' | 'expired';
 
@@ -46,7 +45,19 @@ const MyListingsPage: React.FC = () => {
             <p>Bạn chưa có tin đăng nào trong mục này.</p>
           ) : (
             listings.map(listing => (
-              <MyListingItem key={listing._id} product={listing} />
+              <div key={listing._id} className="listing-item">
+                <img src={listing.images[0]} alt={listing.title} className="listing-item__image" />
+                <div className="listing-item__details">
+                  <Link to={`/products/${listing._id}`} className="listing-item__title">{listing.title}</Link>
+                  <p className="listing-item__price">{listing.price.toLocaleString('vi-VN')} ₫</p>
+                  <p className="listing-item__date">Ngày đăng: {new Date(listing.created_at).toLocaleDateString('vi-VN')}</p>
+                </div>
+                <div className="listing-item__actions">
+                  <button className="action-button btn-boost">Đẩy tin</button>
+                  <button className="action-button btn-edit">Sửa tin</button>
+                  <button className="action-button btn-hide">Ẩn tin</button>
+                </div>
+              </div>
             ))
           )}
         </div>

@@ -5,9 +5,6 @@ import Button from '../../components/common/Button/Button';
 import './LoginPage.scss'; 
 import { useAuth } from '../../contexts/AuthContext'; 
 import { User } from '../../types'; 
-import SocialButton from '../../components/common/SocialButton/SocialButton';
-import { FcGoogle } from 'react-icons/fc'; // Google icon
-import { FaFacebook } from 'react-icons/fa'
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,9 +30,7 @@ const LoginPage: React.FC = () => {
     }
   };
 
-const handleSocialLogin = (provider: 'google' | 'facebook') => {
-    alert(`Chức năng đăng nhập với ${provider} sẽ được kết nối với backend sau.`);
-  };
+
   return (
     <div className="login-page">
       <div className="login-form-container">
@@ -69,18 +64,6 @@ const handleSocialLogin = (provider: 'google' | 'facebook') => {
             {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
           </Button>
         </form>
-        <div className="divider"><span>Hoặc tiếp tục với</span></div>
-
-        <div className="social-login-group">
-          <SocialButton provider="google" onClick={() => handleSocialLogin('google')}>
-            <FcGoogle size={22} />
-            <span>Google</span>
-          </SocialButton>
-          <SocialButton provider="facebook" onClick={() => handleSocialLogin('facebook')}>
-            <FaFacebook size={22} />
-            <span>Facebook</span>
-          </SocialButton>
-        </div>
         <p className="signup-link">
           Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
         </p>
