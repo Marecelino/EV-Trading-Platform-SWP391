@@ -1,8 +1,7 @@
 // src/contexts/AuthContext.tsx
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import authApi from '../api/authApi'; // Sẽ tạo ngay sau đây
+import authApi from '../api/authApi'; 
 
-// Định nghĩa kiểu dữ liệu User
 interface User {
   _id: string;
   email: string;

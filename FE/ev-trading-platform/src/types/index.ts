@@ -104,3 +104,12 @@ export interface PaginatedUsersResponse {
     pages: number;
   };
 }
+export interface Attribute {
+  key: string;
+  label: string;
+  format?: (value: any) => string;
+}
+export interface AttributeGroup {
+  title: string;
+  attributes: Attribute[];
+}

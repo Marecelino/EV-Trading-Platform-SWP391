@@ -21,8 +21,8 @@ const Header: React.FC = () => {
         </Link>
 
         <nav className={`header__nav ${isMenuOpen ? "is-open" : ""}`}>
-          <Link to="/mua-xe" className="header__nav-link">
-            Mua xe
+          <Link to="/compare" className="header__nav-link">
+            So sánh 
           </Link>
           <Link to="/mua-pin" className="header__nav-link">
             Mua pin

@@ -2,6 +2,7 @@
 import React from 'react';
 import { Heart, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useComparison } from '../../../contexts/ComparisonContext'; // Import hook mới
 
 import type { Product } from '../../../types'; // Import type đã cập nhật
 import Button from '../../common/Button/Button';
@@ -24,6 +25,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
 
   const timeSince = (date: string) => {
     return "Vài giờ trước";
+  };
+  const { addItem, removeItem, isInCompare } = useComparison(); 
+  
+  const handleCompareChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      addItem(product);
+    } else {
+      removeItem(product._id);
+    }
   };
 
   if (variant === 'detailed') {
@@ -56,10 +66,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
             )}
           </div>
 
-          <div className="product-card__footer">
-            <span className="product-card__location">{product.location.city}</span>
-            <span className="product-card__time">{timeSince(product.created_at)}</span>
-          </div>
+            <div className="product-card__footer">
+    <span className="product-card__location">{product.location.city}</span>
+    <div className="compare-action">
+      <input 
+        type="checkbox" 
+        id={`compare-${product._id}`} 
+        checked={isInCompare(product._id)}
+        onChange={handleCompareChange}
+      />
+      <label htmlFor={`compare-${product._id}`}>So sánh</label>
+    </div>
+  </div>
           <div className="product-card__actions">
             <Button variant='outline'><MessageSquare size={16} /><span>Chat</span></Button>
             <button className="product-card__favorite-btn--detailed"><Heart size={20} /></button>

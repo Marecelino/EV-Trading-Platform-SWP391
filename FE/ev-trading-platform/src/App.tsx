@@ -15,11 +15,14 @@ import AdminTransactionManagementPage from './pages/AdminTransactionManagementPa
 import MyListingsPage from './pages/MyListingsPage/MyListingsPage';
 import CreateListingPage from './pages/CreateListingPage/CreateListingPage';
 import RegisterPage from './pages/RegisterPage/RegisterPage';
+import { ComparisonProvider } from './contexts/ComparisonContext';
+import ComparePage from './pages/ComparePage/ComparePage';
 
 
 function App() {
   return (
     <AuthProvider>
+       <ComparisonProvider>
       <Router>
         <Routes>
           {/* Tất cả các Route bên trong đây sẽ sử dụng chung UserLayout */}
@@ -33,6 +36,7 @@ function App() {
             <Route path="products/:id" element={<ProductDetailPage />} />
             <Route path="/dashboard/my-listings" element={<MyListingsPage />} />
             <Route path="/listings/create" element={<CreateListingPage />} />
+            <Route path="/compare" element={<ComparePage />} />
 
           </Route>
 
@@ -47,6 +51,7 @@ function App() {
           </Route>
         </Routes>
       </Router>
+      </ComparisonProvider>
     </AuthProvider>
   );
 }
