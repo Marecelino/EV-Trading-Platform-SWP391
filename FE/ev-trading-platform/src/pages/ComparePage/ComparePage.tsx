@@ -42,7 +42,6 @@ const ComparePage: React.FC = () => {
 
   const items = selectedProducts.filter((p): p is Product => p !== null);
   
-  // HÀM LẤY THUỘC TÍNH - ĐẢM BẢO LUÔN TRẢ VỀ MỘT MẢNG HỢP LỆ
   const getAttributeGroups = (): AttributeGroup[] => {
     const commonGroup: AttributeGroup = {
       title: "Thông tin cơ bản",
@@ -83,7 +82,7 @@ const ComparePage: React.FC = () => {
         },
       ];
     }
-    return []; // Trả về mảng rỗng nếu không có category nào khớp
+    return [];
   };
 
   const attributeGroups = getAttributeGroups();

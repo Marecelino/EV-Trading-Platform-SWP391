@@ -304,6 +304,7 @@ const getUserIdFromToken = (request: Request): string | null => {
 export const handlers = [
    // GET /api/listings
   http.get('http://localhost:5000/api/listings', () => {
+    console.log('MSW: Handling request for all listings');
     return HttpResponse.json({
       success: true,
       message: 'Lấy danh sách tin đăng thành công!',
@@ -374,6 +375,7 @@ export const handlers = [
 }),
   http.get('http://localhost:5000/api/listings/:id', ({ params }) => {
     const { id } = params;
+    console.log('MSW: Handling request for product ID:', id);
     const product = mockProducts.find(p => p._id === id);
 
     if (product) {

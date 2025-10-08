@@ -16,7 +16,23 @@ const ProductDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // ... logic fetchProduct giữ nguyên
+    const fetchProduct = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const response = await listingsApi.getById(id);
+        if (response.data.success) {
+          setProduct(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProduct();
   }, [id]);
 
   if (isLoading) return <div className="container page-loading">Đang tải chi tiết sản phẩm...</div>;
