@@ -1,68 +1,586 @@
 // src/pages/ProductDetailPage/ProductDetailPage.scss
 @import '../../styles/variables';
+@import '../../styles/mixins';
 
 .product-detail-page {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 30px;
+  gap: 32px;
   padding-top: 40px;
   padding-bottom: 60px;
   
-  @media (min-width: 1024px) {
-    grid-template-columns: minmax(0, 2.5fr) minmax(0, 1fr); // Cột trái linh hoạt, cột phải cố định
+  @include desktop {
+    grid-template-columns: minmax(0, 2.5fr) minmax(340px, 420px);
+    gap: 40px;
   }
 
+  // ========================================
+  // CONTENT CARDS
+  // ========================================
   .content-card {
-    background-color: $white-color;
-    padding: 24px;
-    border-radius: 12px;
-    margin-bottom: 24px;
-    border: 1px solid $border-color;
-  }
-  
-  .header-card {
-    padding-bottom: 0;
-    margin-bottom: 0;
-    border: none;
-    background: none;
-    padding: 0 0 24px 0;
-    h1 { margin: 0 0 10px 0; font-size: 2rem; }
+    @include card($padding: $spacing-6, $radius: $radius-lg);
+    margin-bottom: $spacing-6;
+    transition: all $duration-base $ease-in-out;
+    
+    &:hover {
+      box-shadow: $shadow-lg;
+      transform: translateY(-2px);
+    }
+
+    h2, h3, h4 {
+      margin-top: 0;
+      color: $text-primary;
+      font-weight: $font-weight-bold;
+      position: relative;
+      padding-bottom: $spacing-3;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, $primary-color, transparent);
+      }
+    }
   }
 
-  .price {
-    font-size: 2.2rem;
-    font-weight: 700;
-    color: $primary-color;
-    margin: 0.5rem 0;
-  }
-  
-  .meta-info {
-      display: flex;
-      gap: 20px;
-      color: lighten($text-color, 40%);
-      font-size: 0.9rem;
-  }
-  
-  aside.sidebar .content-card {
-    position: sticky;
-    top: 100px;
-  }
-  
-  .safety-tips {
-      background-color: lighten($accent-color, 35%);
-      border: 1px solid lighten($accent-color, 20%);
-      h4 { margin-top: 0; }
-      ul {
-          padding-left: 20px;
-          margin: 0;
-          font-size: 0.9rem;
-          line-height: 1.6;
+  // ========================================
+  // HEADER CARD (Title + Price + Meta)
+  // ========================================
+  .header-card {
+    background: linear-gradient(135deg, 
+      lighten($primary-color, 48%) 0%, 
+      $white-color 100%);
+    border-left: 4px solid $primary-color;
+    padding: $spacing-8 $spacing-6;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-md;
+    margin-bottom: $spacing-6;
+    position: relative;
+    overflow: hidden;
+    
+    // Decorative corner accent
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba($primary-color, 0.1) 0%, transparent 70%);
+      transform: translate(30%, -30%);
+    }
+
+    h1 {
+      margin: 0 0 $spacing-4 0;
+      font-size: $font-size-4xl;
+      font-weight: $font-weight-extrabold;
+      color: $text-primary;
+      line-height: 1.2;
+      position: relative;
+      z-index: 1;
+      
+      @include mobile {
+        font-size: $font-size-2xl;
       }
+      
+      @include tablet {
+        font-size: $font-size-3xl;
+      }
+    }
+
+    // Status badge (if product has one)
+    .status-badge {
+      @include badge-success;
+      margin-bottom: $spacing-3;
+      font-size: $font-size-sm;
+      
+      &.featured {
+        background: linear-gradient(135deg, $accent-color, darken($accent-color, 10%));
+        color: $white-color;
+        
+        &::before {
+          content: '⭐ ';
+        }
+      }
+    }
+  }
+
+  // ========================================
+  // PRICE DISPLAY
+  // ========================================
+  .price {
+    font-size: 3rem;
+    font-weight: $font-weight-extrabold;
+    background: linear-gradient(135deg, $primary-color 0%, darken($primary-color, 15%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: $spacing-3 0;
+    display: inline-block;
+    position: relative;
+    z-index: 1;
+    
+    @include mobile {
+      font-size: 2rem;
+    }
+    
+    // Price label
+    &::before {
+      content: 'Giá bán';
+      display: block;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+      color: $text-secondary;
+      margin-bottom: $spacing-2;
+      -webkit-text-fill-color: initial;
+      text-transform: uppercase;
+      letter-spacing: $letter-spacing-wide;
+    }
+    
+    // Negotiable tag
+    &[data-negotiable="true"]::after {
+      content: 'Có thể thương lượng';
+      display: inline-block;
+      margin-left: $spacing-3;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+      color: $success-color;
+      background-color: $success-bg;
+      padding: $spacing-1 $spacing-3;
+      border-radius: $radius-full;
+      -webkit-text-fill-color: initial;
+      vertical-align: middle;
+    }
+  }
+
+  // ========================================
+  // META INFO (Views, Date, etc.)
+  // ========================================
+  .meta-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-5;
+    margin-top: $spacing-4;
+    padding-top: $spacing-4;
+    border-top: 1px solid $border-light;
+    position: relative;
+    z-index: 1;
+    
+    @include mobile {
+      gap: $spacing-3;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: $spacing-2;
+      font-size: $font-size-sm;
+      color: $text-secondary;
+      font-weight: $font-weight-medium;
+      
+      .icon {
+        font-size: $font-size-lg;
+        color: $primary-color;
+      }
+      
+      .label {
+        color: $text-muted;
+        margin-right: $spacing-1;
+      }
+      
+      .value {
+        color: $text-primary;
+        font-weight: $font-weight-semibold;
+      }
+    }
+  }
+
+  // ========================================
+  // MAIN CONTENT AREA
+  // ========================================
+  .main-content {
+    min-width: 0;
+    animation: fadeInUp 0.5s ease-out;
+    
+    // Description section
+    .content-card {
+      h2 {
+        margin-bottom: $spacing-5;
+      }
+      
+      p {
+        line-height: 1.8;
+        color: $text-secondary;
+        font-size: $font-size-base;
+        margin-bottom: $spacing-4;
+      }
+    }
+  }
+
+  // ========================================
+  // SIDEBAR
+  // ========================================
+  aside.sidebar {
+    min-width: 0;
+    
+    @include desktop {
+      .content-card {
+        position: sticky;
+        top: 100px;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+        @include custom-scrollbar(6px, $gray-100, $primary-color);
+        
+        &:not(:last-child) {
+          margin-bottom: $spacing-6;
+        }
+      }
+    }
+
+    @include mobile {
+      order: -1; // Move sidebar to top on mobile
+      
+      .content-card {
+        margin-bottom: $spacing-4;
+      }
+    }
+  }
+
+  // ========================================
+  // SAFETY TIPS CARD
+  // ========================================
+  .safety-tips {
+    background: linear-gradient(135deg, 
+      lighten($warning-color, 45%) 0%, 
+      $white-color 100%);
+    border: 2px solid $warning-border;
+    border-left-width: 4px;
+    position: relative;
+    
+    &::before {
+      content: '⚠️';
+      position: absolute;
+      top: -10px;
+      right: 20px;
+      font-size: 3rem;
+      opacity: 0.2;
+    }
+
+    h4 {
+      margin-top: 0;
+      margin-bottom: $spacing-4;
+      color: darken($warning-color, 20%);
+      font-size: $font-size-lg;
+      display: flex;
+      align-items: center;
+      gap: $spacing-2;
+      
+      &::before {
+        content: '🛡️';
+        font-size: $font-size-2xl;
+      }
+      
+      &::after {
+        display: none; // Remove the gradient underline for this specific heading
+      }
+    }
+
+    ul {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+
+      li {
+        font-size: $font-size-sm;
+        line-height: 1.8;
+        color: $text-primary;
+        padding: $spacing-3 0;
+        padding-left: $spacing-8;
+        position: relative;
+        border-bottom: 1px solid lighten($warning-color, 40%);
+        
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &::before {
+          content: '✓';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 28px;
+          height: 28px;
+          background-color: $success-color;
+          color: $white-color;
+          border-radius: $radius-full;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: $font-weight-bold;
+          font-size: $font-size-base;
+        }
+        
+        strong {
+          color: darken($warning-color, 20%);
+          font-weight: $font-weight-bold;
+        }
+      }
+    }
+  }
+
+  // ========================================
+  // CONTACT ACTIONS (Quick Actions)
+  // ========================================
+  .quick-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-3;
+    margin-top: $spacing-5;
+    
+    @include mobile {
+      grid-template-columns: 1fr;
+    }
+
+    .action-btn {
+      @include button-base;
+      padding: $spacing-4;
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+      border-radius: $radius-md;
+      transition: all $duration-base $ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: $spacing-2;
+      
+      .icon {
+        font-size: $font-size-xl;
+      }
+      
+      &.primary {
+        @include button-primary;
+      }
+      
+      &.secondary {
+        @include button-secondary;
+      }
+      
+      &.whatsapp {
+        background-color: #25D366;
+        color: $white-color;
+        border: none;
+        
+        &:hover {
+          background-color: darken(#25D366, 10%);
+          transform: translateY(-2px);
+          box-shadow: $shadow-md;
+        }
+      }
+      
+      &.call {
+        background-color: $secondary-color;
+        color: $white-color;
+        border: none;
+        
+        &:hover {
+          background-color: darken($secondary-color, 10%);
+          transform: translateY(-2px);
+          box-shadow: $shadow-md;
+        }
+      }
+    }
+  }
+
+  // ========================================
+  // PRODUCT HIGHLIGHTS
+  // ========================================
+  .highlights-card {
+    background: linear-gradient(135deg, 
+      lighten($secondary-color, 48%) 0%, 
+      $white-color 100%);
+    border-left: 4px solid $secondary-color;
+    
+    .highlights-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: $spacing-4;
+      margin-top: $spacing-4;
+      
+      @include mobile {
+        grid-template-columns: 1fr;
+      }
+      
+      .highlight-item {
+        display: flex;
+        align-items: flex-start;
+        gap: $spacing-3;
+        padding: $spacing-3;
+        background-color: $white-color;
+        border-radius: $radius-base;
+        transition: all $duration-base $ease-in-out;
+        
+        &:hover {
+          transform: translateX(4px);
+          box-shadow: $shadow-sm;
+        }
+        
+        .icon {
+          font-size: $font-size-2xl;
+          flex-shrink: 0;
+        }
+        
+        .content {
+          .label {
+            font-size: $font-size-xs;
+            color: $text-muted;
+            text-transform: uppercase;
+            letter-spacing: $letter-spacing-wide;
+            display: block;
+            margin-bottom: $spacing-1;
+          }
+          
+          .value {
+            font-size: $font-size-lg;
+            font-weight: $font-weight-bold;
+            color: $text-primary;
+          }
+        }
+      }
+    }
   }
 }
 
+// ========================================
+// LOADING STATE
+// ========================================
 .page-loading {
-    padding: 60px 0;
-    text-align: center;
-    font-size: 1.2rem;
+  @include flex-column-center;
+  padding: 80px 0;
+  font-size: $font-size-xl;
+  color: $text-secondary;
+  
+  &::before {
+    content: '';
+    @include spinner(50px, $primary-color);
+    margin-bottom: $spacing-6;
+  }
+}
+
+// ========================================
+// RESPONSIVE BREAKPOINTS
+// ========================================
+
+@include tablet {
+  .product-detail-page {
+    padding-top: 32px;
+    gap: 24px;
+    
+    .header-card h1 {
+      font-size: $font-size-3xl;
+    }
+    
+    .price {
+      font-size: 2.5rem;
+    }
+  }
+}
+
+@include mobile {
+  .product-detail-page {
+    padding-top: 20px;
+    padding-bottom: 40px;
+    gap: 20px;
+    
+    .content-card {
+      padding: $spacing-4;
+      margin-bottom: $spacing-4;
+    }
+    
+    .header-card {
+      padding: $spacing-5 $spacing-4;
+      
+      h1 {
+        font-size: $font-size-2xl;
+      }
+    }
+    
+    .price {
+      font-size: 2rem;
+      
+      &::before {
+        font-size: 0.7rem;
+      }
+    }
+    
+    .meta-info {
+      flex-direction: column;
+      gap: $spacing-2;
+    }
+  }
+}
+
+// ========================================
+// ANIMATIONS
+// ========================================
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ========================================
+// PRINT STYLES
+// ========================================
+
+@media print {
+  .product-detail-page {
+    display: block;
+    
+    aside.sidebar {
+      display: none;
+    }
+    
+    .content-card {
+      box-shadow: none;
+      border: 1px solid $gray-300;
+      page-break-inside: avoid;
+    }
+  }
+}
+
+// ========================================
+// ACCESSIBILITY
+// ========================================
+
+@media (prefers-reduced-motion: reduce) {
+  .product-detail-page *,
+  .product-detail-page *::before,
+  .product-detail-page *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .product-detail-page {
+    .content-card {
+      border: 2px solid $text-primary;
+    }
+    
+    .header-card,
+    .safety-tips,
+    .highlights-card {
+      border-width: 3px;
+    }
+  }
 }

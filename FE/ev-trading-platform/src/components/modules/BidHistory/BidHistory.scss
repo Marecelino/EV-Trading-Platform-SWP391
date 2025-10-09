@@ -132,7 +132,7 @@
         text-shadow: 0 2px 4px rgba($success-color, 0.2);
         
         &::before {
-          content: '⭐';
+          
           margin-right: $spacing-2;
           animation: pulse 2s ease-in-out infinite;
         }
@@ -262,7 +262,7 @@
     font-style: italic;
     
     &::before {
-      content: '💰';
+      
       display: block;
       font-size: 4rem;
       margin-bottom: $spacing-4;

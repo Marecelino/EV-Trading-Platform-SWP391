@@ -198,6 +198,38 @@
       align-items: center;
       gap: 6px;
     }
+    .seller-info {
+            display: flex;
+            align-items: center;
+            gap: 8px; // Giảm khoảng cách
+
+            &__avatar {
+                width: 28px;  // <-- Làm cho avatar nhỏ lại
+                height: 28px; // <-- Làm cho avatar nhỏ lại
+                border-radius: 50%;
+                object-fit: cover;
+            }
+
+            &__details {
+                display: flex;
+                align-items: center; // <-- Đưa các item lên cùng một hàng
+                gap: 8px;
+            }
+
+            &__name {
+                font-weight: 500; // Giảm độ đậm
+                font-size: 0.9rem;
+            }
+
+            &__rating {
+                // Style cho rating có thể giữ nguyên hoặc tinh chỉnh nếu cần
+                font-size: 0.8rem;
+            }
+            
+            .no-rating {
+                font-size: 0.8rem;
+            }
+        }
   }
 
   .product-card__favorite-btn--detailed {
