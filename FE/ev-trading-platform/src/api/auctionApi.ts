@@ -8,5 +8,12 @@ const auctionApi = {
   placeBid: (auctionId: string, amount: number): Promise<any> => {
     return axiosClient.post(`/auctions/${auctionId}/bids`, { amount });
   },
+  createAuction: (fullAuctionData: any): Promise<any> => {
+    
+    return axiosClient.post('/auctions', fullAuctionData);
+  },
+    getActiveAuctions: (): Promise<any> => {
+    return axiosClient.get('/auctions');
+  },
 };
 export default auctionApi;

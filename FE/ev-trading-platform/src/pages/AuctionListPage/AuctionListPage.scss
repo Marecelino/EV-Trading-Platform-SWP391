@@ -1,0 +1,45 @@
+// src/pages/AuctionListPage/AuctionListPage.scss
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.auction-list-page {
+  padding-top: 40px;
+  padding-bottom: 60px;
+
+  h1 {
+    text-align: center;
+    font-size: 2.5rem;
+  }
+
+  p {
+    text-align: center;
+    color: #666;
+    margin-top: -10px;
+    margin-bottom: 40px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.auction-grid {
+  display: grid;
+  // Mặc định 1 cột cho mobile
+  grid-template-columns: 1fr;
+  gap: 30px;
+
+  // 2 cột trên tablet
+  @include tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  // 3 cột trên desktop
+  @include desktop {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  // 4 cột trên màn hình lớn hơn
+  @include desktop-lg {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

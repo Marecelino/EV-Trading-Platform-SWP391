@@ -103,3 +103,24 @@
   padding-top: 20px;
   border-top: 1px solid $border-color;
 }
+.listing-type-selector {
+  display: flex;
+  gap: 15px;
+  button {
+    flex: 1;
+    padding: 15px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: 2px solid $border-color;
+    background-color: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &.active {
+      border-color: $primary-color;
+      background-color: lighten($primary-color, 48%);
+      color: $primary-color;
+    }
+  }
+}

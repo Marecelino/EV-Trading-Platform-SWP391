@@ -1,94 +1,662 @@
 // src/components/modules/AuctionStatusPanel/AuctionStatusPanel.scss
 @import '../../../styles/variables';
+@import '../../../styles/mixins';
 
 .auction-panel {
-  border: 2px solid $primary-color; // Viền nổi bật
-  background-color: lighten($primary-color, 48%);
+  border: 2px solid $primary-color;
+  background: linear-gradient(135deg, 
+    lighten($primary-color, 48%) 0%, 
+    $white-color 100%);
+  border-radius: $radius-lg;
+  position: relative;
+  overflow: hidden;
+  transition: all $duration-base $ease-in-out;
+  box-shadow: $shadow-md;
+  
+  // Active auction indicator
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      $primary-color 0%, 
+      $secondary-color 50%, 
+      $primary-color 100%);
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+  }
+  
+  // Hover effect for active auction
+  &:not(.ended):hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-xl;
+    border-color: darken($primary-color, 10%);
+  }
 
+  // ========================================
+  // ENDED STATE
+  // ========================================
+  &.ended {
+    border-color: $gray-300;
+    background: linear-gradient(135deg, $gray-100 0%, $white-color 100%);
+    
+    &::before {
+      background: $gray-300;
+      animation: none;
+    }
+
+    .timer {
+      &__label {
+        font-weight: $font-weight-semibold;
+        color: $text-muted;
+        
+        &::before {
+          content: '⏹️ ';
+          margin-right: $spacing-1;
+        }
+      }
+      
+      &__time {
+        color: $gray-500;
+      }
+    }
+
+    .price-info {
+      border-bottom-color: $gray-200;
+      
+      span::before {
+        content: '🏆 ';
+        margin-right: $spacing-1;
+      }
+      
+      p {
+        color: $success-color;
+      }
+    }
+  }
+
+  // ========================================
+  // COUNTDOWN TIMER
+  // ========================================
   .timer {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: $spacing-5;
+    padding: $spacing-5 $spacing-4;
+    background-color: rgba($white-color, 0.7);
+    border-radius: $radius-md;
     
     &__label {
-      font-size: 0.9rem;
-      color: #555;
+      font-size: $font-size-base;
+      color: $text-secondary;
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: $spacing-3;
+      font-weight: $font-weight-medium;
+      text-transform: uppercase;
+      letter-spacing: $letter-spacing-wide;
     }
     
     &__time {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: $primary-color;
-      letter-spacing: 2px;
-    }
-  }
-
-  .price-info {
-    text-align: center;
-    margin-bottom: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid lighten($primary-color, 35%);
-    
-    span {
-      font-size: 1rem;
-      font-weight: 500;
-      color: $text-color;
-    }
-    
-    p {
-      font-size: 2.8rem;
-      font-weight: 700;
-      color: $text-color;
-      margin: 5px 0 0 0;
-    }
-  }
-
-  .bid-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 15px;
-    
-    input {
-      width: 100%;
-      padding: 14px;
-      font-size: 1.2rem;
-      text-align: center;
-      border: 1px solid $border-color;
-      border-radius: 8px;
-      font-weight: 600;
-
-      &:focus {
-        outline: none;
-        border-color: $primary-color;
-        box-shadow: 0 0 0 3px lighten($primary-color, 40%);
+      @include countdown-timer(2.5rem, $primary-color);
+      font-family: $monospace-font;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: $spacing-2;
+      
+      // Time segments
+      .time-segment {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 60px;
+        
+        .value {
+          font-size: 2.5rem;
+          font-weight: $font-weight-extrabold;
+          line-height: 1;
+          background: linear-gradient(135deg, $primary-color, darken($primary-color, 15%));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        
+        .label {
+          font-size: $font-size-xs;
+          color: $text-muted;
+          margin-top: $spacing-1;
+          font-weight: $font-weight-normal;
+          text-transform: lowercase;
+        }
+      }
+      
+      .separator {
+        font-size: 2rem;
+        color: $primary-color;
+        opacity: 0.5;
+        animation: blink 1s ease-in-out infinite;
       }
     }
     
-    .min-bid-note {
-      font-size: 0.85rem;
-      text-align: center;
-      color: #777;
+    // Urgent timer (< 1 hour)
+    &.urgent {
+      .timer__time {
+        color: $timer-urgent;
+        animation: pulse 1s ease-in-out infinite;
+        
+        .value {
+          background: linear-gradient(135deg, $timer-urgent, darken($timer-urgent, 15%));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+      }
+      
+      &::after {
+        content: '⚠️ Sắp kết thúc!';
+        display: block;
+        margin-top: $spacing-2;
+        color: $timer-urgent;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-bold;
+        animation: pulse 1s ease-in-out infinite;
+      }
     }
+    
+    // Warning timer (< 24 hours)
+    &.warning {
+      .timer__time .value {
+        background: linear-gradient(135deg, $timer-warning, darken($timer-warning, 15%));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+    }
+  }
 
-    .btn {
+  // ========================================
+  // PRICE INFO
+  // ========================================
+  .price-info {
+    text-align: center;
+    margin-bottom: $spacing-5;
+    padding-bottom: $spacing-5;
+    border-bottom: 2px dashed lighten($primary-color, 35%);
+    position: relative;
+    
+    span {
+      font-size: $font-size-base;
+      font-weight: $font-weight-medium;
+      color: $text-secondary;
+      text-transform: uppercase;
+      letter-spacing: $letter-spacing-wide;
+      display: block;
+      margin-bottom: $spacing-2;
+    }
+    
+    p {
+      font-size: 3rem;
+      font-weight: $font-weight-extrabold;
+      color: $text-primary;
+      margin: 0;
+      line-height: 1;
+      position: relative;
+      display: inline-block;
+      
+      // Animated gradient
+      background: linear-gradient(135deg, 
+        $text-primary 0%, 
+        $primary-color 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      
+      &::before {
+        
+        margin-right: $spacing-2;
+        -webkit-text-fill-color: initial;
+        opacity: 0.7;
+      }
+      
+      // Currency symbol
+      &::after {
+        content: ' ₫';
+        font-size: 0.6em;
+        opacity: 0.8;
+        -webkit-text-fill-color: $text-muted;
+      }
+    }
+    
+    // Price change indicator
+    .price-change {
+      font-size: $font-size-sm;
+      color: $success-color;
+      margin-top: $spacing-2;
+      font-weight: $font-weight-semibold;
+      
+      &::before {
+        content: '↗️ ';
+      }
+      
+      &.down {
+        color: $error-color;
+        
+        &::before {
+          content: '↘️ ';
+        }
+      }
+    }
+  }
+
+  // ========================================
+  // BID FORM
+  // ========================================
+  .bid-form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-3;
+    margin-bottom: $spacing-4;
+  }
+
+  // Quick bid buttons
+  .quick-bids {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-2;
+    margin-bottom: $spacing-3;
+
+    button {
+      @include button-base;
+      padding: $spacing-3 $spacing-2;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      border: 2px solid $border-color;
+      background-color: $white-color;
+      border-radius: $radius-base;
+      transition: all $duration-fast $ease-in-out;
+      position: relative;
+      overflow: hidden;
+      
+      // Ripple effect on click
+      &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba($primary-color, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+      }
+      
+      &:active::after {
+        width: 300px;
+        height: 300px;
+      }
+
+      &:hover {
+        border-color: $primary-color;
+        background-color: lighten($primary-color, 48%);
+        color: $primary-color;
+        transform: translateY(-2px);
+        box-shadow: $shadow-sm;
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+      
+      // Recommended bid
+      &.recommended {
+        border-color: $primary-color;
+        background-color: lighten($primary-color, 45%);
+        font-weight: $font-weight-bold;
+        
+        &::before {
+          
+          margin-right: $spacing-1;
+        }
+      }
+    }
+  }
+
+  // Custom bid input
+  input[type="number"] {
+    @include input-base;
+    padding: $spacing-4;
+    font-size: $font-size-xl;
+    text-align: center;
+    border: 2px solid $border-color;
+    border-radius: $radius-md;
+    font-weight: $font-weight-bold;
+    background-color: $white-color;
+    transition: all $duration-base $ease-in-out;
+
+    &:focus {
+      border-color: $primary-color;
+      box-shadow: 0 0 0 4px rgba($primary-color, 0.1);
+      transform: scale(1.02);
+    }
+    
+    &::placeholder {
+      color: $text-muted;
+      font-weight: $font-weight-normal;
+    }
+    
+    // Remove number input arrows
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    
+    &[type=number] {
+      -moz-appearance: textfield;
+    }
+  }
+    
+  .min-bid-note {
+    font-size: $font-size-sm;
+    text-align: center;
+    color: $text-secondary;
+    margin: 0;
+    padding: $spacing-2 $spacing-3;
+    background-color: lighten($info-color, 48%);
+    border-radius: $radius-base;
+    border-left: 3px solid $info-color;
+    
+    &::before {
+      content: 'ℹ️ ';
+      margin-right: $spacing-1;
+    }
+  }
+
+  // Error message
+  .error-message {
+    font-size: $font-size-sm;
+    color: $error-color;
+    text-align: center;
+    margin: 0;
+    padding: $spacing-3;
+    background-color: $error-bg;
+    border-radius: $radius-base;
+    border: 1px solid $error-border;
+    font-weight: $font-weight-medium;
+    animation: shake 0.5s ease-in-out;
+    
+    &::before {
+      content: '⚠️ ';
+      margin-right: $spacing-1;
+    }
+  }
+
+  // Main bid button
+  .btn {
+    @include button-primary;
+    width: 100%;
+    padding: $spacing-4;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    border-radius: $radius-md;
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      
+      margin-right: $spacing-2;
+    }
+    
+    // Shine effect
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
       width: 100%;
-      padding: 15px;
-      font-size: 1.2rem;
-      font-weight: 600;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+      );
+      transition: left 0.5s;
+    }
+    
+    &:hover::after {
+      left: 100%;
+    }
+    
+    &:disabled {
+      &::before {
+        content: '⏳ ';
+      }
     }
   }
   
-  // Nút Mua ngay
+  // Buy now button
   .btn-buy-now {
+    @include button-base;
     width: 100%;
-    margin-top: 10px;
-    background-color: #e67e22; // Màu cam nổi bật
-    border-color: #e67e22;
+    margin-top: $spacing-3;
+    padding: $spacing-4;
+    background: linear-gradient(135deg, $buy-now-color 0%, darken($buy-now-color, 10%) 100%);
+    color: $white-color;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    border: none;
+    border-radius: $radius-md;
+    box-shadow: $shadow-md;
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      content: '⚡ ';
+      margin-right: $spacing-2;
+      font-size: $font-size-xl;
+    }
 
     &:hover {
-      background-color: darken(#e67e22, 5%);
+      background: linear-gradient(135deg, darken($buy-now-color, 5%) 0%, darken($buy-now-color, 15%) 100%);
+      transform: translateY(-2px);
+      box-shadow: $shadow-lg;
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+    
+    // Pulse animation
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      animation: ripple 2s ease-out infinite;
+    }
+  }
+
+  // Bid confidence indicator
+  .bid-confidence {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-3;
+    background-color: lighten($success-color, 48%);
+    border-radius: $radius-base;
+    margin-top: $spacing-3;
+    font-size: $font-size-sm;
+    
+    span:first-child {
+      font-weight: $font-weight-medium;
+      color: $text-secondary;
+    }
+    
+    progress {
+      flex: 1;
+      height: 8px;
+      margin: 0 $spacing-3;
+      border-radius: $radius-full;
+      border: none;
+      overflow: hidden;
+      
+      &::-webkit-progress-bar {
+        background-color: $gray-200;
+        border-radius: $radius-full;
+      }
+      
+      &::-webkit-progress-value {
+        background: linear-gradient(90deg, $success-color, $primary-color);
+        border-radius: $radius-full;
+      }
+      
+      &::-moz-progress-bar {
+        background: linear-gradient(90deg, $success-color, $primary-color);
+        border-radius: $radius-full;
+      }
+    }
+    
+    span:last-child {
+      font-weight: $font-weight-bold;
+      color: $success-color;
+    }
+  }
+}
+
+// ========================================
+// MOBILE RESPONSIVE
+// ========================================
+
+@include mobile {
+  .auction-panel {
+    .timer {
+      padding: $spacing-4 $spacing-3;
+      
+      &__time {
+        .time-segment {
+          min-width: 50px;
+          
+          .value {
+            font-size: 2rem;
+          }
+        }
+        
+        .separator {
+          font-size: 1.5rem;
+        }
+      }
+    }
+    
+    .price-info p {
+      font-size: 2.5rem;
+    }
+    
+    .quick-bids {
+      gap: $spacing-2;
+      
+      button {
+        padding: $spacing-2;
+        font-size: 0.8rem;
+      }
+    }
+    
+    input[type="number"] {
+      font-size: $font-size-lg;
+      padding: $spacing-3;
+    }
+    
+    .btn,
+    .btn-buy-now {
+      font-size: $font-size-base;
+      padding: $spacing-3;
+    }
+  }
+}
+
+// ========================================
+// ANIMATIONS
+// ========================================
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-10px);
+  }
+  75% {
+    transform: translateX(10px);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+// ========================================
+// ACCESSIBILITY
+// ========================================
+
+@media (prefers-reduced-motion: reduce) {
+  .auction-panel {
+    &::before,
+    .timer__time .separator,
+    .btn::after,
+    .btn-buy-now::after {
+      animation: none !important;
+    }
+  }
+}
+
+@media (prefers-contrast: high) {
+  .auction-panel {
+    border-width: 3px;
+    
+    .timer,
+    .price-info {
+      border-width: 2px;
+      border-style: solid;
     }
   }
 }

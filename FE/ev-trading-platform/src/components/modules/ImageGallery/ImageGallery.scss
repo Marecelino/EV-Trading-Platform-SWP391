@@ -1,32 +1,93 @@
 // src/components/modules/ImageGallery/ImageGallery.scss
 @import '../../../styles/variables';
+@import '../../../styles/mixins';
+
 .image-gallery {
+  width: 100%;
+  background-color: $white-color;
+  
   .main-swiper {
     border-radius: 12px;
     margin-bottom: 10px;
-    .swiper-slide img {
-      width: 100%;
-      height: auto;
-      aspect-ratio: 16 / 10;
-      object-fit: cover;
+    background-color: $white-color;
+    overflow: hidden;
+    
+    .swiper-slide {
+      background-color: $white-color;
+      
+      img {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16 / 10;
+        object-fit: cover;
+        display: block;
+        background-color: $white-color;
+      }
+    }
+    
+    // Ensure navigation buttons are visible
+    .swiper-button-next,
+    .swiper-button-prev {
+      color: $primary-color;
+      background-color: rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      
+      &:after {
+        font-size: 18px;
+      }
     }
   }
+  
   .thumbs-swiper {
     .swiper-slide {
       opacity: 0.5;
       cursor: pointer;
       border-radius: 6px;
       overflow: hidden;
+      background-color: $white-color;
+      
       &.swiper-slide-thumb-active {
         opacity: 1;
         border: 2px solid $primary-color;
       }
+      
       img {
         width: 100%;
         height: auto;
         aspect-ratio: 16 / 10;
         object-fit: cover;
+        display: block;
+        background-color: $white-color;
       }
+    }
+  }
+  
+  // Desktop specific styles
+  @include desktop {
+    .main-swiper {
+      .swiper-slide img {
+        min-height: 400px;
+      }
+    }
+  }
+  
+  // Fallback for when images fail to load
+  .no-images {
+    padding: 60px 20px;
+    text-align: center;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    color: #6c757d;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    p {
+      margin: 0;
+      font-size: 1.1rem;
     }
   }
 }

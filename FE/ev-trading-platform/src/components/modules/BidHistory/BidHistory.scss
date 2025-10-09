@@ -1,66 +1,431 @@
 // src/components/modules/BidHistory/BidHistory.scss
 @import '../../../styles/variables';
+@import '../../../styles/mixins';
 
 .bid-history {
+  position: relative;
+  
+  // Header với badge count
   h3 {
     margin-top: 0;
-    margin-bottom: 15px;
+    margin-bottom: $spacing-4;
+    @include flex-between;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $text-primary;
+    
+    .bid-count {
+      @include badge-info;
+      font-size: $font-size-sm;
+      margin-left: $spacing-2;
+    }
   }
 
+  // Container cho list với custom scrollbar
   .bid-list {
     list-style: none;
     padding: 0;
     margin: 0;
-    max-height: 300px; // Giới hạn chiều cao và cho phép cuộn
+    max-height: 400px;
     overflow-y: auto;
+    @include custom-scrollbar(6px, $gray-100, $primary-color);
+    
+    // Smooth scroll behavior
+    scroll-behavior: smooth;
+    
+    // Fade effect ở bottom
+    &::after {
+      content: '';
+      position: sticky;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: linear-gradient(to top, $white-color, transparent);
+      pointer-events: none;
+    }
   }
 
+  // Individual bid item
   .bid-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid $border-color;
-
-    &:first-child { // Lượt trả giá cao nhất sẽ nổi bật
-      background-color: lighten($accent-color, 35%);
-      margin: 0 -24px; // Mở rộng nền ra sát viền card
-      padding: 12px 24px;
-
-      .bid-user, .bid-amount {
-        font-weight: 700;
+    padding: $spacing-4 0;
+    border-bottom: 1px solid $border-light;
+    position: relative;
+    transition: all $duration-base $ease-in-out;
+    animation: slideInRight 0.3s ease-out backwards;
+    
+    // Staggered animation delay
+    @for $i from 1 through 10 {
+      &:nth-child(#{$i}) {
+        animation-delay: #{$i * 0.05}s;
       }
     }
 
+    // Hover effect
+    &:hover {
+      background-color: $gray-50;
+      padding-left: $spacing-3;
+      padding-right: $spacing-3;
+      margin: 0 (-$spacing-3);
+      
+      .bid-amount {
+        color: $primary-color;
+        transform: scale(1.05);
+      }
+    }
+
+    // WINNING BID (First child) - Most prominent
+    &:first-child {
+      background: linear-gradient(135deg, 
+        lighten($success-color, 45%) 0%, 
+        lighten($success-color, 48%) 100%);
+      border: 2px solid $success-color;
+      border-radius: $radius-md;
+      margin: 0 (-$spacing-6);
+      padding: $spacing-5 $spacing-6;
+      margin-bottom: $spacing-3;
+      position: relative;
+      overflow: hidden;
+      
+      // Crown icon for winner
+      &::before {
+        content: '👑';
+        position: absolute;
+        top: -5px;
+        right: 10px;
+        font-size: 2.5rem;
+        opacity: 0.3;
+        transform: rotate(25deg);
+      }
+      
+      // Winning indicator
+      &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(to bottom, $success-color, lighten($success-color, 20%));
+      }
+
+      .bid-user {
+        .bid-info span:first-child {
+          font-weight: $font-weight-bold;
+          color: $success-color;
+          font-size: $font-size-lg;
+          
+          &::after {
+            content: ' 🏆';
+            margin-left: $spacing-1;
+          }
+        }
+      }
+      
+      .bid-amount {
+        font-weight: $font-weight-extrabold;
+        font-size: $font-size-2xl;
+        color: $success-color;
+        text-shadow: 0 2px 4px rgba($success-color, 0.2);
+        
+        &::before {
+          content: '⭐';
+          margin-right: $spacing-2;
+          animation: pulse 2s ease-in-out infinite;
+        }
+      }
+
+      &:hover {
+        transform: scale(1.02);
+        box-shadow: 0 8px 16px rgba($success-color, 0.2);
+      }
+    }
+
+    // Recent bids (top 3) - Highlight
+    &:nth-child(2),
+    &:nth-child(3) {
+      background-color: lighten($primary-color, 48%);
+      padding-left: $spacing-3;
+      padding-right: $spacing-3;
+      margin: 0 (-$spacing-3);
+      border-left: 3px solid $primary-color;
+    }
+
+    // User info section
     .bid-user {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-weight: 500;
+      gap: $spacing-3;
+      flex: 1;
+      min-width: 0; // Allow text truncation
       
       img {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
+        width: $avatar-size-base;
+        height: $avatar-size-base;
+        border-radius: $radius-full;
+        object-fit: cover;
+        border: 2px solid $white-color;
+        box-shadow: $shadow-sm;
+        transition: all $duration-base $ease-in-out;
+        
+        &:hover {
+          transform: scale(1.1);
+          box-shadow: $shadow-md;
+        }
+      }
+      
+      .bid-info {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-1;
+        min-width: 0;
+        
+        span:first-child {
+          font-weight: $font-weight-semibold;
+          color: $text-primary;
+          font-size: $font-size-base;
+          @include truncate-text;
+        }
+        
+        .bid-time {
+          font-size: $font-size-xs;
+          color: $text-muted;
+          display: flex;
+          align-items: center;
+          gap: $spacing-1;
+          
+          &::before {
+            content: '🕐';
+            font-size: 0.9em;
+          }
+        }
       }
     }
     
+    // Bid amount
     .bid-amount {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: $text-color;
-    }
-
-    .bid-time {
-      font-size: 0.8rem;
-      color: #999;
+      font-size: $font-size-xl;
+      font-weight: $font-weight-bold;
+      color: $text-primary;
+      white-space: nowrap;
+      transition: all $duration-base $ease-in-out;
+      display: flex;
+      align-items: center;
+      gap: $spacing-1;
+      
+      &::after {
+        content: '₫';
+        font-size: 0.8em;
+        opacity: 0.7;
+        margin-left: $spacing-1;
+      }
     }
   }
 
+  // Bid Statistics
+  .bid-stats {
+    display: flex;
+    gap: $spacing-4;
+    padding: $spacing-3;
+    background-color: $gray-50;
+    border-radius: $radius-base;
+    margin-bottom: $spacing-4;
+    
+    .stat-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-1;
+      
+      .stat-label {
+        font-size: $font-size-xs;
+        color: $text-muted;
+        font-weight: $font-weight-medium;
+      }
+      
+      .stat-value {
+        font-size: $font-size-base;
+        color: $text-primary;
+        font-weight: $font-weight-bold;
+      }
+    }
+  }
+
+  // Empty state
   .no-bids {
     text-align: center;
-    padding: 30px;
-    color: #999;
+    padding: $spacing-12 $spacing-6;
+    color: $text-muted;
     font-style: italic;
+    
+    &::before {
+      content: '💰';
+      display: block;
+      font-size: 4rem;
+      margin-bottom: $spacing-4;
+      opacity: 0.3;
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    p {
+      font-size: $font-size-lg;
+      margin: 0;
+      
+      strong {
+        display: block;
+        margin-top: $spacing-2;
+        color: $primary-color;
+        font-weight: $font-weight-bold;
+      }
+    }
+  }
+
+  // Loading state
+  &.loading {
+    .bid-list {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      @include spinner(40px, $primary-color);
+      z-index: 10;
+    }
+  }
+}
+
+// ========================================
+// MOBILE RESPONSIVE
+// ========================================
+
+@include mobile {
+  .bid-history {
+    h3 {
+      font-size: $font-size-lg;
+    }
+    
+    .bid-list {
+      max-height: 300px;
+    }
+    
+    .bid-item {
+      padding: $spacing-3 0;
+      
+      &:first-child {
+        margin: 0 (-$spacing-4);
+        padding: $spacing-4;
+        
+        &::before {
+          font-size: 2rem;
+          right: 5px;
+        }
+      }
+      
+      &:nth-child(2),
+      &:nth-child(3) {
+        margin: 0 (-$spacing-2);
+        padding-left: $spacing-2;
+        padding-right: $spacing-2;
+      }
+      
+      .bid-user {
+        gap: $spacing-2;
+        
+        img {
+          width: $avatar-size-sm;
+          height: $avatar-size-sm;
+        }
+        
+        .bid-info {
+          span:first-child {
+            font-size: $font-size-sm;
+          }
+          
+          .bid-time {
+            font-size: 0.7rem;
+          }
+        }
+      }
+      
+      .bid-amount {
+        font-size: $font-size-lg;
+        
+        &:first-child .bid-amount {
+          font-size: $font-size-xl;
+        }
+      }
+    }
+  }
+}
+
+// ========================================
+// ANIMATIONS
+// ========================================
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+// ========================================
+// ACCESSIBILITY
+// ========================================
+
+@media (prefers-reduced-motion: reduce) {
+  .bid-history {
+    .bid-item {
+      animation: none;
+    }
+    
+    .no-bids::before {
+      animation: none;
+    }
+  }
+}
+
+// High contrast mode
+@media (prefers-contrast: high) {
+  .bid-history {
+    .bid-item {
+      border-bottom: 2px solid $text-primary;
+      
+      &:first-child {
+        border: 3px solid $success-color;
+      }
+    }
   }
 }

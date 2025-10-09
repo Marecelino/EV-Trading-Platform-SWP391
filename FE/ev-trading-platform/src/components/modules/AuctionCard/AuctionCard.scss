@@ -1,0 +1,88 @@
+// src/components/modules/AuctionCard/AuctionCard.scss
+@import '../../../styles/variables';
+
+.auction-card {
+  background-color: $white-color;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: $box-shadow-light;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  border: 1px solid $border-color;
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  &__image {
+    position: relative;
+    width: 100%;
+    padding-top: 75%; // Tỷ lệ 4:3
+
+    img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .timer-overlay {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.6);
+      color: $white-color;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  }
+
+  &__info {
+    padding: 16px;
+
+    .title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 12px 0;
+      // Cắt bớt text nếu quá dài
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .price-label {
+      font-size: 0.85rem;
+      color: #777;
+      margin: 0;
+    }
+
+    .current-price {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: $primary-color;
+      margin: 2px 0 12px 0;
+    }
+    
+    .bid-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: #555;
+      padding-top: 12px;
+      border-top: 1px solid $border-color;
+    }
+  }
+}

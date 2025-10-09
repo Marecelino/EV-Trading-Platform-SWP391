@@ -2,6 +2,8 @@
 import React from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Thumbs } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
 import 'swiper/css/thumbs';
 import './ImageGallery.scss';
 
@@ -11,6 +13,19 @@ interface ImageGalleryProps {
 
 const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
   const [thumbsSwiper, setThumbsSwiper] = React.useState<any>(null);
+
+  console.log('ImageGallery: Received images:', images);
+  console.log('ImageGallery: Images length:', images?.length);
+
+  if (!images || images.length === 0) {
+    return (
+      <div className="image-gallery">
+        <div className="no-images">
+          <p>Không có hình ảnh sản phẩm</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="image-gallery">
@@ -23,7 +38,17 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
       >
         {images.map((img, index) => (
           <SwiperSlide key={index}>
-            <img src={img} alt={`Product image ${index + 1}`} />
+            <img 
+              src={img} 
+              alt={`Product image ${index + 1}`}
+              onError={(e) => {
+                console.error('ImageGallery: Failed to load image:', img);
+                e.currentTarget.style.display = 'none';
+              }}
+              onLoad={() => {
+                console.log('ImageGallery: Successfully loaded image:', img);
+              }}
+            />
           </SwiperSlide>
         ))}
       </Swiper>
@@ -37,7 +62,14 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
       >
         {images.map((img, index) => (
           <SwiperSlide key={index}>
-            <img src={img} alt={`Thumbnail ${index + 1}`} />
+            <img 
+              src={img} 
+              alt={`Thumbnail ${index + 1}`}
+              onError={(e) => {
+                console.error('ImageGallery: Failed to load thumbnail:', img);
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </SwiperSlide>
         ))}
       </Swiper>

@@ -1,17 +1,22 @@
 // src/pages/CreateListingPage/CreateListingPage.tsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Car, BatteryCharging } from 'lucide-react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Car, BatteryCharging } from "lucide-react";
+import AuctionFormSection from "../../components/modules/forms/AuctionFormSection";
+import Button from "../../components/common/Button/Button";
+import ImageUploader from "../../components/common/ImageUploader/ImageUploader";
+//import api
+import auctionApi from "../../api/auctionApi";
+import listingsApi from "../../api/listingsApi";
+import "./CreateListingPage.scss";
 
-import Button from '../../components/common/Button/Button';
-import ImageUploader from '../../components/common/ImageUploader/ImageUploader';
-import listingsApi from '../../api/listingsApi';
-import './CreateListingPage.scss';
+type Category = "ev" | "battery";
+type ListingType = "direct_sale" | "auction";
 
-type Category = 'ev' | 'battery';
-
-// Component con để code gọn gàng, chia form thành các phần rõ ràng
-const FormSection: React.FC<{ title: string, children: React.ReactNode }> = ({ title, children }) => (
+const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({
+  title,
+  children,
+}) => (
   <div className="form-section">
     <h2>{title}</h2>
     {children}
@@ -23,39 +28,84 @@ const CreateListingPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const navigate = useNavigate();
-  
-  // State để lưu trữ dữ liệu form
+  const [listingType, setListingType] = useState<ListingType>("direct_sale");
   const [formData, setFormData] = useState<any>({});
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    // Xử lý input cho các trường lồng nhau như auction.starting_price
+    if (name.includes(".")) {
+      const [outer, inner] = name.split(".");
+      setFormData((prev) => ({
+        ...prev,
+        [outer]: {
+          ...prev[outer],
+          [inner]: value,
+        },
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const finalData = {
-      ...formData,
-      images: imageUrls,
-    };
 
     try {
-      const response = await listingsApi.create(finalData);
+      let response;
+      const finalData = { ...formData, images: imageUrls };
+
+      if (listingType === "auction") {
+        response = await auctionApi.createAuction(finalData);
+      } else {
+        response = await listingsApi.create(finalData);
+      }
+
       if (response.data.success) {
         alert(response.data.message);
-        navigate('/dashboard/my-listings');
+        navigate("/dashboard/my-listings");
+      } else {
+        throw new Error(response.data.message || "Có lỗi xảy ra");
       }
-    } catch (error) {
-      alert('Đăng tin thất bại!');
+    } catch (error: any) {
+      alert(`Đăng tin thất bại: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- HÀM RENDER FORM CHI TIẾT SAU KHI CHỌN DANH MỤC ---
   const renderDetailedForm = () => (
     <form onSubmit={handleFormSubmit} className="detailed-form">
+      <FormSection title="Hình thức bán">
+        <div className="listing-type-selector">
+          <button
+            type="button"
+            className={listingType === "direct_sale" ? "active" : ""}
+            onClick={() => setListingType("direct_sale")}
+          >
+            Bán trực tiếp
+          </button>
+          <button
+            type="button"
+            className={listingType === "auction" ? "active" : ""}
+            onClick={() => setListingType("auction")}
+          >
+            Đấu giá
+          </button>
+        </div>
+      </FormSection>
+
+      {/* FORM ĐẤU GIÁ (NẾU CHỌN) */}
+      {listingType === "auction" && (
+        <FormSection title="Thông tin đấu giá">
+          <AuctionFormSection handleInputChange={handleInputChange} />
+        </FormSection>
+      )}
       <FormSection title="Thông tin cơ bản">
         <div className="form-grid">
           <div className="form-group">
@@ -65,59 +115,154 @@ const CreateListingPage: React.FC = () => {
               <option value="brand_vinfast">VinFast</option>
               <option value="brand_tesla">Tesla</option>
               <option value="brand_kia">Kia</option>
-              {category === 'battery' && <option value="brand_vines">VinES</option>}
+              {category === "battery" && (
+                <option value="brand_vines">VinES</option>
+              )}
             </select>
           </div>
           {/* Bạn có thể thêm dropdown cho Model ở đây */}
           <div className="form-group full-width">
             <label>Tiêu đề tin đăng</label>
-            <input name="title" type="text" placeholder="VD: Vinfast VF8 Eco 2023 còn mới" onChange={handleInputChange} required />
+            <input
+              name="title"
+              type="text"
+              placeholder="VD: Vinfast VF8 Eco 2023 còn mới"
+              onChange={handleInputChange}
+              required
+            />
           </div>
           <div className="form-group full-width">
             <label>Mô tả chi tiết</label>
-            <textarea name="description" rows={6} placeholder="Mô tả tình trạng, lịch sử bảo dưỡng..." onChange={handleInputChange} required></textarea>
+            <textarea
+              name="description"
+              rows={6}
+              placeholder="Mô tả tình trạng, lịch sử bảo dưỡng..."
+              onChange={handleInputChange}
+              required
+            ></textarea>
           </div>
         </div>
       </FormSection>
 
       <FormSection title="Thông số kỹ thuật">
-        {category === 'ev' && (
+        {category === "ev" && (
           <div className="form-grid">
-            <div className="form-group"><label>Năm sản xuất</label><input name="ev_details.year_of_manufacture" type="number" onChange={handleInputChange} required/></div>
-            <div className="form-group"><label>Số km đã đi</label><input name="ev_details.mileage" type="number" onChange={handleInputChange} required/></div>
-            <div className="form-group"><label>Dung lượng pin (kWh)</label><input name="ev_details.battery_capacity" type="number" onChange={handleInputChange} required/></div>
-            <div className="form-group"><label>Quãng đường (km)</label><input name="ev_details.range" type="number" onChange={handleInputChange} required/></div>
+            <div className="form-group">
+              <label>Năm sản xuất</label>
+              <input
+                name="ev_details.year_of_manufacture"
+                type="number"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Số km đã đi</label>
+              <input
+                name="ev_details.mileage"
+                type="number"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Dung lượng pin (kWh)</label>
+              <input
+                name="ev_details.battery_capacity"
+                type="number"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Quãng đường (km)</label>
+              <input
+                name="ev_details.range"
+                type="number"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
           </div>
         )}
-        {category === 'battery' && (
-           <div className="form-grid">
-            <div className="form-group"><label>Dung lượng (Ah)</label><input name="battery_details.capacity" type="number" onChange={handleInputChange} required/></div>
-            <div className="form-group"><label>Sức khỏe pin (%)</label><input name="battery_details.state_of_health" type="number" onChange={handleInputChange} required/></div>
-           </div>
+        {category === "battery" && (
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Dung lượng (Ah)</label>
+              <input
+                name="battery_details.capacity"
+                type="number"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Sức khỏe pin (%)</label>
+              <input
+                name="battery_details.state_of_health"
+                type="number"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          </div>
         )}
       </FormSection>
 
       <FormSection title="Hình ảnh sản phẩm">
-        <ImageUploader onUploadComplete={(urls) => setImageUrls(prev => [...prev, ...urls])} />
+        <ImageUploader
+          onUploadComplete={(urls) =>
+            setImageUrls((prev) => [...prev, ...urls])
+          }
+        />
       </FormSection>
 
       <FormSection title="Thông tin bán">
         <div className="form-grid">
-            <div className="form-group"><label>Tình trạng</label>
-                <select name="condition" onChange={handleInputChange} required>
-                    <option value="like_new">Như mới</option>
-                    <option value="good">Tốt</option>
-                    <option value="fair">Khá</option>
-                </select>
-            </div>
-            <div className="form-group"><label>Giá bán (VND)</label><input name="price" type="number" onChange={handleInputChange} required/></div>
-            <div className="form-group"><label>Thành phố</label><select name="location.city" onChange={handleInputChange} required><option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option><option value="Hà Nội">Hà Nội</option></select></div>
-            <div className="form-group"><label>Quận/Huyện</label><input name="location.district" type="text" onChange={handleInputChange} required/></div>
+          <div className="form-group">
+            <label>Tình trạng</label>
+            <select name="condition" onChange={handleInputChange} required>
+              <option value="like_new">Như mới</option>
+              <option value="good">Tốt</option>
+              <option value="fair">Khá</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Giá bán (VND)</label>
+            <input
+              name="price"
+              type="number"
+              onChange={handleInputChange}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Thành phố</label>
+            <select name="location.city" onChange={handleInputChange} required>
+              <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+              <option value="Hà Nội">Hà Nội</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Quận/Huyện</label>
+            <input
+              name="location.district"
+              type="text"
+              onChange={handleInputChange}
+              required
+            />
+          </div>
         </div>
       </FormSection>
-      
+
       <div className="form-actions">
-        <Button type="submit" disabled={isLoading}>{isLoading ? 'Đang đăng tin...' : 'Hoàn tất'}</Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading
+            ? "Đang xử lý..."
+            : listingType === "auction"
+            ? "Tạo phiên đấu giá"
+            : "Đăng tin"}
+        </Button>{" "}
       </div>
     </form>
   );
@@ -125,19 +270,30 @@ const CreateListingPage: React.FC = () => {
   return (
     <div className="create-listing-page container">
       <div className="page-header">
-        <h1>{category ? `Đăng tin ${category === 'ev' ? 'Xe điện' : 'Pin'}` : 'Đăng tin mới'}</h1>
-        <p>{category ? 'Vui lòng điền đầy đủ thông tin bên dưới.' : 'Bắt đầu bằng cách chọn danh mục sản phẩm của bạn.'}</p>
+        <h1>
+          {category
+            ? `Đăng tin ${category === "ev" ? "Xe điện" : "Pin"}`
+            : "Đăng tin mới"}
+        </h1>
+        <p>
+          {category
+            ? "Vui lòng điền đầy đủ thông tin bên dưới."
+            : "Bắt đầu bằng cách chọn danh mục sản phẩm của bạn."}
+        </p>
       </div>
 
       <div className="form-container">
         {/* === BƯỚC 1: CHỌN DANH MỤC (NẾU CHƯA CHỌN) === */}
         {!category ? (
           <div className="category-selection">
-            <div className="category-card" onClick={() => setCategory('ev')}>
+            <div className="category-card" onClick={() => setCategory("ev")}>
               <Car size={48} />
               <span>Xe điện</span>
             </div>
-            <div className="category-card" onClick={() => setCategory('battery')}>
+            <div
+              className="category-card"
+              onClick={() => setCategory("battery")}
+            >
               <BatteryCharging size={48} />
               <span>Pin & Phụ kiện</span>
             </div>

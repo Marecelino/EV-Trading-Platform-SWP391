@@ -1,20 +1,20 @@
 // src/mocks/handlers.ts
 import { http, HttpResponse } from 'msw';
-import type { Product, User, ITransaction, Auction, Bid, Review } from '../types';
+import type { Product, User, ITransaction, Auction, Review, Bid } from '../types';
 
 
 let mockUsers: User[] = [
-    { _id: 'user01', full_name: 'Lê Minh Tuấn', avatar_url: 'https://i.pravatar.cc/150?u=user01', role: 'member', status: 'active', email: 'tuan@demo.com' },
-    { _id: 'user02', full_name: 'Trần Thị Bích', avatar_url: 'https://i.pravatar.cc/150?u=user02', role: 'member', status: 'active', email: 'bich@demo.com' },
-    { _id: 'user03', full_name: 'Nguyễn Văn Hùng', avatar_url: 'https://i.pravatar.cc/150?u=user03', role: 'member', status: 'active', email: 'hung@demo.com' },
-    { _id: 'user04', full_name: 'Phạm Văn Đồng', email: 'dong.pv@example.com', role: 'member', status: 'suspended', avatar_url: 'https://i.pravatar.cc/150?u=user04' },
-    { _id: 'user05', full_name: 'Hồ Thị Mai', email: 'mai.ht@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user05' },
-    { _id: 'admin001', full_name: 'Quản trị viên', email: 'admin@example.com', role: 'admin', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=admin' },
-    { _id: 'user06', full_name: 'Đặng Thị Lan', email: 'lan.dt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user06' },
-    { _id: 'user07', full_name: 'Võ Thành Trung', email: 'trung.vt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user07' },
-    { _id: 'user08', full_name: 'Bùi Minh Anh', email: 'anh.bm@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user08' },
-    { _id: 'user09', full_name: 'Lý Hoàng Phúc', email: 'phuc.lh@example.com', role: 'member', status: 'suspended', avatar_url: 'https://i.pravatar.cc/150?u=user09' },
-    { _id: 'user10', full_name: 'Mai Thị Thảo', email: 'thao.mt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user10' },
+  { _id: 'user01', full_name: 'Lê Minh Tuấn', avatar_url: 'https://i.pravatar.cc/150?u=user01', role: 'member', status: 'active', email: 'tuan@demo.com' },
+  { _id: 'user02', full_name: 'Trần Thị Bích', avatar_url: 'https://i.pravatar.cc/150?u=user02', role: 'member', status: 'active', email: 'bich@demo.com' },
+  { _id: 'user03', full_name: 'Nguyễn Văn Hùng', avatar_url: 'https://i.pravatar.cc/150?u=user03', role: 'member', status: 'active', email: 'hung@demo.com' },
+  { _id: 'user04', full_name: 'Phạm Văn Đồng', email: 'dong.pv@example.com', role: 'member', status: 'suspended', avatar_url: 'https://i.pravatar.cc/150?u=user04' },
+  { _id: 'user05', full_name: 'Hồ Thị Mai', email: 'mai.ht@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user05' },
+  { _id: 'admin001', full_name: 'Quản trị viên', email: 'admin@example.com', role: 'admin', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=admin' },
+  { _id: 'user06', full_name: 'Đặng Thị Lan', email: 'lan.dt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user06' },
+  { _id: 'user07', full_name: 'Võ Thành Trung', email: 'trung.vt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user07' },
+  { _id: 'user08', full_name: 'Bùi Minh Anh', email: 'anh.bm@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user08' },
+  { _id: 'user09', full_name: 'Lý Hoàng Phúc', email: 'phuc.lh@example.com', role: 'member', status: 'suspended', avatar_url: 'https://i.pravatar.cc/150?u=user09' },
+  { _id: 'user10', full_name: 'Mai Thị Thảo', email: 'thao.mt@example.com', role: 'member', status: 'active', avatar_url: 'https://i.pravatar.cc/150?u=user10' },
 ];
 
 let mockProducts: Product[] = [
@@ -32,7 +32,7 @@ let mockProducts: Product[] = [
     condition: 'like_new',
     status: 'active',
     location: { city: 'TP. Hồ Chí Minh', district: 'Quận 1' },
-    images: [ 'https://storage.googleapis.com/vinfast-data-01/Xe-SUV-VinFast-VF-8-so-huu-ngoai-that-sang-trong-thiet-ke-hop-voi-noi-thanh_1663170557.jpg', 'https://storage.googleapis.com/vinfast-data-01/Ngo%E1%BA%A1i%20th%E1%BA%A5t%20VF%208_1642069586.jpg', 'https://th.bing.com/th/id/R.c14328fc2b9e090942e72e8268d9f50c?rik=CTXsOEB33fglsg&pid=ImgRaw&r=0', 'https://images2.thanhnien.vn/Uploaded/chicuong/2022_09_20/307648302-5401989936547901-8526041155941997652-n-8186.jpg' ],
+    images: ['https://storage.googleapis.com/vinfast-data-01/Xe-SUV-VinFast-VF-8-so-huu-ngoai-that-sang-trong-thiet-ke-hop-voi-noi-thanh_1663170557.jpg', 'https://storage.googleapis.com/vinfast-data-01/Ngo%E1%BA%A1i%20th%E1%BA%A5t%20VF%208_1642069586.jpg', 'https://th.bing.com/th/id/R.c14328fc2b9e090942e72e8268d9f50c?rik=CTXsOEB33fglsg&pid=ImgRaw&r=0', 'https://images2.thanhnien.vn/Uploaded/chicuong/2022_09_20/307648302-5401989936547901-8526041155941997652-n-8186.jpg'],
     is_verified: true,
     is_featured: true,
     views: 1250,
@@ -92,7 +92,7 @@ let mockProducts: Product[] = [
     condition: 'good',
     status: 'active',
     location: { city: 'TP. Hồ Chí Minh', district: 'Bình Thạnh' },
-    images: [ 'https://cdn-bodfj.nitrocdn.com/PkAzgiiWmWHBbfSpqeQLrEoLMQsjWQTV/assets/images/optimized/rev-08e74e5/wp-content/uploads/2023/01/tesla-model-3.jpg' ],
+    images: ['https://cdn-bodfj.nitrocdn.com/PkAzgiiWmWHBbfSpqeQLrEoLMQsjWQTV/assets/images/optimized/rev-08e74e5/wp-content/uploads/2023/01/tesla-model-3.jpg'],
     is_verified: true,
     is_featured: true,
     views: 3100,
@@ -112,7 +112,7 @@ let mockProducts: Product[] = [
     condition: 'like_new',
     status: 'active',
     location: { city: 'Hà Nội', district: 'Ba Đình' },
-    images: [ 'https://greencarscompare.com/upload/iblock/dcd/9ba848mebia59ui6w1gc6s3t2q5ots1i.jpg' ],
+    images: ['https://greencarscompare.com/upload/iblock/dcd/9ba848mebia59ui6w1gc6s3t2q5ots1i.jpg'],
     is_verified: true,
     is_featured: false,
     views: 1900,
@@ -212,7 +212,7 @@ let mockProducts: Product[] = [
     condition: 'fair',
     status: 'active',
     location: { city: 'Hà Nội', district: 'Hoàn Kiếm' },
-    images: [ 'https://energy.panasonic.com/na/business/products/lithium-ion' ],
+    images: ['https://energy.panasonic.com/na/business/products/lithium-ion'],
     is_verified: false,
     is_featured: false,
     views: 430,
@@ -261,6 +261,7 @@ let mockProducts: Product[] = [
   { _id: 'prod014', seller_id: 'user10', brand_id: 'brand_byd', model_id: 'model_dolphin', title: 'BYD Dolphin 2023 giá tốt', description: 'Xe nhỏ gọn cho đô thị, tiết kiệm năng lượng.', price: 550000000, listing_type: 'direct_sale', auction_id: undefined, condition: 'like_new', status: 'pending', location: { city: 'Bình Dương', district: 'Thủ Dầu Một' }, images: ['https://via.placeholder.com/800x600.png/E67E22/FFFFFF?text=Dolphin'], is_verified: false, is_featured: false, views: 5, created_at: new Date('2025-09-15T09:00:00Z').toISOString(), ev_details: { mileage: 9000, year_of_manufacture: 2023, battery_capacity: 44.9, range: 405, color: 'Hồng', seats: 5 }, },
 ];
 
+// eslint-disable-next-line prefer-const
 let mockTransactions: ITransaction[] = [
   {
     _id: 'txn_001',
@@ -298,6 +299,7 @@ let mockTransactions: ITransaction[] = [
   { _id: 'txn_009', listing_id: mockProducts[13], buyer_id: mockUsers[0], seller_id: mockUsers[7], amount: 4100000000, status: 'pending', created_at: new Date('2025-09-21T15:00:00Z').toISOString() },
   { _id: 'txn_010', listing_id: mockProducts[14], buyer_id: mockUsers[1], seller_id: mockUsers[8], amount: 4900000000, status: 'completed', created_at: new Date('2025-09-20T20:00:00Z').toISOString(), transaction_date: new Date('2025-09-21T18:00:00Z').toISOString() },
 ];
+// eslint-disable-next-line prefer-const
 let mockReviews: Review[] = [
   { _id: 'rev001', reviewer_id: 'user02', reviewee_id: 'user01', rating: 5, comment: 'Người bán nhiệt tình, xe đúng mô tả.', created_at: new Date().toISOString() },
   { _id: 'rev002', reviewer_id: 'user03', reviewee_id: 'user01', rating: 4, comment: 'Giao dịch nhanh, tuy nhiên xe có vài vết xước nhỏ không báo trước.', created_at: new Date().toISOString() },
@@ -305,8 +307,9 @@ let mockReviews: Review[] = [
   { _id: 'rev004', reviewer_id: 'user04', reviewee_id: 'user03', rating: 5, comment: 'Sản phẩm tốt, đóng gói cẩn thận.', created_at: new Date().toISOString() },
 ];
 let mockFavorites = [
-    { _id: 'fav001', user_id: 'user01', listing_id: '6515a8b5e7c8a5b8e4e6b1c3' }, // User Lê Minh Tuấn thích Kia EV6
+  { _id: 'fav001', user_id: 'user01', listing_id: '6515a8b5e7c8a5b8e4e6b1c3' }, // User Lê Minh Tuấn thích Kia EV6
 ];
+// eslint-disable-next-line prefer-const
 let mockAuctions: Auction[] = [
   {
     _id: 'auction001',
@@ -359,7 +362,10 @@ export const handlers = [
   // GET /api/listings
   http.get('http://localhost:5000/api/listings', () => {
     console.log('MSW: Handling request for all listings');
-    const activeProducts = mockProducts.filter(p => p.status === 'active');
+    const directSaleListings = mockProducts.filter(p => p.listing_type === 'direct_sale');
+    const activeProducts = directSaleListings.filter(p => p.status === 'active');
+
+
     const populatedProducts = activeProducts.map(populateSeller);
     return HttpResponse.json({
       success: true,
@@ -629,6 +635,9 @@ export const handlers = [
     // Sử dụng helper function để lấy ID người bán từ token
     const sellerId = getUserIdFromToken(request);
 
+    console.log('MSW: Creating listing with data:', newListingData);
+    console.log('MSW: Seller ID:', sellerId);
+
     if (!sellerId) {
       return HttpResponse.json({ success: false, message: 'Yêu cầu không hợp lệ, thiếu thông tin xác thực.' }, { status: 401 });
     }
@@ -640,6 +649,8 @@ export const handlers = [
       title: newListingData.title || '',
       description: newListingData.description || '',
       price: newListingData.price || 0,
+      listing_type: 'direct_sale', // Add missing listing_type
+      auction_id: undefined, // Add missing auction_id
       condition: newListingData.condition || 'good',
       location: newListingData.location || { city: '', district: '' },
       images: newListingData.images || [],
@@ -653,6 +664,8 @@ export const handlers = [
       created_at: new Date().toISOString(),
     };
     mockProducts.unshift(createdListing);
+    console.log('MSW: Created listing added to mockProducts. Total products:', mockProducts.length);
+    console.log('MSW: New listing:', createdListing);
     return HttpResponse.json({ success: true, message: 'Đăng tin thành công!', data: createdListing }, { status: 201 });
   }),
   // HANDLER MỚI: Đăng ký tài khoản
@@ -736,7 +749,7 @@ export const handlers = [
     const userId = getUserIdFromToken(request);
     const { listing_id } = await request.json() as { listing_id: string };
     if (!userId) return HttpResponse.json({ success: false }, { status: 401 });
-    
+
     const newFavorite = { _id: `fav_${Date.now()}`, user_id: userId, listing_id };
     mockFavorites.push(newFavorite);
     return HttpResponse.json({ success: true, data: newFavorite }, { status: 201 });
@@ -752,13 +765,39 @@ export const handlers = [
     return HttpResponse.json({ success: true, message: 'Đã xóa khỏi danh sách yêu thích' });
   }),
   // HANDLER MỚI: Lấy chi tiết một phiên đấu giá
-  http.get('http://localhost:5000/api/auctions/:id', ({ params }) => {
+   http.get('http://localhost:5000/api/auctions/:id', ({ params }) => {
+    console.log('MSW: Getting auction by ID:', params.id);
     const auction = mockAuctions.find(a => a._id === params.id);
+
     if (auction) {
-      // Đính kèm thông tin sản phẩm
       const listing = mockProducts.find(p => p._id === auction.listing_id);
-      return HttpResponse.json({ success: true, data: { ...auction, listing } });
+      console.log('MSW: Found auction:', auction);
+      console.log('MSW: Found listing:', listing);
+      
+      if (!listing) {
+        return HttpResponse.json({ success: false, message: 'Listing not found' }, { status: 404 });
+      }
+
+      // Populate seller information for the listing
+      const populatedListing = populateSeller(listing);
+      console.log('MSW: Populated listing:', populatedListing);
+
+      const populatedBids = auction.bids.map(bid => {
+        const bidder = mockUsers.find(u => u._id === bid.user_id);
+        return { ...bid, user_id: bidder || bid.user_id }; 
+      });
+
+      const populatedAuction = {
+        ...auction,
+        bids: populatedBids,
+        listing: populatedListing,
+      };
+
+      console.log('MSW: Returning populated auction data:', populatedAuction);
+      return HttpResponse.json({ success: true, data: populatedAuction });
     }
+    
+    console.log('MSW: Auction not found for ID:', params.id);
     return HttpResponse.json({ success: false, message: 'Not Found' }, { status: 404 });
   }),
 
@@ -766,14 +805,119 @@ export const handlers = [
   http.post('http://localhost:5000/api/auctions/:id/bids', async ({ request, params }) => {
     const { amount } = await request.json() as { amount: number };
     const auction = mockAuctions.find(a => a._id === params.id);
-    const userId = getUserIdFromToken(request) || 'user_anonymous';
+    const userId = getUserIdFromToken(request);
 
-    if (auction && amount > auction.current_price) {
-      auction.current_price = amount;
-      const newBid = { _id: `bid_${Date.now()}`, user_id: userId, amount, created_at: new Date().toISOString() };
-      auction.bids.unshift(newBid);
-      return HttpResponse.json({ success: true, message: 'Đặt giá thành công!', data: newBid });
+    if (!auction) {
+      return HttpResponse.json({ success: false, code: 'AUCTION_NOT_FOUND' }, { status: 404 });
     }
-    return HttpResponse.json({ success: false, message: 'Giá đặt không hợp lệ' }, { status: 400 });
+
+    if (new Date(auction.end_time) < new Date()) {
+      return HttpResponse.json({ success: false, message: 'Phiên đấu giá đã kết thúc.', code: 'AUCTION_ENDED' }, { status: 400 });
+    }
+
+    if (amount < auction.current_price + auction.min_increment) {
+      return HttpResponse.json({ 
+        success: false, 
+        message: 'Giá đặt không hợp lệ.', 
+        code: 'BID_TOO_LOW',
+        data: { currentPrice: auction.current_price } 
+      }, { status: 400 });
+    }
+
+    auction.current_price = amount;
+    const newBid: Bid = { 
+      _id: `bid_${Date.now()}`, 
+      user_id: mockUsers.find(u => u._id === userId)!, 
+      amount, 
+      created_at: new Date().toISOString() 
+    };
+    auction.bids.unshift(newBid);
+
+    setTimeout(() => {
+        const botAmount = auction.current_price + auction.min_increment;
+        auction.current_price = botAmount;
+        const botBid: Bid = { _id: `bid_${Date.now()}_bot`, user_id: mockUsers[2], amount: botAmount, created_at: new Date().toISOString() };
+        auction.bids.unshift(botBid);
+        console.log('[MSW] Một người dùng khác vừa đặt giá!', botAmount);
+    }, 3000);
+
+
+    return HttpResponse.json({ success: true, message: 'Đặt giá thành công!', data: newBid });
+  }),
+  http.post('http://localhost:5000/api/auctions', async ({ request }) => {
+    const fullData = await request.json() as Record<string, unknown>;
+    const sellerId = getUserIdFromToken(request);
+
+    console.log('MSW: Creating auction with data:', fullData);
+    console.log('MSW: Seller ID:', sellerId);
+
+    if (!sellerId) {
+      return HttpResponse.json({ success: false, message: 'Yêu cầu không hợp lệ' }, { status: 401 });
+    }
+
+    // 1. Tạo một tin đăng mới với listing_type là 'auction'
+    const newListing: Product = {
+      _id: `prod_${Date.now()}`,
+      seller_id: sellerId,
+      brand_id: fullData.brand_id as string,
+      model_id: fullData.model_id as string,
+      title: fullData.title as string,
+      description: fullData.description as string,
+      price: Number((fullData.auction as Record<string, unknown>).starting_price), // Giá của listing sẽ là giá khởi điểm
+      listing_type: 'auction',
+      auction_id: `auc_${Date.now()}`, // Sẽ được liên kết với auction bên dưới
+      condition: fullData.condition as 'like_new' | 'new' | 'good' | 'fair',
+      status: 'pending',
+      location: fullData.location as { city: string; district: string },
+      images: fullData.images as string[],
+      is_verified: false,
+      is_featured: false,
+      views: 0,
+      created_at: new Date().toISOString(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ev_details: fullData.ev_details as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      battery_details: fullData.battery_details as any,
+    };
+    mockProducts.unshift(newListing);
+    console.log('MSW: Created auction listing added to mockProducts. Total products:', mockProducts.length);
+    console.log('MSW: New auction listing:', newListing);
+
+    // 2. Tạo một phiên đấu giá mới
+    const auctionData = fullData.auction as Record<string, unknown>;
+    const newAuction: Auction = {
+      _id: newListing.auction_id!,
+      listing_id: newListing._id,
+      seller_id: sellerId,
+      start_time: new Date().toISOString(), // Bắt đầu ngay khi được duyệt
+      end_time: new Date(auctionData.end_time as string).toISOString(),
+      starting_price: Number(auctionData.starting_price),
+      current_price: Number(auctionData.starting_price),
+      min_increment: Number(auctionData.min_increment),
+      buy_now_price: auctionData.buy_now_price ? Number(auctionData.buy_now_price) : undefined,
+      status: 'scheduled', // Chờ admin duyệt listing
+      bids: [],
+    };
+    mockAuctions.push(newAuction);
+    console.log('MSW: Created auction added to mockAuctions. Total auctions:', mockAuctions.length);
+    console.log('MSW: New auction:', newAuction);
+
+    return HttpResponse.json({
+      success: true,
+      message: 'Tạo phiên đấu giá thành công! Tin của bạn đang chờ duyệt.',
+      data: { listing: newListing, auction: newAuction }
+    }, { status: 201 });
+  }),
+  // HANDLER MỚI: Lấy danh sách tất cả các phiên đấu giá đang hoạt động
+  http.get('http://localhost:5000/api/auctions', () => {
+    // Lọc các phiên đấu giá đang "live" và đính kèm thông tin sản phẩm
+    const liveAuctions = mockAuctions
+      .filter(a => a.status === 'live')
+      .map(auction => {
+        const listing = mockProducts.find(p => p._id === auction.listing_id);
+        return { ...auction, listing }; // Trả về auction có lồng listing bên trong
+      });
+      
+    return HttpResponse.json({ success: true, data: liveAuctions });
   }),
 ];

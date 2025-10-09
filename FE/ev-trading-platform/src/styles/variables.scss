@@ -1,23 +1,607 @@
 // src/styles/variables.scss
 
-// 1. Brand Colors
-$primary-color: #27AE60;    
-$secondary-color: #3498DB; 
-$accent-color: #F1C40F;     
-$background-color: #F7F9F9;
-$text-color: #2C3E50;
-$white-color: #FFFFFF;
-$border-color: #EAECEE;
-$text-primary: #333; 
-$text-secondary: #6B7280;
-// 2. Typography
-$primary-font: 'Roboto', sans-serif;
-$light-bg: #F3FAF6;
-$light-bg-alt: #EEF8F1;
-$surface-bg: #FFFFFF;  
-// 3. Layout Dimensions
-$header-height: 70px;
-$container-max-width: 1200px;
+// ========================================
+// 1. BRAND COLORS
+// ========================================
 
-// 4. Box Shadows
-$box-shadow-light: 0 4px 15px rgba(0, 0, 0, 0.08);
+// Primary palette - Green (Eco-friendly, Growth)
+$primary-color: #27AE60;
+$primary-dark: darken($primary-color, 10%);
+$primary-light: lighten($primary-color, 10%);
+$primary-lighter: lighten($primary-color, 35%);
+$primary-lightest: lighten($primary-color, 45%);
+
+// Secondary palette - Blue (Trust, Professional)
+$secondary-color: #3498DB;
+$secondary-dark: darken($secondary-color, 10%);
+$secondary-light: lighten($secondary-color, 10%);
+$secondary-lighter: lighten($secondary-color, 35%);
+$secondary-lightest: lighten($secondary-color, 45%);
+
+// Accent palette - Yellow (Energy, Attention)
+$accent-color: #F1C40F;
+$accent-dark: darken($accent-color, 10%);
+$accent-light: lighten($accent-color, 10%);
+$accent-lighter: lighten($accent-color, 35%);
+$accent-lightest: lighten($accent-color, 45%);
+
+// ========================================
+// 2. SEMANTIC COLORS
+// ========================================
+
+// Status colors
+$success-color: #27AE60;
+$success-bg: lighten($success-color, 45%);
+$success-border: lighten($success-color, 30%);
+
+$warning-color: #F39C12;
+$warning-bg: lighten($warning-color, 38%);
+$warning-border: lighten($warning-color, 25%);
+
+$error-color: #E74C3C;
+$error-bg: lighten($error-color, 40%);
+$error-border: lighten($error-color, 25%);
+
+$info-color: #3498DB;
+$info-bg: lighten($info-color, 45%);
+$info-border: lighten($info-color, 30%);
+
+// Auction-specific colors
+$bid-winning-color: #27AE60;
+$bid-outbid-color: #E74C3C;
+$bid-expired-color: #95A5A6;
+$buy-now-color: #E67E22;
+
+// ========================================
+// 3. NEUTRAL COLORS
+// ========================================
+
+// Grayscale
+$white-color: #FFFFFF;
+$gray-50: #F9FAFB;
+$gray-100: #F3F4F6;
+$gray-200: #E5E7EB;
+$gray-300: #D1D5DB;
+$gray-400: #9CA3AF;
+$gray-500: #6B7280;
+$gray-600: #4B5563;
+$gray-700: #374151;
+$gray-800: #1F2937;
+$gray-900: #111827;
+$black-color: #000000;
+
+// Background colors
+$background-color: #F7F9F9;
+$background-alt: #F3FAF6;
+$surface-bg: #FFFFFF;
+$overlay-bg: rgba(0, 0, 0, 0.5);
+
+// Border colors
+$border-color: #EAECEE;
+$border-light: #F3F4F6;
+$border-dark: #D1D5DB;
+
+// Text colors
+$text-color: #2C3E50;
+$text-primary: #333333;
+$text-secondary: #6B7280;
+$text-muted: #9CA3AF;
+$text-disabled: #D1D5DB;
+$text-inverse: #FFFFFF;
+
+// ========================================
+// 4. TYPOGRAPHY
+// ========================================
+
+// Font families
+$primary-font: 'Roboto', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+$secondary-font: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+$monospace-font: 'Courier New', 'Consolas', Monaco, monospace;
+
+// Font sizes
+$font-size-xs: 0.75rem;    // 12px
+$font-size-sm: 0.875rem;   // 14px
+$font-size-base: 1rem;     // 16px
+$font-size-lg: 1.125rem;   // 18px
+$font-size-xl: 1.25rem;    // 20px
+$font-size-2xl: 1.5rem;    // 24px
+$font-size-3xl: 1.875rem;  // 30px
+$font-size-4xl: 2.25rem;   // 36px
+$font-size-5xl: 3rem;      // 48px
+
+// Font weights
+$font-weight-light: 300;
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+$font-weight-extrabold: 800;
+
+// Line heights
+$line-height-tight: 1.25;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+$line-height-loose: 2;
+
+// Letter spacing
+$letter-spacing-tight: -0.025em;
+$letter-spacing-normal: 0;
+$letter-spacing-wide: 0.025em;
+$letter-spacing-wider: 0.05em;
+
+// ========================================
+// 5. LAYOUT DIMENSIONS
+// ========================================
+
+// Container
+$container-max-width: 1200px;
+$container-lg: 1400px;
+$container-md: 960px;
+$container-sm: 720px;
+$container-padding: 20px;
+$container-padding-mobile: 16px;
+
+// Header & Navigation
+$header-height: 70px;
+$header-height-mobile: 60px;
+$sidebar-width: 280px;
+$sidebar-width-collapsed: 70px;
+
+// Spacing scale (based on 4px)
+$spacing-0: 0;
+$spacing-1: 0.25rem;  // 4px
+$spacing-2: 0.5rem;   // 8px
+$spacing-3: 0.75rem;  // 12px
+$spacing-4: 1rem;     // 16px
+$spacing-5: 1.25rem;  // 20px
+$spacing-6: 1.5rem;   // 24px
+$spacing-8: 2rem;     // 32px
+$spacing-10: 2.5rem;  // 40px
+$spacing-12: 3rem;    // 48px
+$spacing-16: 4rem;    // 64px
+$spacing-20: 5rem;    // 80px
+
+// ========================================
+// 6. BORDER RADIUS
+// ========================================
+
+$radius-none: 0;
+$radius-sm: 4px;
+$radius-base: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 24px;
+$radius-2xl: 32px;
+$radius-full: 9999px;
+
+// ========================================
+// 7. SHADOWS
+// ========================================
+
+// Box shadows
+$shadow-none: none;
+$shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+$shadow-base: 0 2px 8px rgba(0, 0, 0, 0.08);
+$shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+$shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+$shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.18);
+$shadow-2xl: 0 24px 48px rgba(0, 0, 0, 0.2);
+
+// Colored shadows
+$shadow-primary: 0 4px 12px rgba($primary-color, 0.3);
+$shadow-secondary: 0 4px 12px rgba($secondary-color, 0.3);
+$shadow-accent: 0 4px 12px rgba($accent-color, 0.3);
+$shadow-error: 0 4px 12px rgba($error-color, 0.3);
+
+// Legacy support
+$box-shadow-light: $shadow-base;
+
+// ========================================
+// 8. TRANSITIONS & ANIMATIONS
+// ========================================
+
+// Timing functions
+$ease-in: cubic-bezier(0.4, 0, 1, 1);
+$ease-out: cubic-bezier(0, 0, 0.2, 1);
+$ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+$ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+// Durations
+$duration-fast: 150ms;
+$duration-base: 300ms;
+$duration-slow: 500ms;
+$duration-slower: 700ms;
+
+// Default transition
+$transition-base: all $duration-base $ease-in-out;
+$transition-fast: all $duration-fast $ease-in-out;
+$transition-slow: all $duration-slow $ease-in-out;
+
+// ========================================
+// 9. Z-INDEX LAYERS
+// ========================================
+
+$z-index-dropdown: 1000;
+$z-index-sticky: 1020;
+$z-index-fixed: 1030;
+$z-index-modal-backdrop: 1040;
+$z-index-modal: 1050;
+$z-index-popover: 1060;
+$z-index-tooltip: 1070;
+$z-index-notification: 1080;
+
+// ========================================
+// 10. BREAKPOINTS
+// ========================================
+
+$breakpoint-xs: 0;
+$breakpoint-sm: 600px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1200px;
+$breakpoint-2xl: 1440px;
+
+// ========================================
+// 11. AUCTION-SPECIFIC VARIABLES
+// ========================================
+
+// Timer colors
+$timer-urgent: #E74C3C;      // < 1 hour
+$timer-warning: #F39C12;     // < 24 hours
+$timer-normal: $primary-color;
+
+// Price display
+$price-font-size: 2.5rem;
+$price-font-weight: $font-weight-bold;
+$price-color: $text-color;
+
+// Bid history
+$bid-item-height: 60px;
+$bid-avatar-size: 40px;
+$bid-highlight-bg: lighten($accent-color, 35%);
+
+// Status badges
+$badge-padding: 6px 14px;
+$badge-radius: $radius-full;
+$badge-font-size: $font-size-sm;
+
+// ========================================
+// 12. FORM ELEMENTS
+// ========================================
+
+// Input
+$input-height: 44px;
+$input-padding: 12px 16px;
+$input-border: 1px solid $border-color;
+$input-border-radius: $radius-base;
+$input-focus-border: $primary-color;
+$input-focus-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+
+// Button
+$button-height: 44px;
+$button-padding: 12px 24px;
+$button-border-radius: $radius-base;
+$button-font-weight: $font-weight-semibold;
+
+// Checkbox & Radio
+$checkbox-size: 20px;
+$checkbox-border: 2px solid $border-color;
+$checkbox-checked-bg: $primary-color;
+
+// ========================================
+// 13. COMPONENT-SPECIFIC VARIABLES
+// ========================================
+
+// Card
+$card-padding: 24px;
+$card-padding-sm: 16px;
+$card-padding-lg: 32px;
+$card-border-radius: $radius-md;
+$card-border: 1px solid $border-color;
+$card-shadow: $shadow-base;
+$card-shadow-hover: $shadow-lg;
+
+// Modal
+$modal-backdrop: rgba(0, 0, 0, 0.6);
+$modal-max-width: 600px;
+$modal-border-radius: $radius-lg;
+$modal-padding: 32px;
+
+// Notification/Toast
+$notification-width: 400px;
+$notification-padding: 16px 20px;
+$notification-border-radius: $radius-md;
+
+// Avatar
+$avatar-size-xs: 24px;
+$avatar-size-sm: 32px;
+$avatar-size-base: 40px;
+$avatar-size-lg: 56px;
+$avatar-size-xl: 80px;
+
+// Badge/Tag
+$badge-height: 24px;
+$badge-padding-x: 12px;
+$badge-border-radius: $radius-full;
+
+// ========================================
+// 14. GRID & LAYOUT
+// ========================================
+
+// Grid gaps
+$grid-gap-xs: 8px;
+$grid-gap-sm: 12px;
+$grid-gap-base: 16px;
+$grid-gap-md: 24px;
+$grid-gap-lg: 32px;
+$grid-gap-xl: 48px;
+
+// Column counts
+$grid-columns-mobile: 1;
+$grid-columns-tablet: 2;
+$grid-columns-desktop: 3;
+$grid-columns-desktop-lg: 4;
+
+// ========================================
+// 15. PERFORMANCE & OPTIMIZATION
+// ========================================
+
+// GPU acceleration
+$enable-gpu-acceleration: true;
+
+// Smooth scrolling
+$enable-smooth-scroll: true;
+
+// Transition settings
+$enable-transitions: true;
+$reduce-motion-transitions: false;
+
+// ========================================
+// 16. AUCTION MARKETPLACE SPECIFIC
+// ========================================
+
+// Product card
+$product-card-width: 280px;
+$product-card-height: 400px;
+$product-image-height: 200px;
+$product-card-padding: 16px;
+
+// Auction panel
+$auction-panel-width: 360px;
+$auction-panel-padding: 24px;
+$auction-panel-border: 2px solid $primary-color;
+$auction-panel-bg: lighten($primary-color, 48%);
+
+// Timer display
+$timer-font-family: $monospace-font;
+$timer-font-size: 2.5rem;
+$timer-font-weight: $font-weight-bold;
+$timer-letter-spacing: 2px;
+
+// Bid increment buttons
+$bid-button-width: 100%;
+$bid-button-height: 50px;
+$bid-button-gap: 10px;
+
+// Price comparison
+$price-old-color: $text-muted;
+$price-discount-color: $error-color;
+$price-save-color: $success-color;
+
+// ========================================
+// 17. EV/BATTERY MARKETPLACE COLORS
+// ========================================
+
+// Vehicle condition colors
+$condition-new: #27AE60;
+$condition-excellent: #2ECC71;
+$condition-good: #F39C12;
+$condition-fair: #E67E22;
+$condition-poor: #E74C3C;
+
+// Battery health indicators
+$battery-health-excellent: #27AE60;  // 90-100%
+$battery-health-good: #2ECC71;       // 75-89%
+$battery-health-fair: #F39C12;       // 50-74%
+$battery-health-poor: #E67E22;       // 25-49%
+$battery-health-critical: #E74C3C;   // 0-24%
+
+// EV-specific colors
+$charging-color: #3498DB;
+$range-color: #27AE60;
+$eco-color: #16A085;
+$electric-color: #F1C40F;
+
+// ========================================
+// 18. ACCESSIBILITY
+// ========================================
+
+// Focus indicators
+$focus-outline-width: 3px;
+$focus-outline-color: rgba($primary-color, 0.5);
+$focus-outline-offset: 2px;
+$focus-outline-style: solid;
+
+// Minimum touch target
+$min-touch-target: 44px;
+
+// Text contrast ratios (WCAG AA compliant)
+$text-contrast-ratio: 4.5;
+$large-text-contrast-ratio: 3;
+
+// ========================================
+// 19. PRINT STYLES
+// ========================================
+
+$print-text-color: $black-color;
+$print-background: $white-color;
+$print-border-color: $gray-300;
+
+// ========================================
+// 20. DARK MODE (Future Support)
+// ========================================
+
+// Dark mode colors
+$dark-bg-primary: #1a1a1a;
+$dark-bg-secondary: #2a2a2a;
+$dark-bg-tertiary: #3a3a3a;
+$dark-text-primary: #e0e0e0;
+$dark-text-secondary: #b0b0b0;
+$dark-border: #404040;
+
+// ========================================
+// 21. LEGACY SUPPORT VARIABLES
+// ========================================
+
+// Light backgrounds (for backward compatibility)
+$light-bg: $background-alt;
+$light-bg-alt: lighten($primary-color, 48%);
+
+// Text colors (legacy)
+$text-light: $text-secondary;
+$text-dark: $text-primary;
+
+// ========================================
+// 22. UTILITY CLASSES MAP
+// ========================================
+
+// Spacing utilities map
+$spacings: (
+  0: $spacing-0,
+  1: $spacing-1,
+  2: $spacing-2,
+  3: $spacing-3,
+  4: $spacing-4,
+  5: $spacing-5,
+  6: $spacing-6,
+  8: $spacing-8,
+  10: $spacing-10,
+  12: $spacing-12,
+  16: $spacing-16,
+  20: $spacing-20
+);
+
+// Color utilities map
+$colors: (
+  primary: $primary-color,
+  secondary: $secondary-color,
+  accent: $accent-color,
+  success: $success-color,
+  warning: $warning-color,
+  error: $error-color,
+  info: $info-color
+);
+
+// Border radius utilities map
+$border-radiuses: (
+  none: $radius-none,
+  sm: $radius-sm,
+  base: $radius-base,
+  md: $radius-md,
+  lg: $radius-lg,
+  xl: $radius-xl,
+  full: $radius-full
+);
+
+// Shadow utilities map
+$shadows: (
+  none: $shadow-none,
+  xs: $shadow-xs,
+  sm: $shadow-sm,
+  base: $shadow-base,
+  md: $shadow-md,
+  lg: $shadow-lg,
+  xl: $shadow-xl
+);
+
+// ========================================
+// 23. FEATURE FLAGS
+// ========================================
+
+// Enable/disable features
+$enable-animations: true;
+$enable-shadows: true;
+$enable-gradients: true;
+$enable-transitions: true;
+$enable-hover-effects: true;
+$enable-dark-mode: false;
+
+// Experimental features
+$enable-glassmorphism: true;
+$enable-neumorphism: false;
+$enable-3d-effects: false;
+
+// ========================================
+// 24. PERFORMANCE THRESHOLDS
+// ========================================
+
+// Animation thresholds
+$animation-distance-threshold: 20px;
+$animation-duration-threshold: 300ms;
+
+// Image optimization
+$image-lazy-load-threshold: 300px;
+$image-quality: 85;
+
+// ========================================
+// 25. CUSTOM PROPERTIES (CSS Variables)
+// ========================================
+
+// Generate CSS custom properties
+:root {
+  // Colors
+  --primary-color: #{$primary-color};
+  --secondary-color: #{$secondary-color};
+  --accent-color: #{$accent-color};
+  --text-color: #{$text-color};
+  --background-color: #{$background-color};
+  --border-color: #{$border-color};
+  
+  // Spacing
+  --spacing-base: #{$spacing-4};
+  --spacing-lg: #{$spacing-6};
+  
+  // Typography
+  --font-primary: #{$primary-font};
+  --font-size-base: #{$font-size-base};
+  
+  // Layout
+  --header-height: #{$header-height};
+  --container-max-width: #{$container-max-width};
+  
+  // Transitions
+  --transition-base: #{$transition-base};
+  
+  // Shadows
+  --shadow-base: #{$shadow-base};
+  --shadow-lg: #{$shadow-lg};
+  
+  // Border radius
+  --radius-base: #{$radius-base};
+  --radius-lg: #{$radius-lg};
+}
+
+// ========================================
+// 26. MATH FUNCTIONS & HELPERS
+// ========================================
+
+// Calculate rem from px
+@function rem($pixels, $base: 16) {
+  @return #{$pixels / $base}rem;
+}
+
+// Calculate em from px
+@function em($pixels, $base: 16) {
+  @return #{$pixels / $base}em;
+}
+
+// Lighten color with percentage
+@function tint($color, $percentage) {
+  @return mix(white, $color, $percentage);
+}
+
+// Darken color with percentage
+@function shade($color, $percentage) {
+  @return mix(black, $color, $percentage);
+}

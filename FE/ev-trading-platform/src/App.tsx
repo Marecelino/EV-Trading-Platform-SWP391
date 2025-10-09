@@ -22,6 +22,7 @@ import UserProfilePage from './pages/UserProfilePage/UserProfilePage';
 import { FavoritesProvider } from './contexts/FavoritesContext';
 import FavoritesPage from './pages/FavoritesPage/FavoritesPage';
 import AuctionDetailPage from './pages/AuctionDetailPage/AuctionDetailPage';
+import AuctionListPage from './pages/AuctionListPage/AuctionListPage';
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
             <Route path="/listings/create" element={<CreateListingPage />} />
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/auctions/:id" element={<AuctionDetailPage />} />
+<Route path="/auctions" element={<AuctionListPage />} />
 
           </Route>
             <Route path="/dashboard" element={<DashboardLayout />}>
