@@ -24,7 +24,7 @@ export interface Product {
   description: string;
   price: number;
   condition: 'new' | 'like_new' | 'good' | 'fair';
-  status: 'pending' | 'active' | 'sold' | 'rejected';
+  status: 'pending_payment' | 'pending' | 'active' | 'sold' | 'rejected';
   location: ILocation;
   images: string[]; 
   views: number;
@@ -152,3 +152,18 @@ export interface Auction {
   status: 'scheduled' | 'live' | 'ended' | 'cancelled';
   winner_id?: string;
   bids: Bid[];
+}
+export interface ListingFee {
+  _id: string;
+  listing_id: string;
+  fee_type: 'ev_listing' | 'battery_listing' | 'auction_creation';
+  amount: number;
+  status: 'pending' | 'paid';
+}
+
+export interface Payment {
+    _id: string;
+    purpose: 'listing_fee' | 'purchase';
+    related_id: string; // ID của ListingFee hoặc Transaction
+    status: 'pending' | 'success' | 'failed';
+}

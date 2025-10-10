@@ -5,6 +5,8 @@ import { Car, BatteryCharging } from "lucide-react";
 import AuctionFormSection from "../../components/modules/forms/AuctionFormSection";
 import Button from "../../components/common/Button/Button";
 import ImageUploader from "../../components/common/ImageUploader/ImageUploader";
+import PaymentModal from "../../components/modals/PaymentModal/PaymentModal"; // Import modal mới
+
 //import api
 import auctionApi from "../../api/auctionApi";
 import listingsApi from "../../api/listingsApi";
@@ -30,7 +32,11 @@ const CreateListingPage: React.FC = () => {
   const navigate = useNavigate();
   const [listingType, setListingType] = useState<ListingType>("direct_sale");
   const [formData, setFormData] = useState<any>({});
-
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [feeInfo, setFeeInfo] = useState<{
+    listing_fee_id: string;
+    amount_due: number;
+  } | null>(null);
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -52,33 +58,42 @@ const CreateListingPage: React.FC = () => {
     }
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
+const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      let response;
-      const finalData = { ...formData, images: imageUrls };
+      // Dữ liệu cuối cùng để gửi đi
+      const finalData = {
+        ...formData,
+        listing_type: listingType,
+        category: category, // Thêm category để backend dễ xác định loại phí
+        images: imageUrls,
+      };
 
-      if (listingType === "auction") {
-        response = await auctionApi.createAuction(finalData);
-      } else {
-        response = await listingsApi.create(finalData);
-      }
-
+      // Luôn gọi API POST /listings để khởi tạo
+      const response = await listingsApi.create(finalData);
+      
       if (response.data.success) {
-        alert(response.data.message);
-        navigate("/dashboard/my-listings");
+        // Thay vì chuyển trang, giờ đây chúng ta lấy thông tin phí và mở modal
+        setFeeInfo(response.data.data);
+        setIsPaymentModalOpen(true);
       } else {
-        throw new Error(response.data.message || "Có lỗi xảy ra");
+        throw new Error(response.data.message || 'Có lỗi xảy ra');
       }
     } catch (error: any) {
-      alert(`Đăng tin thất bại: ${error.message}`);
+      alert(`Không thể tạo tin đăng: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
-
+  const handlePaymentSuccess = () => {
+    setIsPaymentModalOpen(false);
+    alert(
+      "Thanh toán thành công! Tin của bạn sẽ được duyệt trong thời gian sớm nhất."
+    );
+    navigate("/dashboard/my-listings"); // Chuyển trang đến quản lý tin đăng
+  };
   const renderDetailedForm = () => (
     <form onSubmit={handleFormSubmit} className="detailed-form">
       <FormSection title="Hình thức bán">
@@ -268,47 +283,58 @@ const CreateListingPage: React.FC = () => {
   );
 
   return (
-    <div className="create-listing-page container">
-      <div className="page-header">
-        <h1>
-          {category
-            ? `Đăng tin ${category === "ev" ? "Xe điện" : "Pin"}`
-            : "Đăng tin mới"}
-        </h1>
-        <p>
-          {category
-            ? "Vui lòng điền đầy đủ thông tin bên dưới."
-            : "Bắt đầu bằng cách chọn danh mục sản phẩm của bạn."}
-        </p>
-      </div>
+    <>
+      {/* Thêm Modal vào trang, nó sẽ tự ẩn/hiện */}
+      {feeInfo && (
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          feeInfo={feeInfo}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
+      <div className="create-listing-page container">
+        <div className="page-header">
+          <h1>
+            {category
+              ? `Đăng tin ${category === "ev" ? "Xe điện" : "Pin"}`
+              : "Đăng tin mới"}
+          </h1>
+          <p>
+            {category
+              ? "Vui lòng điền đầy đủ thông tin bên dưới."
+              : "Bắt đầu bằng cách chọn danh mục sản phẩm của bạn."}
+          </p>
+        </div>
 
-      <div className="form-container">
-        {/* === BƯỚC 1: CHỌN DANH MỤC (NẾU CHƯA CHỌN) === */}
-        {!category ? (
-          <div className="category-selection">
-            <div className="category-card" onClick={() => setCategory("ev")}>
-              <Car size={48} />
-              <span>Xe điện</span>
+        <div className="form-container">
+          {/* === BƯỚC 1: CHỌN DANH MỤC (NẾU CHƯA CHỌN) === */}
+          {!category ? (
+            <div className="category-selection">
+              <div className="category-card" onClick={() => setCategory("ev")}>
+                <Car size={48} />
+                <span>Xe điện</span>
+              </div>
+              <div
+                className="category-card"
+                onClick={() => setCategory("battery")}
+              >
+                <BatteryCharging size={48} />
+                <span>Pin & Phụ kiện</span>
+              </div>
             </div>
-            <div
-              className="category-card"
-              onClick={() => setCategory("battery")}
-            >
-              <BatteryCharging size={48} />
-              <span>Pin & Phụ kiện</span>
-            </div>
-          </div>
-        ) : (
-          // Nút để quay lại chọn danh mục
-          <>
-            <button onClick={() => setCategory(null)} className="back-button">
-              &larr; Đổi danh mục
-            </button>
-            {renderDetailedForm()}
-          </>
-        )}
+          ) : (
+            // Nút để quay lại chọn danh mục
+            <>
+              <button onClick={() => setCategory(null)} className="back-button">
+                &larr; Đổi danh mục
+              </button>
+              {renderDetailedForm()}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

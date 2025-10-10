@@ -1,0 +1,461 @@
+// src/components/modals/PaymentModal/PaymentModal.scss
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+// ========================================
+// MODAL OVERLAY
+// ========================================
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: $z-index-modal;
+  padding: $spacing-4;
+  animation: fadeIn 0.2s ease-out;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+// ========================================
+// MODAL CONTENT
+// ========================================
+.modal-content {
+  background-color: $white-color;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-2xl;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease-out;
+  
+  @include mobile {
+    max-width: 100%;
+    border-radius: $radius-md;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+// ========================================
+// PAYMENT MODAL SPECIFIC
+// ========================================
+.payment-modal {
+  
+  // Header
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-6 $spacing-6 $spacing-4;
+    border-bottom: 2px solid $border-light;
+    
+    h3 {
+      margin: 0;
+      font-size: $font-size-2xl;
+      font-weight: $font-weight-bold;
+      color: $text-primary;
+      display: flex;
+      align-items: center;
+      gap: $spacing-2;
+      
+      &::before {
+        
+        font-size: 1.2em;
+      }
+      
+      @include mobile {
+        font-size: $font-size-xl;
+      }
+    }
+
+    .close-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: $radius-full;
+      border: none;
+      background-color: $gray-100;
+      color: $text-secondary;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all $duration-base $ease-in-out;
+      flex-shrink: 0;
+      
+      &:hover {
+        background-color: $error-bg;
+        color: $error-color;
+        transform: rotate(90deg);
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+
+  // Body
+  .modal-body {
+    padding: $spacing-6;
+
+    // Description text
+    > p {
+      margin: 0 0 $spacing-5 0;
+      font-size: $font-size-base;
+      line-height: 1.6;
+      color: $text-secondary;
+      text-align: center;
+      
+      @include mobile {
+        font-size: $font-size-sm;
+      }
+    }
+
+    // Fee Details Card
+    .fee-details {
+      background: linear-gradient(135deg, 
+        lighten($primary-color, 48%) 0%, 
+        $white-color 100%);
+      border: 2px solid $primary-color;
+      border-radius: $radius-md;
+      padding: $spacing-5;
+      margin: $spacing-5 0;
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-3;
+      position: relative;
+      overflow: hidden;
+      
+      // Decorative accent
+      &::before {
+        content: '';
+        position: absolute;
+        top: -50px;
+        right: -50px;
+        width: 100px;
+        height: 100px;
+        background: radial-gradient(circle, rgba($primary-color, 0.1), transparent);
+        border-radius: 50%;
+      }
+
+      .fee-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+
+        .label {
+          font-size: $font-size-base;
+          font-weight: $font-weight-medium;
+          color: $text-secondary;
+          display: flex;
+          align-items: center;
+          gap: $spacing-2;
+          
+          .icon {
+            font-size: $font-size-lg;
+          }
+        }
+
+        .amount {
+          font-size: $font-size-3xl;
+          font-weight: $font-weight-extrabold;
+          background: linear-gradient(135deg, $primary-color, darken($primary-color, 15%));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          font-family: $monospace-font;
+          
+          @include mobile {
+            font-size: $font-size-2xl;
+          }
+        }
+      }
+
+      // Breakdown details
+      .breakdown {
+        margin-top: $spacing-3;
+        padding-top: $spacing-3;
+        border-top: 1px dashed lighten($primary-color, 30%);
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-2;
+        position: relative;
+        z-index: 1;
+
+        .breakdown-item {
+          display: flex;
+          justify-content: space-between;
+          font-size: $font-size-sm;
+          color: $text-secondary;
+
+          .value {
+            font-weight: $font-weight-semibold;
+            color: $text-primary;
+          }
+        }
+      }
+    }
+
+    // Payment Methods Section
+    .payment-methods {
+      margin-top: $spacing-5;
+
+      h4 {
+        margin: 0 0 $spacing-3 0;
+        font-size: $font-size-base;
+        font-weight: $font-weight-semibold;
+        color: $text-primary;
+        display: flex;
+        align-items: center;
+        gap: $spacing-2;
+        
+        &::before {
+          
+        }
+      }
+
+      .method-list {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-2;
+
+        .method-item {
+          display: flex;
+          align-items: center;
+          gap: $spacing-3;
+          padding: $spacing-4;
+          background-color: $white-color;
+          border: 2px solid $border-color;
+          border-radius: $radius-md;
+          cursor: pointer;
+          transition: all $duration-base $ease-in-out;
+
+          &:hover {
+            border-color: $primary-color;
+            background-color: lighten($primary-color, 50%);
+            transform: translateX(4px);
+          }
+
+          &.selected {
+            border-color: $primary-color;
+            background-color: lighten($primary-color, 48%);
+            box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+          }
+
+          .method-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: $font-size-2xl;
+            background-color: $white-color;
+            border-radius: $radius-base;
+            flex-shrink: 0;
+          }
+
+          .method-info {
+            flex: 1;
+
+            .method-name {
+              font-size: $font-size-base;
+              font-weight: $font-weight-semibold;
+              color: $text-primary;
+              margin-bottom: $spacing-1;
+            }
+
+            .method-desc {
+              font-size: $font-size-xs;
+              color: $text-muted;
+            }
+          }
+
+          .radio-indicator {
+            width: 20px;
+            height: 20px;
+            border: 2px solid $border-color;
+            border-radius: $radius-full;
+            position: relative;
+            transition: all $duration-base $ease-in-out;
+
+            &::after {
+              content: '';
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%) scale(0);
+              width: 10px;
+              height: 10px;
+              background-color: $primary-color;
+              border-radius: $radius-full;
+              transition: transform $duration-base $ease-in-out;
+            }
+          }
+
+          &.selected .radio-indicator {
+            border-color: $primary-color;
+
+            &::after {
+              transform: translate(-50%, -50%) scale(1);
+            }
+          }
+        }
+      }
+    }
+
+    // Security Notice
+    .security-notice {
+      margin-top: $spacing-5;
+      padding: $spacing-4;
+      background-color: lighten($info-color, 48%);
+      border-left: 4px solid $info-color;
+      border-radius: $radius-base;
+      
+      p {
+        margin: 0;
+        font-size: $font-size-sm;
+        color: $text-secondary;
+        display: flex;
+        align-items: flex-start;
+        gap: $spacing-2;
+        line-height: 1.6;
+        
+        &::before {
+         
+          font-size: $font-size-base;
+          flex-shrink: 0;
+        }
+      }
+    }
+  }
+
+  // Footer
+  .modal-footer {
+    padding: $spacing-5 $spacing-6 $spacing-6;
+    border-top: 1px solid $border-light;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-3;
+
+    button {
+      width: 100%;
+      padding: $spacing-4;
+      font-size: $font-size-lg;
+      font-weight: $font-weight-bold;
+      border-radius: $radius-md;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: $spacing-2;
+      transition: all $duration-base $ease-in-out;
+      
+      @include mobile {
+        font-size: $font-size-base;
+        padding: $spacing-3;
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      &:not(:disabled):hover {
+        transform: translateY(-2px);
+        box-shadow: $shadow-lg;
+      }
+
+      &:not(:disabled):active {
+        transform: translateY(0);
+      }
+    }
+
+    .terms-agreement {
+      font-size: $font-size-xs;
+      color: $text-muted;
+      text-align: center;
+      line-height: 1.5;
+      
+      a {
+        color: $primary-color;
+        text-decoration: none;
+        font-weight: $font-weight-medium;
+        
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
+// ========================================
+// RESPONSIVE
+// ========================================
+@include mobile {
+  .modal-overlay {
+    padding: $spacing-2;
+    align-items: flex-end;
+  }
+
+  .payment-modal {
+    .modal-header {
+      padding: $spacing-5 $spacing-4 $spacing-3;
+    }
+
+    .modal-body {
+      padding: $spacing-4;
+
+      .fee-details {
+        padding: $spacing-4;
+      }
+    }
+
+    .modal-footer {
+      padding: $spacing-4;
+    }
+  }
+}
+
+// ========================================
+// ACCESSIBILITY
+// ========================================
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal-content,
+  .payment-modal * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

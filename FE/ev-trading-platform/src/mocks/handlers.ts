@@ -331,6 +331,9 @@ let mockAuctions: Auction[] = [
 // Cập nhật mockProducts để có tin đấu giá
 mockProducts[0].listing_type = 'auction';
 mockProducts[0].auction_id = 'auction001';
+
+let mockListingFees: ListingFee[] = [];
+
 const getUserIdFromToken = (request: Request): string | null => {
   const authorization = request.headers.get('Authorization');
   if (authorization && authorization.startsWith('Bearer fake-jwt-token-for-')) {
@@ -563,10 +566,13 @@ export const handlers = [
     const endIndex = startIndex + limit;
     const paginatedData = filteredData.slice(startIndex, endIndex);
 
+    // Populate seller information for admin listings
+    const populatedData = paginatedData.map(populateSeller);
+
     return HttpResponse.json({
       success: true,
       message: 'Lấy danh sách tin đăng thành công',
-      data: paginatedData,
+      data: populatedData,
       pagination: {
         page,
         limit,
@@ -632,62 +638,76 @@ export const handlers = [
     });
   }),
   //post product for seller 
-  // CẬP NHẬT HANDLER TẠO TIN ĐĂNG
   http.post('http://localhost:5000/api/listings', async ({ request }) => {
-    const newListingData = await request.json() as Partial<Product>;
-
-    // Sử dụng helper function để lấy ID người bán từ token
+    const newListingData = await request.json() as any;
     const sellerId = getUserIdFromToken(request);
-
-    console.log('MSW: Creating listing with data:', newListingData);
-    console.log('MSW: Seller ID:', sellerId);
-
     if (!sellerId) {
-      return HttpResponse.json({ success: false, message: 'Yêu cầu không hợp lệ, thiếu thông tin xác thực.' }, { status: 401 });
+      return HttpResponse.json({ success: false, message: 'Yêu cầu không hợp lệ' }, { status: 401 });
     }
 
-    const createdListing: Product = {
+    // 1. Tạo Listing với status 'pending_payment'
+    const newListing: Product = {
       _id: `prod_${Date.now()}`,
-      brand_id: newListingData.brand_id || '',
-      model_id: newListingData.model_id || '',
-      title: newListingData.title || '',
-      description: newListingData.description || '',
+      seller_id: sellerId,
+      status: 'pending_payment',
+      listing_type: newListingData.listing_type || 'direct_sale',
+      // ... gán các trường dữ liệu khác từ newListingData
+      brand_id: newListingData.brand_id,
+      model_id: newListingData.model_id,
+      title: newListingData.title,
+      description: newListingData.description,
       price: newListingData.price || 0,
-      listing_type: 'direct_sale', // Add missing listing_type
-      auction_id: undefined, // Add missing auction_id
-      condition: newListingData.condition || 'good',
-      location: newListingData.location || { city: '', district: '' },
-      images: newListingData.images || [],
-      ev_details: newListingData.ev_details,
-      battery_details: newListingData.battery_details,
-      seller_id: sellerId, // Gán ID người bán đã xác thực
-      status: 'pending',
+      condition: newListingData.condition,
+      location: newListingData.location,
+      images: newListingData.images,
       views: 0,
       is_verified: false,
       is_featured: false,
       created_at: new Date().toISOString(),
+      ev_details: newListingData.ev_details,
+      battery_details: newListingData.battery_details,
     };
-    mockProducts.unshift(createdListing);
-    console.log('MSW: Created listing added to mockProducts. Total products:', mockProducts.length);
-    console.log('MSW: New listing:', createdListing);
-    return HttpResponse.json({ success: true, message: 'Đăng tin thành công!', data: createdListing }, { status: 201 });
-  }),
-  // HANDLER MỚI: Đăng ký tài khoản
-  http.post('http://localhost:5000/api/auth/register', async ({ request }) => {
-    const { fullName, email } = await request.json() as { fullName: string; email: string };
-    // Giả lập kiểm tra email tồn tại
-    if (email === 'member@example.com') {
-      return HttpResponse.json({ success: false, message: 'Email đã được sử dụng.' }, { status: 400 });
+    mockProducts.push(newListing);
+
+    // 2. Xác định loại phí dựa trên database script của bạn
+    const isAuction = newListingData.listing_type === 'auction';
+    const isEV = !!newListingData.ev_details;
+    let fee_type: ListingFee['fee_type'];
+    let amount = 0;
+
+    if (isAuction) {
+      fee_type = 'auction_creation';
+      amount = 20000;
+    } else if (isEV) {
+      fee_type = 'ev_listing';
+      amount = 50000;
+    } else {
+      fee_type = 'battery_listing';
+      amount = 15000;
     }
+
+    // 3. Tạo bản ghi ListingFee
+    const newListingFee: ListingFee = {
+      _id: `fee_${Date.now()}`,
+      listing_id: newListing._id,
+      fee_type,
+      amount,
+      status: 'pending'
+    };
+    mockListingFees.push(newListingFee);
+
+    // 4. Trả về thông tin phí cho frontend để mở modal thanh toán
     return HttpResponse.json({
       success: true,
-      message: 'Đăng ký thành công!',
+      message: 'Tin đăng đã được tạo, vui lòng thanh toán để gửi duyệt.',
       data: {
-        user: { _id: `user_${Date.now()}`, email, full_name: fullName, role: 'member', status: 'active' },
-        token: 'fake-new-user-jwt-token'
+        listing_id: newListing._id,
+        listing_fee_id: newListingFee._id,
+        amount_due: newListingFee.amount,
       }
     }, { status: 201 });
   }),
+
   // HANDLER MỚI: Lấy thông tin cá nhân của người dùng đang đăng nhập
   http.get('http://localhost:5000/api/auth/profile', ({ request }) => {
     const userId = getUserIdFromToken(request);
@@ -935,7 +955,8 @@ export const handlers = [
 
     const populatedAuctions = filteredAuctions.map(auction => {
       const listing = mockProducts.find(p => p._id === auction.listing_id);
-      return { ...auction, listing };
+      const populatedListing = listing ? populateSeller(listing) : listing;
+      return { ...auction, listing: populatedListing };
     });
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
@@ -1005,7 +1026,7 @@ export const handlers = [
     if (product.condition === 'fair') condition_factor = 0.85;
     suggested_price *= condition_factor;
     factors.condition_adjustment = { value: `${Math.round((condition_factor - 1) * 100)}%`, weight: 0.3, explanation: `Điều chỉnh theo tình trạng '${product.condition}'` };
-    
+
     suggested_price = Math.round(suggested_price / 1000000) * 1000000;
 
     const priceSuggestion = {
@@ -1029,7 +1050,28 @@ export const handlers = [
         labelSuggested: `${(priceSuggestion.suggested_price / 1000000).toFixed(1).replace('.0', '')} tr`,
       }
     };
-    
+
     return HttpResponse.json({ priceSuggestion, uiSummary });
   }),
+  // === HANDLER MỚI: XỬ LÝ THANH TOÁN ===
+  http.post('http://localhost:5000/api/payments', async ({ request }) => {
+    const { related_id } = await request.json() as any; // related_id chính là listing_fee_id
+
+    const fee = mockListingFees.find(f => f._id === related_id);
+    if (!fee) {
+      return HttpResponse.json({ success: false, message: 'Không tìm thấy thông tin phí' }, { status: 404 });
+    }
+
+    // Giả lập thanh toán thành công
+    fee.status = 'paid';
+
+    // Cập nhật trạng thái của tin đăng thành 'pending' (chờ admin duyệt)
+    const productIndex = mockProducts.findIndex(p => p._id === fee.listing_id);
+    if (productIndex !== -1) {
+      mockProducts[productIndex].status = 'pending';
+    }
+
+    return HttpResponse.json({ success: true, message: 'Thanh toán thành công! Tin của bạn đã được gửi đi chờ duyệt.' });
+  }),
+
 ];
