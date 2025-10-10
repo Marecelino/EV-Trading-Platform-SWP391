@@ -8,7 +8,8 @@ import {
   FileText, 
   ArrowLeftRight, 
   Settings, 
-  LogOut 
+  LogOut, 
+  Hammer
 } from 'lucide-react';
 import './AdminSidebar.scss';
 
@@ -32,9 +33,13 @@ const AdminSidebar: React.FC = () => {
           <span>Quản lý người dùng</span>
         </NavLink>
         <NavLink to="/admin/listings" className="nav-link">
-          <FileText size={20} />
-          <span>Quản lý tin đăng</span>
-        </NavLink>
+    <FileText size={20} />
+    <span>Tin Bán trực tiếp</span>
+  </NavLink>
+  <NavLink to="/admin/auctions" className="nav-link">
+    <Hammer size={20} /> {/* Thêm icon cho đấu giá */}
+    <span>Tin Đấu giá</span>
+  </NavLink>
         <NavLink to="/admin/transactions" className="nav-link">
           <ArrowLeftRight size={20} />
           <span>Quản lý giao dịch</span>

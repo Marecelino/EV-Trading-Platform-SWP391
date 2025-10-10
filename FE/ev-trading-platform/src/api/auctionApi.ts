@@ -15,5 +15,11 @@ const auctionApi = {
     getActiveAuctions: (): Promise<any> => {
     return axiosClient.get('/auctions');
   },
+    getAllAuctions: (status?: string, page: number = 1): Promise<any> => {
+    return axiosClient.get('/admin/auctions', { params: { status, page, limit: 3 } });
+  },
+  approveAuction: (auctionId: string): Promise<any> => {
+    return axiosClient.put(`/admin/auctions/${auctionId}/approve`);
+  },
 };
 export default auctionApi;

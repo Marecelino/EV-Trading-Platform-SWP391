@@ -1,0 +1,25 @@
+// src/pages/AdminAuctionManagementPage/AdminAuctionManagementPage.scss
+@import '../../styles/variables';
+@import '../../styles/mixins';
+@import '../AdminListingManagementPage/AdminListingManagementPage.scss';
+
+.auction-row, .listing-row {
+  display: flex;
+  align-items: center; 
+}
+.auction-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center; // căn giữa nút "Hủy phiên"
+  gap: $spacing-2; // giữ khoảng cách giữa các nút nếu có
+}
+.status-badge {
+    display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+    &.status--live { @include status-badge(lighten($primary-color, 45%), $primary-color); }
+    &.status--scheduled { @include status-badge(lighten($accent-color, 35%), darken($accent-color, 15%)); }
+    &.status--ended { @include status-badge(#f0f2f5, #777); }
+    &.status--cancelled { @include status-badge(#fdeaea, #e74c3c); }
+}

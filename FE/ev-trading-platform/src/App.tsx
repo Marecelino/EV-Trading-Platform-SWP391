@@ -23,6 +23,7 @@ import { FavoritesProvider } from './contexts/FavoritesContext';
 import FavoritesPage from './pages/FavoritesPage/FavoritesPage';
 import AuctionDetailPage from './pages/AuctionDetailPage/AuctionDetailPage';
 import AuctionListPage from './pages/AuctionListPage/AuctionListPage';
+import AdminAuctionManagementPage from './pages/AdminAuctionManagementPage/AdminAuctionManagementPage';
 
 function App() {
   return (
@@ -62,6 +63,7 @@ function App() {
               <Route path="users" element={<AdminUserManagementPage />} />
               <Route path="listings" element={<AdminListingManagementPage />} />
               <Route path="transactions" element={<AdminTransactionManagementPage />} />
+              <Route path="auctions" element={<AdminAuctionManagementPage />} /> 
             </Route>
           </Route>
         </Routes>

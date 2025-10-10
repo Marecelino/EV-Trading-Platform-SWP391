@@ -553,7 +553,11 @@ export const handlers = [
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '10');
 
-    const filteredData = status ? mockProducts.filter(p => p.status === status) : mockProducts;
+    let filteredData = mockProducts.filter(p => p.listing_type === 'direct_sale');
+
+    if (status) {
+      filteredData = filteredData.filter(p => p.status === status);
+    }
 
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
@@ -765,7 +769,7 @@ export const handlers = [
     return HttpResponse.json({ success: true, message: 'Đã xóa khỏi danh sách yêu thích' });
   }),
   // HANDLER MỚI: Lấy chi tiết một phiên đấu giá
-   http.get('http://localhost:5000/api/auctions/:id', ({ params }) => {
+  http.get('http://localhost:5000/api/auctions/:id', ({ params }) => {
     console.log('MSW: Getting auction by ID:', params.id);
     const auction = mockAuctions.find(a => a._id === params.id);
 
@@ -773,7 +777,7 @@ export const handlers = [
       const listing = mockProducts.find(p => p._id === auction.listing_id);
       console.log('MSW: Found auction:', auction);
       console.log('MSW: Found listing:', listing);
-      
+
       if (!listing) {
         return HttpResponse.json({ success: false, message: 'Listing not found' }, { status: 404 });
       }
@@ -784,7 +788,7 @@ export const handlers = [
 
       const populatedBids = auction.bids.map(bid => {
         const bidder = mockUsers.find(u => u._id === bid.user_id);
-        return { ...bid, user_id: bidder || bid.user_id }; 
+        return { ...bid, user_id: bidder || bid.user_id };
       });
 
       const populatedAuction = {
@@ -796,7 +800,7 @@ export const handlers = [
       console.log('MSW: Returning populated auction data:', populatedAuction);
       return HttpResponse.json({ success: true, data: populatedAuction });
     }
-    
+
     console.log('MSW: Auction not found for ID:', params.id);
     return HttpResponse.json({ success: false, message: 'Not Found' }, { status: 404 });
   }),
@@ -816,29 +820,29 @@ export const handlers = [
     }
 
     if (amount < auction.current_price + auction.min_increment) {
-      return HttpResponse.json({ 
-        success: false, 
-        message: 'Giá đặt không hợp lệ.', 
+      return HttpResponse.json({
+        success: false,
+        message: 'Giá đặt không hợp lệ.',
         code: 'BID_TOO_LOW',
-        data: { currentPrice: auction.current_price } 
+        data: { currentPrice: auction.current_price }
       }, { status: 400 });
     }
 
     auction.current_price = amount;
-    const newBid: Bid = { 
-      _id: `bid_${Date.now()}`, 
-      user_id: mockUsers.find(u => u._id === userId)!, 
-      amount, 
-      created_at: new Date().toISOString() 
+    const newBid: Bid = {
+      _id: `bid_${Date.now()}`,
+      user_id: mockUsers.find(u => u._id === userId)!,
+      amount,
+      created_at: new Date().toISOString()
     };
     auction.bids.unshift(newBid);
 
     setTimeout(() => {
-        const botAmount = auction.current_price + auction.min_increment;
-        auction.current_price = botAmount;
-        const botBid: Bid = { _id: `bid_${Date.now()}_bot`, user_id: mockUsers[2], amount: botAmount, created_at: new Date().toISOString() };
-        auction.bids.unshift(botBid);
-        console.log('[MSW] Một người dùng khác vừa đặt giá!', botAmount);
+      const botAmount = auction.current_price + auction.min_increment;
+      auction.current_price = botAmount;
+      const botBid: Bid = { _id: `bid_${Date.now()}_bot`, user_id: mockUsers[2], amount: botAmount, created_at: new Date().toISOString() };
+      auction.bids.unshift(botBid);
+      console.log('[MSW] Một người dùng khác vừa đặt giá!', botAmount);
     }, 3000);
 
 
@@ -917,7 +921,62 @@ export const handlers = [
         const listing = mockProducts.find(p => p._id === auction.listing_id);
         return { ...auction, listing }; // Trả về auction có lồng listing bên trong
       });
-      
+
     return HttpResponse.json({ success: true, data: liveAuctions });
+  }),
+  //Admin ManageAuction 
+
+  http.get('http://localhost:5000/api/admin/auctions', ({ request }) => {
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status');
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const limit = parseInt(url.searchParams.get('limit') || '10');
+    let filteredAuctions = status ? mockAuctions.filter(a => a.status === status) : mockAuctions;
+
+    const populatedAuctions = filteredAuctions.map(auction => {
+      const listing = mockProducts.find(p => p._id === auction.listing_id);
+      return { ...auction, listing };
+    });
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedData = populatedAuctions.slice(startIndex, endIndex);
+    // Logic phân trang có thể thêm ở đây
+    return HttpResponse.json({
+      success: true,
+      data: paginatedData,
+      pagination: {
+        page,
+        limit,
+        total: populatedAuctions.length,
+        pages: Math.ceil(populatedAuctions.length / limit),
+      }
+    });
+  }),
+  http.put('http://localhost:5000/api/admin/auctions/:id/approve', ({ params }) => {
+    const { id } = params;
+
+    let updatedAuction: Auction | undefined;
+
+    // 1. Cập nhật trạng thái Auction
+    mockAuctions = mockAuctions.map(auction => {
+      if (auction._id === id && auction.status === 'scheduled') {
+        updatedAuction = { ...auction, status: 'live' };
+        return updatedAuction;
+      }
+      return auction;
+    });
+
+    if (updatedAuction) {
+      mockProducts = mockProducts.map(product => {
+        if (product._id === updatedAuction!.listing_id) {
+          return { ...product, status: 'active' };
+        }
+        return product;
+      });
+
+      return HttpResponse.json({ success: true, message: 'Duyệt phiên đấu giá thành công!', data: updatedAuction });
+    }
+
+    return HttpResponse.json({ success: false, message: 'Không tìm thấy phiên đấu giá hoặc không thể duyệt.' }, { status: 404 });
   }),
 ];
