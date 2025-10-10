@@ -56,8 +56,17 @@
     justify-content: center;
     cursor: pointer;
     color: $text-color;
+    transition: color 0.2s ease-in-out;
+    
     &:hover {
       color: red;
+    }
+    
+    &.liked {
+      color: #e74c3c;
+      svg {
+        fill: #e74c3c;
+      }
     }
   }
 

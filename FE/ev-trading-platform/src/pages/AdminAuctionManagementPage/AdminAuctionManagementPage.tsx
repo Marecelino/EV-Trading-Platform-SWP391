@@ -142,7 +142,7 @@ const AdminAuctionManagementPage: React.FC = () => {
                     {activeTab === 'scheduled' && (
                         <button 
                             className="action-btn btn--approve" 
-                            onClick={() => handleApproveAuction(auctionItem._id)}
+                            onClick={() => handleApproveAuction(auction._id)}
                         >
                             Duyệt
                         </button>

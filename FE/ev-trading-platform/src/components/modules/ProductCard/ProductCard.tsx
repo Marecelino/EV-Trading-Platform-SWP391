@@ -112,7 +112,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'default' 
       <div className="product-card__image-container">
         <img src={primaryImage} alt={product.title} className="product-card__image" />
         {product.is_verified && <span className="product-card__verified-badge">Đã kiểm định</span>}
-        <button className="product-card__favorite-btn"><Heart size={20} /></button>
+        <button 
+          className={`product-card__favorite-btn ${isLiked ? 'liked' : ''}`}
+          onClick={handleFavoriteClick}
+        >
+          <Heart size={20} />
+        </button>
       </div>
       <div className="product-card__info">
         <h3 className="product-card__name">{product.title}</h3>

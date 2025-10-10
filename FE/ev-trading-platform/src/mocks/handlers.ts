@@ -979,4 +979,57 @@ export const handlers = [
 
     return HttpResponse.json({ success: false, message: 'Không tìm thấy phiên đấu giá hoặc không thể duyệt.' }, { status: 404 });
   }),
+  // HANDLER MỚI:  Gemini API 
+  http.post('http://localhost:5000/api/ai/suggest-price', async ({ request }) => {
+    const { product } = await request.json() as { product: Product };
+
+    let suggested_price = 800000000; // Giá cơ bản giả định cho dòng xe
+    const factors: any = {};
+
+    // 1. Điều chỉnh theo năm sản xuất
+    const year = product.ev_details?.year_of_manufacture || new Date().getFullYear();
+    const age = new Date().getFullYear() - year;
+    const age_factor = 1 - (age * 0.08); // Khấu hao 8%/năm
+    suggested_price *= age_factor;
+    factors.age_adjustment = { value: `-${age * 8}%`, weight: 0.4, explanation: `Khấu hao ${age} năm sử dụng` };
+
+    // 2. Điều chỉnh theo số KM
+    const mileage = product.ev_details?.mileage || 0;
+    const mileage_factor = 1 - (mileage / 100000) * 0.2; // Hao mòn 20% mỗi 100k km
+    suggested_price *= mileage_factor;
+    factors.mileage_adjustment = { value: `-${Math.round((mileage / 100000) * 20)}%`, weight: 0.3, explanation: `Dựa trên ${mileage.toLocaleString('vi-VN')} km đã đi` };
+
+    // 3. Điều chỉnh theo tình trạng
+    let condition_factor = 1.0;
+    if (product.condition === 'like_new') condition_factor = 1.05;
+    if (product.condition === 'fair') condition_factor = 0.85;
+    suggested_price *= condition_factor;
+    factors.condition_adjustment = { value: `${Math.round((condition_factor - 1) * 100)}%`, weight: 0.3, explanation: `Điều chỉnh theo tình trạng '${product.condition}'` };
+    
+    suggested_price = Math.round(suggested_price / 1000000) * 1000000;
+
+    const priceSuggestion = {
+      listing_id: product._id,
+      suggested_price: suggested_price,
+      min_price: Math.round(suggested_price * 0.9 / 1000000) * 1000000,
+      max_price: Math.round(suggested_price * 1.1 / 1000000) * 1000000,
+      confidence_score: 55, // Giả định confidence thấp vì chỉ dựa vào heuristics
+      based_on_transactions: 0,
+      factors: factors,
+      created_at: new Date().toISOString(),
+    };
+
+    const uiSummary = {
+      title: "AI Gợi ý giá",
+      subtitle: "Dựa trên phân tích các yếu tố thị trường",
+      display: {
+        min: priceSuggestion.min_price,
+        suggested: priceSuggestion.suggested_price,
+        max: priceSuggestion.max_price,
+        labelSuggested: `${(priceSuggestion.suggested_price / 1000000).toFixed(1).replace('.0', '')} tr`,
+      }
+    };
+    
+    return HttpResponse.json({ priceSuggestion, uiSummary });
+  }),
 ];

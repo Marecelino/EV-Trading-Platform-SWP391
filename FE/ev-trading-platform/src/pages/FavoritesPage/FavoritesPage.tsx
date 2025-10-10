@@ -1,5 +1,6 @@
 // src/pages/FavoritesPage/FavoritesPage.tsx
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom'; // Import the Link component
 import { useFavorites } from '../../contexts/FavoritesContext';
 import listingsApi from '../../api/listingsApi';
 import type { Product } from '../../types';
@@ -15,7 +16,7 @@ const FavoritesPage: React.FC = () => {
     setIsLoading(true);
     listingsApi.getAll().then(res => {
       if (res.data.success) {
-        // Lọc tất cả sản phẩm để chỉ lấy những sản phẩm có ID nằm trong danh sách yêu thích
+        // Filter all products to get only the ones whose IDs are in the favorites list
         const filtered = res.data.data.filter(p => favoriteIds.has(p._id));
         setFavoriteProducts(filtered);
       }
@@ -29,7 +30,10 @@ const FavoritesPage: React.FC = () => {
         favoriteProducts.length > 0 ? (
           <div className="product-grid">
             {favoriteProducts.map(product => (
-              <ProductCard key={product._id} product={product} variant="default" />
+              // Wrap ProductCard with a Link component
+              <Link to={`/products/${product._id}`} key={product._id} style={{ textDecoration: 'none' }}>
+                <ProductCard product={product} variant="default" />
+              </Link>
             ))}
           </div>
         ) : (
