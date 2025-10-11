@@ -2,21 +2,21 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
 @Schema({
-  timestamps: true
+  timestamps: true,
 })
 export class Category extends Document {
-  @Prop({ 
+  @Prop({
     required: true,
     unique: true,
     trim: true,
     minlength: 2,
-    maxlength: 50
+    maxlength: 50,
   })
   name: string;
 
   @Prop({
     trim: true,
-    maxlength: 500
+    maxlength: 500,
   })
   description: string;
 
@@ -25,22 +25,22 @@ export class Category extends Document {
 
   @Prop({
     type: Types.ObjectId,
-    ref: 'Category'
+    ref: 'Category',
   })
   parent_category: Types.ObjectId | Category;
 
   @Prop({
-    default: true
+    default: true,
   })
   is_active: boolean;
 
   @Prop({
-    default: 0
+    default: 0,
   })
   sort_order: number;
 
   @Prop({
-    default: 0
+    default: 0,
   })
   listing_count: number;
 }

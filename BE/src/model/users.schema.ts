@@ -1,73 +1,78 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
 
 export enum UserRole {
   ADMIN = 'admin',
   USER = 'user',
-  SELLER = 'seller'
+  SELLER = 'seller',
 }
 
 export enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
-  BANNED = 'banned'
+  BANNED = 'banned',
 }
 
+export type UserDocument = HydratedDocument<User>;
+
 @Schema({
-  timestamps: true
+  timestamps: true,
 })
-export class User extends Document {
-    @Prop({ 
-      required: true,
-      trim: true,
-      minlength: 2,
-      maxlength: 50
-    })
-    name: string;
+export class User {
+  @Prop({
+    required: true,
+    trim: true,
+    minlength: 2,
+    maxlength: 50,
+  })
+  name: string;
 
-    @Prop({ 
-      required: true, 
-      unique: true,
-      lowercase: true,
-      trim: true,
-      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
-    })
-    email: string;
+  @Prop({
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+    match: [
+      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+      'Please enter a valid email',
+    ],
+  })
+  email: string;
 
-    @Prop({ 
-      type: String,
-      enum: UserRole,
-      default: UserRole.USER
-    })
-    role: UserRole;
+  @Prop({
+    type: String,
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role: UserRole;
 
-    @Prop({ 
-      required: true,
-      minlength: 6
-    })
-    password: string;
+  @Prop({
+    required: true,
+    minlength: 6,
+  })
+  password: string;
 
-    @Prop({ 
-      type: String,
-      enum: UserStatus,
-      default: UserStatus.ACTIVE
-    })
-    status: UserStatus;
+  @Prop({
+    type: String,
+    enum: UserStatus,
+    default: UserStatus.ACTIVE,
+  })
+  status: UserStatus;
 
-    @Prop()
-    phone: string;
+  @Prop()
+  phone: string;
 
-    @Prop()
-    address: string;
+  @Prop()
+  address: string;
 
-    @Prop()
-    avatar: string;
+  @Prop()
+  avatar: string;
 
-    @Prop({ default: Date.now })
-    lastLogin: Date;
+  @Prop({ default: Date.now })
+  lastLogin: Date;
 
-    @Prop({ default: false })
-    isEmailVerified: boolean;
+  @Prop({ default: false })
+  isEmailVerified: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
@@ -82,4 +87,3 @@ UserSchema.index({ role: 1, status: 1 });
 //   // Hash password logic here
 //   next();
 // });
-

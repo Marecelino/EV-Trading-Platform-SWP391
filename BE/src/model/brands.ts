@@ -2,21 +2,21 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
 @Schema({
-  timestamps: true
+  timestamps: true,
 })
 export class Brand extends Document {
-  @Prop({ 
+  @Prop({
     required: true,
     unique: true,
     trim: true,
     minlength: 2,
-    maxlength: 50
+    maxlength: 50,
   })
   name: string;
 
   @Prop({
     trim: true,
-    maxlength: 500
+    maxlength: 500,
   })
   description: string;
 
@@ -28,17 +28,17 @@ export class Brand extends Document {
 
   @Prop({
     trim: true,
-    maxlength: 100
+    maxlength: 100,
   })
   country: string;
 
   @Prop({
-    default: true
+    default: true,
   })
   is_active: boolean;
 
   @Prop({
-    default: 0
+    default: 0,
   })
   listing_count: number;
 }

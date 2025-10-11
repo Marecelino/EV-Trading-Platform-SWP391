@@ -3,64 +3,64 @@ import { Document, Types } from 'mongoose';
 import { Listing } from './listings';
 
 @Schema({
-  timestamps: true
+  timestamps: true,
 })
 export class EVDetail extends Document {
-  @Prop({ 
-    type: Types.ObjectId, 
+  @Prop({
+    type: Types.ObjectId,
     ref: 'Listing',
     required: true,
-    unique: true
+    unique: true,
   })
   listing_id: Types.ObjectId | Listing;
 
   @Prop({
     required: true,
     min: 1990,
-    max: new Date().getFullYear() + 2
+    max: new Date().getFullYear() + 2,
   })
   year: number;
 
   @Prop({
     required: true,
-    min: 0
+    min: 0,
   })
   mileage_km: number;
 
   @Prop({
     required: true,
-    min: 0
+    min: 0,
   })
   battery_capacity_kwh: number;
 
   @Prop({
     required: true,
-    min: 0
+    min: 0,
   })
   range_km: number;
 
   @Prop({
     required: true,
-    trim: true
+    trim: true,
   })
   condition: string;
 
   @Prop({
     required: true,
-    trim: true
+    trim: true,
   })
   color: string;
 
   @Prop({
     required: true,
     min: 1,
-    max: 9
+    max: 9,
   })
   seats: number;
 
   @Prop({
     required: true,
-    trim: true
+    trim: true,
   })
   drive_type: string; // FWD, RWD, AWD
 
@@ -84,7 +84,7 @@ export class EVDetail extends Document {
   charging_port_type: string;
 
   @Prop({
-    type: [String]
+    type: [String],
   })
   features: string[];
 }

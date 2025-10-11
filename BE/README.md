@@ -1,98 +1,115 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+<div align="center">
+  <img src="https://nestjs.com/img/logo-small.svg" width="96" alt="Nest logo" />
+  <h1>EV Trading Platform – Backend</h1>
+  <p>REST API for the second-hand EV &amp; battery marketplace built with NestJS + MongoDB.</p>
+</div>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## ✨ Overview
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+This service powers the EV Trading Platform, covering:
 
-## Description
+- User registration, authentication, and account management (members &amp; admins)
+- Listings lifecycle (create, search, price suggestions, recommendations)
+- Transactions, commissions, and settlement tracking
+- Social features: favourites, reviews, notifications
+- Admin dashboard, moderation tooling, and analytics endpoints
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+All endpoints are served under the global prefix `http://localhost:3000/api`. Interactive docs are available at `http://localhost:3000/docs` once the server is running.
 
-## Project setup
+## 🧱 Tech stack
 
-```bash
-$ npm install
-```
+- **Runtime:** Node.js 18+, NestJS 11
+- **Database:** MongoDB (Mongoose ODM)
+- **Auth:** JWT (Bearer tokens), Passport.js
+- **Validation:** class-validator + class-transformer
+- **Tooling:** ESLint, Prettier, Jest, Swagger
 
-## Compile and run the project
+## 🚀 Getting started
 
 ```bash
-# development
-$ npm run start
+# 1. Install dependencies
+npm install
 
-# watch mode
-$ npm run start:dev
+# 2. Configure environment
+cp .env.example .env   # or set MONGODB_URL/JWT_SECRET variables manually
 
-# production mode
-$ npm run start:prod
+# 3. Run in watch mode
+npm run start:dev
+
+# Optional: production build
+npm run build
+npm run start:prod
 ```
 
-## Run tests
+### Environment variables
+
+| Name            | Default                                              | Description                           |
+|-----------------|------------------------------------------------------|---------------------------------------|
+| `MONGODB_URL`   | `mongodb://localhost:27017/ev_battery_platform`     | MongoDB connection string             |
+| `JWT_SECRET`    | `super-secret-key`                                   | Symmetric key for JWT signing         |
+| `JWT_EXPIRES_IN`| `604800` (seconds ≈ 7 days)                          | Access token lifetime                 |
+
+> On bootstrap the service seeds a default admin account (`admin@ev-platform.test` / `Admin123!`) if none exists.
+
+## 📚 Modules & key endpoints
+
+| Module          | Highlights                                                                                               |
+|-----------------|-----------------------------------------------------------------------------------------------------------|
+| **Auth**        | `POST /auth/register`, `POST /auth/login`, `GET /auth/profile` (JWT protected)                            |
+| **Users**       | CRUD for members, filtering by role/status, admin status management                                       |
+| **Listings**    | Create/update listings, full-text search & filters, price suggestions, recommendations, view tracking     |
+| **Transactions**| Booking flow, status updates (pending → completed/cancelled), automatic listing status sync              |
+| **Favorites**   | Add/remove favourites, list by user, favourite count aggregation for listings                             |
+| **Reviews**     | Post & moderate buyer/seller reviews, visibility toggles, rating stats                                     |
+| **Notifications**| System/user alerts, mark-as-read, bulk acknowledgement                                                    |
+| **Admin**       | Dashboard metrics, listing approvals, user moderation, review moderation                                  |
+| **Analytics**   | Revenue by month, popular brands, favourites trend, overall KPIs                                          |
+
+Swagger schemas are generated automatically; head to `/docs` for request/response examples.
+
+## ✅ Quality
 
 ```bash
-# unit tests
-$ npm run test
+# Lint
+npm run lint
 
-# e2e tests
-$ npm run test:e2e
+# Unit tests
+npm run test
 
-# test coverage
-$ npm run test:cov
+# E2E tests
+npm run test:e2e
 ```
 
-## Deployment
+The CI-friendly `npm run build` command compiles the entire project and is used locally to ensure type-safety.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## 🧭 Project structure
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+```
+src/
+  auth/            # authentication & JWT guard logic
+  users/           # user management (members, admins)
+  listings/        # marketplace listings, search, price heuristics
+  transactions/    # order lifecycle & commission handling
+  favorites/       # saved listings per user
+  reviews/         # buyer/seller feedback
+  notifications/   # in-app notifications
+  admin/           # moderation + dashboard orchestration
+  analytics/       # aggregated stats for charts and reports
+  model/           # Mongoose schemas
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## 🔐 Security notes
 
-## Resources
+- Always replace the default `JWT_SECRET` in production.
+- Consider enabling HTTPS termination and rate limiting at the gateway layer.
+- Passport guards are in place for profile endpoints; extend them across modules as the client integrates auth contexts.
 
-Check out a few resources that may come in handy when working with NestJS:
+## 🛣️ Roadmap / next steps
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- Integrate real payment provider hooks for transaction settlement
+- Add WebSocket or SSE notifications for real-time updates
+- Expand automated test coverage beyond sample specs (unit + e2e)
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Happy coding! Reach out via issues or code comments if you extend the API surface.

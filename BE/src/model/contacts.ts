@@ -6,32 +6,32 @@ export enum ContractStatus {
   DRAFT = 'draft',
   SIGNED = 'signed',
   CANCELLED = 'cancelled',
-  EXPIRED = 'expired'
+  EXPIRED = 'expired',
 }
 
 @Schema({
-  timestamps: true
+  timestamps: true,
 })
 export class Contract extends Document {
-  @Prop({ 
-    type: Types.ObjectId, 
+  @Prop({
+    type: Types.ObjectId,
     ref: 'Transaction',
     required: true,
-    unique: true
+    unique: true,
   })
   transaction_id: Types.ObjectId | Transaction;
 
   @Prop({
     required: true,
     unique: true,
-    trim: true
+    trim: true,
   })
   contract_no: string;
 
   @Prop({
     type: String,
     enum: ContractStatus,
-    default: ContractStatus.DRAFT
+    default: ContractStatus.DRAFT,
   })
   status: ContractStatus;
 
@@ -42,7 +42,7 @@ export class Contract extends Document {
   expires_at: Date;
 
   @Prop({
-    required: true
+    required: true,
   })
   document_url: string;
 
@@ -50,7 +50,7 @@ export class Contract extends Document {
   terms_and_conditions: string;
 
   @Prop({
-    type: [String]
+    type: [String],
   })
   signatures: string[]; // URLs của chữ ký số
 

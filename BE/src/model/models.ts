@@ -3,27 +3,27 @@ import { Document, Types } from 'mongoose';
 import { Brand } from './brands';
 
 @Schema({
-  timestamps: true
+  timestamps: true,
 })
 export class Model extends Document {
-  @Prop({ 
-    type: Types.ObjectId, 
+  @Prop({
+    type: Types.ObjectId,
     ref: 'Brand',
-    required: true 
+    required: true,
   })
   brand_id: Types.ObjectId | Brand;
 
-  @Prop({ 
+  @Prop({
     required: true,
     trim: true,
     minlength: 1,
-    maxlength: 100
+    maxlength: 100,
   })
   name: string;
 
   @Prop({
     trim: true,
-    maxlength: 1000
+    maxlength: 1000,
   })
   description: string;
 
@@ -40,12 +40,12 @@ export class Model extends Document {
   drivetrain: string; // FWD, RWD, AWD
 
   @Prop({
-    default: true
+    default: true,
   })
   is_active: boolean;
 
   @Prop({
-    default: 0
+    default: 0,
   })
   listing_count: number;
 

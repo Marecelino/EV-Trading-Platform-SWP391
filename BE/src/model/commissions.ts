@@ -6,45 +6,45 @@ import { CommissionConfig } from './commissionconfigs';
 export enum CommissionStatus {
   PENDING = 'pending',
   PAID = 'paid',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 @Schema({
-  timestamps: true
+  timestamps: true,
 })
 export class Commission extends Document {
-  @Prop({ 
-    type: Types.ObjectId, 
+  @Prop({
+    type: Types.ObjectId,
     ref: 'Transaction',
     required: true,
-    unique: true
+    unique: true,
   })
   transaction_id: Types.ObjectId | Transaction;
 
-  @Prop({ 
-    type: Types.ObjectId, 
+  @Prop({
+    type: Types.ObjectId,
     ref: 'CommissionConfig',
-    required: true
+    required: true,
   })
   config_id: Types.ObjectId | CommissionConfig;
 
   @Prop({
     required: true,
     min: 0,
-    max: 100
+    max: 100,
   })
   percentage: number;
 
   @Prop({
     required: true,
-    min: 0
+    min: 0,
   })
   amount: number;
 
   @Prop({
     type: String,
     enum: CommissionStatus,
-    default: CommissionStatus.PENDING
+    default: CommissionStatus.PENDING,
   })
   status: CommissionStatus;
 

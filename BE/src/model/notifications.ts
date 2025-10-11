@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import { User } from './users.schema';
 
 export enum NotificationType {
@@ -8,36 +8,38 @@ export enum NotificationType {
   NEW_MESSAGE = 'new_message',
   TRANSACTION_COMPLETED = 'transaction_completed',
   PRICE_SUGGESTION = 'price_suggestion',
-  SYSTEM_ANNOUNCEMENT = 'system_announcement'
+  SYSTEM_ANNOUNCEMENT = 'system_announcement',
 }
 
+export type NotificationDocument = HydratedDocument<Notification>;
+
 @Schema({
-  timestamps: true
+  timestamps: true,
 })
-export class Notification extends Document {
-  @Prop({ 
-    type: Types.ObjectId, 
+export class Notification {
+  @Prop({
+    type: Types.ObjectId,
     ref: 'User',
-    required: true 
+    required: true,
   })
   user_id: Types.ObjectId | User;
 
   @Prop({
     required: true,
     trim: true,
-    maxlength: 500
+    maxlength: 500,
   })
   message: string;
 
   @Prop({
     type: String,
     enum: NotificationType,
-    required: true
+    required: true,
   })
   type: NotificationType;
 
   @Prop({
-    default: false
+    default: false,
   })
   is_read: boolean;
 
