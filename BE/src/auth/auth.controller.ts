@@ -8,12 +8,22 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
+
 import { AuthService } from './auth.service';
+
+// DTOs
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { LogoutDto } from './dto/logout.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
-import { SanitizedUser } from '../users/users.service';
+// Guards
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+
+// Interfaces / Types
+import { SanitizedUser } from '../users/users.service';
 
 interface AuthenticatedRequest extends ExpressRequest {
   user: SanitizedUser;

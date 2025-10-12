@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -25,6 +26,7 @@ type LeanUser = Omit<User, 'password'> & {
   updatedAt?: Date;
   lastLogin?: Date;
   isEmailVerified?: boolean;
+  // nếu bạn có các trường mới, thêm ở đây
 };
 
 export type SanitizedUser = Omit<LeanUser, '_id'> & { _id: string };
@@ -44,10 +46,15 @@ export class UsersService {
     };
   }
 
-  async create(createUserDto: CreateUserDto): Promise<UserDocument> {
-    const existingUser = await this.userModel
-      .findOne({ email: createUserDto.email })
-      .lean();
+  /**
+   * Tạo user mới — trả về sanitized user (không có password)
+   */
+  async create(createUserDto: CreateUserDto): Promise<SanitizedUser> {
+    // chuẩn hoá email
+    const email = createUserDto.email.toLowerCase();
+
+    // kiểm tra tồn tại sớm
+    const existingUser = await this.userModel.findOne({ email }).lean();
     if (existingUser) {
       throw new ConflictException('Email already in use');
     }
@@ -56,13 +63,33 @@ export class UsersService {
       createUserDto.password,
       PASSWORD_SALT_ROUNDS,
     );
+
     const createdUser = new this.userModel({
       ...createUserDto,
-      email: createUserDto.email.toLowerCase(),
+      email,
       password: hashedPassword,
       role: createUserDto.role ?? UserRole.USER,
     });
-    return createdUser.save();
+
+    try {
+      const saved = await createdUser.save();
+      // chuyển thành plain object, xóa password trước khi trả
+      const obj = (saved as any).toObject ? (saved as any).toObject() : saved;
+      delete obj.password;
+      // đảm bảo kiểu LeanUser cho toSanitizedUser
+      return this.toSanitizedUser(obj as LeanUser);
+    } catch (err: any) {
+      // duplicate key (race condition)
+      if (err && err.code === 11000) {
+        throw new ConflictException('Email already in use');
+      }
+      // Mongoose validation error
+      if (err && err.name === 'ValidationError') {
+        const messages = Object.values(err.errors).map((e: any) => e.message);
+        throw new BadRequestException(messages.join(', '));
+      }
+      throw err;
+    }
   }
 
   async findAll(
@@ -128,6 +155,16 @@ export class UsersService {
     return this.toSanitizedUser(user);
   }
 
+  /**
+   * Trả về document đầy đủ (có password, refreshTokenHash...) — dùng trong auth
+   */
+  async findByIdRaw(id: string) {
+    return this.userModel.findById(id).exec();
+  }
+
+  /**
+   * Trả về document (có password) theo email — dùng để login
+   */
   async findByEmail(email: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ email: email.toLowerCase() }).exec();
   }
@@ -185,21 +222,66 @@ export class UsersService {
     return this.toSanitizedUser(result);
   }
 
+  // ---------------------------
+  // Methods for auth flows
+  // ---------------------------
+
+  /**
+   * Lưu / xóa hashed refresh token (dùng cho refresh/logout)
+   */
+  async updateRefreshToken(id: string, refreshTokenHash: string | null) {
+    await this.userModel
+      .findByIdAndUpdate(id, { refreshTokenHash }, { new: true })
+      .exec();
+  }
+
+  /**
+   * Lưu token reset + expires
+   */
+  async setPasswordResetToken(id: string, token: string, expires: Date) {
+    await this.userModel
+      .findByIdAndUpdate(id, { passwordResetToken: token, passwordResetExpires: expires }, { new: true })
+      .exec();
+  }
+
+  /**
+   * Tìm user theo reset token
+   */
+  async findByResetToken(token: string) {
+    return this.userModel.findOne({ passwordResetToken: token }).exec();
+  }
+
+  /**
+   * Cập nhật mật khẩu và clear reset token fields
+   */
+  async updatePasswordAndClearReset(id: string, hashedPassword: string) {
+    await this.userModel.findByIdAndUpdate(id, {
+      password: hashedPassword,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+    }).exec();
+  }
+
+  /**
+   * ensure admin seed nhưng không crash app khi lỗi xảy ra
+   */
   async ensureAdminSeed() {
-    const adminExists = await this.userModel.exists({ role: UserRole.ADMIN });
-    if (!adminExists) {
-      const hashedPassword = await bcrypt.hash(
-        'Admin123!',
-        PASSWORD_SALT_ROUNDS,
-      );
-      await this.userModel.create({
-        name: 'Platform Administrator',
-        email: 'admin@ev-platform.test',
-        password: hashedPassword,
-        role: UserRole.ADMIN,
-        status: UserStatus.ACTIVE,
-        isEmailVerified: true,
-      });
+    try {
+      const adminExists = await this.userModel.exists({ role: UserRole.ADMIN });
+      if (!adminExists) {
+        const hashedPassword = await bcrypt.hash('Admin123!', PASSWORD_SALT_ROUNDS);
+        await this.userModel.create({
+          name: 'Platform Administrator',
+          email: 'admin@ev-platform.test',
+          password: hashedPassword,
+          role: UserRole.ADMIN,
+          status: UserStatus.ACTIVE,
+          isEmailVerified: true,
+        });
+      }
+    } catch (err: any) {
+      // log và tiếp tục — tránh crash server
+      console.warn('Admin seed failed:', err?.message || err);
     }
   }
 }

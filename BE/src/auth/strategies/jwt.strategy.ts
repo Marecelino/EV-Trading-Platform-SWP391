@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy, JwtFromRequestFunction } from 'passport-jwt';
@@ -7,7 +7,8 @@ import { UserRole } from '../../model/users.schema';
 
 interface JwtPayload {
   sub: string;
-  role: UserRole;
+  role?: UserRole;
+  // bạn có thể mở rộng payload nếu cần (email, iat, exp...)
 }
 
 interface JwtValidatedUser extends SanitizedUser {
@@ -15,9 +16,9 @@ interface JwtValidatedUser extends SanitizedUser {
 }
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
-    configService: ConfigService,
+    private readonly configService: ConfigService,
     private readonly usersService: UsersService,
   ) {
     const jwtFromRequest: JwtFromRequestFunction =
@@ -31,8 +32,30 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
+  /**
+   * Validate được gọi khi token hợp lệ về mặt chữ ký và thời hạn.
+   * Trả về object sẽ gắn vào req.user. Nếu trả undefined hoặc ném lỗi => Unauthorized.
+   */
   async validate(payload: JwtPayload): Promise<JwtValidatedUser> {
+    // Tìm user từ DB (trả về sanitized user)
     const user = await this.usersService.findById(payload.sub);
-    return { ...user, role: payload.role, userId: payload.sub };
+
+    if (!user) {
+      // token hợp lệ nhưng user không tồn tại -> không được phép
+      throw new UnauthorizedException('Người dùng không tồn tại');
+    }
+
+    // Nếu bạn có trường status (active/inactive/banned), kiểm tra ở đây
+    // if (user.status && user.status !== 'active') {
+    //   throw new UnauthorizedException('Tài khoản đã bị vô hiệu hóa');
+    // }
+
+    // Map _id -> userId cho rõ ràng (vẫn giữ các trường trong sanitized user)
+    const validated: JwtValidatedUser = {
+      ...user,
+      userId: payload.sub,
+    };
+
+    return validated;
   }
 }
