@@ -5,14 +5,17 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { GoogleStrategy } from './strategies/google.strategy';
 import { AuthService } from './auth.service';
-
 
 @Module({
   imports: [
     ConfigModule,
     UsersModule,
-    PassportModule.register({ defaultStrategy: 'jwt' }),
+    // Đăng ký Passport (mặc định JWT, nhưng có thể dùng nhiều strategy như Google)
+    PassportModule.register({ defaultStrategy: 'jwt', session: false }),
+
+    // Đăng ký JWT module động (lấy config từ .env)
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -21,14 +24,21 @@ import { AuthService } from './auth.service';
         return {
           secret: configService.get<string>('JWT_SECRET', 'super-secret-key'),
           signOptions: {
-            expiresIn: expiresIn ?? 60 * 60 * 24 * 7, // 7 days in seconds
+            expiresIn: expiresIn ?? 60 * 60 * 24 * 7, // 7 days
           },
         };
       },
     }),
   ],
+
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+
+  providers: [
+    AuthService,
+    JwtStrategy,     // Dùng cho login bằng JWT
+    GoogleStrategy,  // Dùng cho login bằng Google OAuth2
+  ],
+
   exports: [AuthService],
 })
 export class AuthModule {}

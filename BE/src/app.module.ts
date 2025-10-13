@@ -1,6 +1,9 @@
+// app.module.ts
 import { Module, OnModuleInit } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import * as Joi from 'joi';
+
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -17,11 +20,28 @@ import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    MongooseModule.forRoot(
-      process.env.MONGODB_URL ??
-        'mongodb://localhost:27017/ev_battery_platform',
-    ),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: Joi.object({
+        MONGODB_URL: Joi.string().uri().required(),
+        GOOGLE_CLIENT_ID: Joi.string().required(),
+        GOOGLE_CLIENT_SECRET: Joi.string().required(),
+        GOOGLE_CALLBACK_URL: Joi.string().uri().required(),
+        JWT_SECRET: Joi.string().required(),
+        FRONTEND_URL: Joi.string().uri().optional(),
+        NODE_ENV: Joi.string().valid('development','test','production').default('development'),
+      }),
+    }),
+
+    // Đọc URI từ ConfigService thay vì process.env
+    MongooseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (cfg: ConfigService) => ({
+        uri: cfg.get<string>('MONGODB_URL'),
+        autoIndex: cfg.get('NODE_ENV') !== 'production', // tránh build index tự động ở prod
+      }),
+    }),
+
     UsersModule,
     AuthModule,
     ListingsModule,

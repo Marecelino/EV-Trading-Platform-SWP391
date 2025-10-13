@@ -15,72 +15,67 @@ export enum UserStatus {
 
 export type UserDocument = HydratedDocument<User>;
 
-@Schema({
-  timestamps: true,
-})
+@Schema({ timestamps: true })
 export class User {
-  @Prop({
-    required: true,
-    trim: true,
-    minlength: 2,
-    maxlength: 50,
-  })
+  @Prop({ required: true, trim: true, minlength: 2, maxlength: 50 })
   name: string;
 
- @Prop({
-  required: true,
-  unique: true,
-  lowercase: true,
-  trim: true,
-})
-email: string;
+  @Prop({ required: true, unique: true, lowercase: true, trim: true })
+  email: string;
 
-
-  @Prop({
-    type: String,
-    enum: UserRole,
-    default: UserRole.USER,
-  })
+  @Prop({ type: String, enum: UserRole, default: UserRole.USER })
   role: UserRole;
 
+  // Chỉ bắt buộc khi KHÔNG có OAuth providers
   @Prop({
-    required: true,
     minlength: 6,
+    required: function (this: any) {
+      return !(this.oauthProviders && this.oauthProviders.length > 0);
+    },
   })
-  password: string;
+  password?: string;
 
-  @Prop({
-    type: String,
-    enum: UserStatus,
-    default: UserStatus.ACTIVE,
-  })
+  @Prop({ type: String, enum: UserStatus, default: UserStatus.ACTIVE })
   status: UserStatus;
 
-  @Prop()
-  phone: string;
-
-  @Prop()
-  address: string;
-
-  @Prop()
-  avatar: string;
+  @Prop() phone?: string;
+  @Prop() address?: string;
+  @Prop() avatar?: string;
 
   @Prop({ default: Date.now })
   lastLogin: Date;
 
   @Prop({ default: false })
   isEmailVerified: boolean;
+
+  // ----- OAuth -----
+  @Prop({
+    type: [
+      {
+        provider: { type: String, required: true },   // ví dụ: 'google'
+        providerId: { type: String, required: true }, // profile.id
+      },
+    ],
+    default: [],
+  })
+  oauthProviders: { provider: string; providerId: string }[];
+
+  // ----- Tokens phục vụ auth flows -----
+  @Prop() refreshTokenHash?: string;
+  @Prop() passwordResetToken?: string;
+  @Prop() passwordResetExpires?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
-// Tạo indexes
-UserSchema.index({ email: 1 });
+// Indexes
+// ❌ BỎ index trùng email (đã unique ở field):
+// UserSchema.index({ email: 1 });
 UserSchema.index({ role: 1, status: 1 });
+UserSchema.index(
+  { 'oauthProviders.provider': 1, 'oauthProviders.providerId': 1 },
+  { sparse: true },
+);
 
-// Pre-save middleware để hash password (sẽ cần bcrypt)
-// UserSchema.pre('save', async function(next) {
-//   if (!this.isModified('password')) return next();
-//   // Hash password logic here
-//   next();
-// });
+// Pre-save hash password (tuỳ bạn bật)
+// UserSchema.pre('save', async function (next) { ... });

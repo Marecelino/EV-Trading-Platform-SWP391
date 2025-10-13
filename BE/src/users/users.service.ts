@@ -17,6 +17,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { FilterUsersDto } from './dto/filter-users.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
+import * as crypto from 'crypto';
 
 const PASSWORD_SALT_ROUNDS = 10;
 
@@ -284,4 +285,49 @@ export class UsersService {
       console.warn('Admin seed failed:', err?.message || err);
     }
   }
+// ========== OAUTH HELPERS (phù hợp schema hiện tại — chưa lưu providerId) ==========
+
+// Hiện schema chưa lưu provider/providerId ⇒ tạm thời không tra theo providerId
+async findByProviderId(_provider: string, _providerId: string) {
+  return null;
 }
+
+// Tạo user từ OAuth với mật khẩu tạm (để thỏa 'password' đang required trong schema)
+async createFromOAuth(opts: {
+  email: string | null;
+  name?: string | null;
+  avatarUrl?: string | null;
+  provider: string;
+  providerId: string;
+}) {
+  const email =
+    (opts.email ?? '').toLowerCase() ||
+    `${opts.providerId}@${opts.provider}.local`; // fallback nếu không có email
+
+  // nếu email đã tồn tại → trả về luôn
+  const existed = await this.userModel.findOne({ email }).exec();
+  if (existed) return existed;
+
+  const tempPassword = crypto.randomBytes(16).toString('hex');
+  const hashedPassword = await bcrypt.hash(tempPassword, PASSWORD_SALT_ROUNDS);
+
+  const doc = await this.userModel.create({
+    name: opts.name ?? 'New User',
+    email,
+    password: hashedPassword,
+    avatar: opts.avatarUrl ?? undefined,
+    isEmailVerified: !!opts.email,
+    role: UserRole.USER,
+    status: UserStatus.ACTIVE,
+  });
+
+  return doc;
+}
+
+// Hiện chưa lưu provider trong schema → no-op (để code ở AuthService không lỗi)
+async linkProvider(_userId: string, _provider: string, _providerId: string) {
+  return;
+}
+
+}
+
