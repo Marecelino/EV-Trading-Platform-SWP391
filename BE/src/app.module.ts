@@ -17,6 +17,11 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AdminModule } from './admin/admin.module';
+import { BatteryDetailsModule } from './battery-details/battery-details.module';
+import { BrandsModule } from './brands/brands.module';
+import { CategoriesModule } from './categories/categories.module';
+import { CommissionConfigsModule } from './commission-configs/commission-configs.module';
+import { CommissionsModule } from './commissions/commissions.module';
 
 @Module({
   imports: [
@@ -51,6 +56,11 @@ import { AdminModule } from './admin/admin.module';
     NotificationsModule,
     AdminModule,
     AnalyticsModule,
+    BatteryDetailsModule,
+    BrandsModule,
+    CategoriesModule,
+    CommissionConfigsModule,
+    CommissionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
