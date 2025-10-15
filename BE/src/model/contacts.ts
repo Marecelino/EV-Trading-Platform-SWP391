@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import { Transaction } from './transactions';
 
 export enum ContractStatus {
@@ -9,10 +9,12 @@ export enum ContractStatus {
   EXPIRED = 'expired',
 }
 
+export type ContractDocument = HydratedDocument<Contract>;
+
 @Schema({
   timestamps: true,
 })
-export class Contract extends Document {
+export class Contract {
   @Prop({
     type: Types.ObjectId,
     ref: 'Transaction',

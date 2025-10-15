@@ -24,11 +24,16 @@ async function bootstrap() {
     .setTitle('EV Trading Platform API')
     .setDescription('The EV Trading Platform API description')
     .setVersion('1.0')
-    .addTag('users')
+    .addBearerAuth() // Auth configuration first
+    .addTag('auth')
     .addTag('listings')
     .addTag('transactions')
     .addTag('reviews')
-    .addBearerAuth() // Nếu có authentication
+    .addTag('contacts')
+    .addTag('evdetails')
+    .addTag('models')
+    .addTag('pricesuggestions')
+    .addTag('favorites')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

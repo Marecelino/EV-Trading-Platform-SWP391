@@ -1,5 +1,5 @@
 // app.module.ts
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
@@ -7,16 +7,16 @@ import * as Joi from 'joi';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
-import { UsersService } from './users/users.service';
-import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ListingsModule } from './listings/listings.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { NotificationsModule } from './notifications/notifications.module';
-import { AnalyticsModule } from './analytics/analytics.module';
-import { AdminModule } from './admin/admin.module';
+import { ContactsModule } from './contacts/contacts.module';
+import { EvdetailsModule } from './evdetails/evdetails.module';
+import { ModelsModule } from './models/models.module';
+import { PriceSuggestionsModule } from './pricesuggestions/pricesuggestions.module';
 
 @Module({
   imports: [
@@ -41,24 +41,18 @@ import { AdminModule } from './admin/admin.module';
         autoIndex: cfg.get('NODE_ENV') !== 'production', // tránh build index tự động ở prod
       }),
     }),
-
-    UsersModule,
     AuthModule,
     ListingsModule,
     TransactionsModule,
     FavoritesModule,
     ReviewsModule,
     NotificationsModule,
-    AdminModule,
-    AnalyticsModule,
+    ContactsModule,
+    EvdetailsModule,
+    ModelsModule,
+    PriceSuggestionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule implements OnModuleInit {
-  constructor(private readonly usersService: UsersService) {}
-
-  async onModuleInit() {
-    await this.usersService.ensureAdminSeed();
-  }
-}
+export class AppModule {}

@@ -2,16 +2,17 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy, JwtFromRequestFunction } from 'passport-jwt';
-import { UsersService, SanitizedUser } from '../../users/users.service';
-import { UserRole } from '../../model/users.schema';
+
+import { AuthService, User } from '../auth.service';
 
 interface JwtPayload {
   sub: string;
-  role?: UserRole;
-  // bạn có thể mở rộng payload nếu cần (email, iat, exp...)
+  role?: string;
+  email?: string;
+  // bạn có thể mở rộng payload nếu cần (iat, exp...)
 }
 
-interface JwtValidatedUser extends SanitizedUser {
+interface JwtValidatedUser extends Omit<User, 'password'> {
   userId: string;
 }
 
@@ -19,7 +20,7 @@ interface JwtValidatedUser extends SanitizedUser {
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     private readonly configService: ConfigService,
-    private readonly usersService: UsersService,
+    private readonly authService: AuthService,
   ) {
     const jwtFromRequest: JwtFromRequestFunction =
       ExtractJwt.fromAuthHeaderAsBearerToken();
@@ -37,22 +38,20 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
    * Trả về object sẽ gắn vào req.user. Nếu trả undefined hoặc ném lỗi => Unauthorized.
    */
   async validate(payload: JwtPayload): Promise<JwtValidatedUser> {
-    // Tìm user từ DB (trả về sanitized user)
-    const user = await this.usersService.findById(payload.sub);
+    // Tìm user từ auth service
+    const user = await this.authService.findUserById(payload.sub);
 
     if (!user) {
       // token hợp lệ nhưng user không tồn tại -> không được phép
       throw new UnauthorizedException('Người dùng không tồn tại');
     }
 
-    // Nếu bạn có trường status (active/inactive/banned), kiểm tra ở đây
-    // if (user.status && user.status !== 'active') {
-    //   throw new UnauthorizedException('Tài khoản đã bị vô hiệu hóa');
-    // }
-
-    // Map _id -> userId cho rõ ràng (vẫn giữ các trường trong sanitized user)
+    // Return user without password
     const validated: JwtValidatedUser = {
-      ...user,
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
       userId: payload.sub,
     };
 
