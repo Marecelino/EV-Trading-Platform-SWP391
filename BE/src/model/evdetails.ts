@@ -1,11 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import { Listing } from './listings';
+
+export type EVDetailDocument = HydratedDocument<EVDetail>;
 
 @Schema({
   timestamps: true,
 })
-export class EVDetail extends Document {
+export class EVDetail {
   @Prop({
     type: Types.ObjectId,
     ref: 'Listing',
