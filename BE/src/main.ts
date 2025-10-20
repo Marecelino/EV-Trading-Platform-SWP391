@@ -25,7 +25,7 @@ async function bootstrap() {
     .setDescription('The EV Trading Platform API description')
     .setVersion('1.0')
     .addBearerAuth() // Auth configuration first
-    .addTag('auth')
+    .addTag('Auth')
     .addTag('listings')
     .addTag('transactions')
     .addTag('reviews')

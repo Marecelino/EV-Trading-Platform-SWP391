@@ -16,7 +16,7 @@ export enum VehicleCondition {
   EXCELLENT = 'excellent',
   GOOD = 'good',
   FAIR = 'fair',
-  POOR = 'poor',
+  POOR = 'poor', 
 }
 
 export type ListingDocument = HydratedDocument<Listing>;
@@ -41,7 +41,7 @@ export class Listing {
 
   @Prop({
     type: Types.ObjectId,
-    ref: 'Model',
+    ref: 'Models',
     required: true,
   })
   model_id: Types.ObjectId;

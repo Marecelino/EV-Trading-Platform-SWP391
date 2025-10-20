@@ -1,7 +1,6 @@
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsMongoId,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -13,12 +12,14 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateModelDto {
   @ApiProperty({
-    description: 'ID của thương hiệu xe',
-    example: '507f1f77bcf86cd799439011',
-    pattern: '^[0-9a-fA-F]{24}$'
+    description: 'Tên thương hiệu (ví dụ: "Tesla"). Hệ thống sẽ tìm brand theo tên này và lưu brand_id tương ứng.',
+    example: 'Tesla',
+    minLength: 1,
+    maxLength: 100,
   })
-  @IsMongoId()
-  brand_id: string;
+  @IsString()
+  @IsNotEmpty()
+  brand_name: string;
 
   @ApiProperty({
     description: 'Tên model xe',

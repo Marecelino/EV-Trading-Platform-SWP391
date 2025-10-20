@@ -2,12 +2,12 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { Brand } from './brands';
 
-export type ModelDocument = HydratedDocument<Model>;
+export type ModelDocument = HydratedDocument<Models>;
 
 @Schema({
   timestamps: true,
 })
-export class Model {
+export class Models {
   @Prop({
     type: Types.ObjectId,
     ref: 'Brand',
@@ -68,7 +68,7 @@ export class Model {
   top_speed: number; // km/h
 }
 
-export const ModelSchema = SchemaFactory.createForClass(Model);
+export const ModelSchema = SchemaFactory.createForClass(Models);
 
 // Indexes
 ModelSchema.index({ brand_id: 1, name: 1 });

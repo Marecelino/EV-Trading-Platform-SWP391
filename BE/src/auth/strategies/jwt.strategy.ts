@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy, JwtFromRequestFunction } from 'passport-jwt';
 
-import { AuthService, User } from '../auth.service';
+import { AuthService } from '../auth.service';
+import { User } from 'src/model/users.schema';
 
 interface JwtPayload {
   sub: string;
@@ -12,8 +13,20 @@ interface JwtPayload {
   // bạn có thể mở rộng payload nếu cần (iat, exp...)
 }
 
-interface JwtValidatedUser extends Omit<User, 'password'> {
+/**
+ * Không extend trực tiếp Omit<User,'password'> để tránh bắt buộc tất cả field.
+ * Chỉ khai báo những field cần thiết và để optional cho createdAt/updatedAt.
+ */
+interface JwtValidatedUser {
+  id?: string;
   userId: string;
+  email?: string;
+  name?: string;
+  role?: string;
+  phone?: string;
+  address?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 @Injectable()
@@ -46,13 +59,20 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('Người dùng không tồn tại');
     }
 
-    // Return user without password
+    // Lấy object an toàn (mongoose document -> plain object)
+    const u: any = (typeof (user as any).toObject === 'function') ? (user as any).toObject() : user;
+
+    // Trả về object đã được sanitized (chỉ trường cần thiết)
     const validated: JwtValidatedUser = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
+      id: (u._id?.toString && u._id.toString()) || (u.id?.toString && u.id.toString()) || undefined,
       userId: payload.sub,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      phone: u.phone,
+      address: u.address,
+      createdAt: u.createdAt,
+      updatedAt: u.updatedAt,
     };
 
     return validated;

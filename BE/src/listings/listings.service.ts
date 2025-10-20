@@ -10,6 +10,9 @@ import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { FilterListingsDto } from './dto/filter-listings.dto';
 import { PriceSuggestionDto } from './dto/price-suggestion.dto';
+import { Brand, BrandDocument } from 'src/model/brands';
+import { ModelDocument, Models } from 'src/model/models';
+import { Category, CategoryDocument } from 'src/model/categories';
 
 type NumberCondition = {
   $gte?: number;
@@ -37,16 +40,69 @@ export class ListingsService {
     private readonly listingModel: Model<ListingDocument>,
     @InjectModel(PriceSuggestion.name)
     private readonly priceSuggestionModel: Model<PriceSuggestionDocument>,
+    // injected brand/model/category models
+    @InjectModel(Brand.name)
+    private readonly brandModel: Model<BrandDocument>,
+    @InjectModel(Models.name)
+    private readonly vehicleModel: Model<ModelDocument>,
+    @InjectModel(Category.name)
+    private readonly categoryModel: Model<CategoryDocument>,
   ) {}
+ private escapeRegex(input: string) {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+   async create(createListingDto: CreateListingDto) {
+    const {
+      brand_name,
+      model_name,
+      category_name,
+      expiry_date,
+      status,
+      ...rest
+    } = createListingDto as any;
 
-  async create(createListingDto: CreateListingDto) {
-    const listing = new this.listingModel({
-      ...createListingDto,
-      expiry_date: createListingDto.expiry_date
-        ? new Date(createListingDto.expiry_date)
-        : undefined,
-      status: createListingDto.status ?? ListingStatus.DRAFT,
-    });
+    const payload: Record<string, unknown> = { ...rest };
+
+    // resolve brand_name -> brand_id
+    if (brand_name) {
+      const brand = await this.brandModel.findOne({
+        name: new RegExp(`^${this.escapeRegex(brand_name)}$`, 'i'),
+      });
+      if (!brand) {
+        throw new NotFoundException(`Brand "${brand_name}" not found`);
+      }
+      payload['brand_id'] = brand._id;
+    }
+
+    // resolve model_name -> model_id
+    if (model_name) {
+      const vehicleModel = await this.vehicleModel.findOne({
+        name: new RegExp(`^${this.escapeRegex(model_name)}$`, 'i'),
+      });
+      if (!vehicleModel) {
+        throw new NotFoundException(`Model "${model_name}" not found`);
+      }
+      payload['model_id'] = vehicleModel._id;
+    }
+
+    // resolve category_name -> category_id
+    if (category_name) {
+      const category = await this.categoryModel.findOne({
+        name: new RegExp(`^${this.escapeRegex(category_name)}$`, 'i'),
+      });
+      if (!category) {
+        throw new NotFoundException(`Category "${category_name}" not found`);
+      }
+      payload['category_id'] = category._id;
+    }
+
+    // expiry_date and status handling
+    if (expiry_date) {
+      payload['expiry_date'] = expiry_date ? new Date(expiry_date) : undefined;
+    }
+    payload['status'] = status ?? ListingStatus.DRAFT;
+
+    const listing = new this.listingModel(payload);
     return listing.save();
   }
 
@@ -102,7 +158,10 @@ export class ListingsService {
 
     const [data, total] = await Promise.all([
       this.listingModel
-        .find(query)
+        .find(query).populate({ path: 'seller_id', select: 'name email phone' })
+        .populate({ path: 'brand_id', select: 'name' })
+        .populate({ path: 'model_id', select: 'name' })
+        .populate({ path: 'category_id', select: 'name' })
         .sort({ is_featured: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit)

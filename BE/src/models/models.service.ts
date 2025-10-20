@@ -1,25 +1,44 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model as MongooseModel } from 'mongoose';
-import { Model, ModelDocument } from '../model/models';
+import { Models, ModelDocument } from '../model/models';
 import { CreateModelDto } from './dto/create-model.dto';
 import { UpdateModelDto } from './dto/update-model.dto';
 import { FilterModelsDto } from './dto/filter-models.dto';
+import { Brand } from 'src/model/brands';
 
 @Injectable()
 export class ModelsService {
   constructor(
-    @InjectModel(Model.name)
+    @InjectModel(Models.name)
     private readonly modelModel: MongooseModel<ModelDocument>,
+    @InjectModel(Brand.name)
+    private readonly brandModel: MongooseModel<Brand>,
   ) {}
 
   async create(createModelDto: CreateModelDto): Promise<ModelDocument> {
-    const model = new this.modelModel(createModelDto);
+    // Resolve brand_name -> brand_id
+    const brandName = (createModelDto as any).brand_name?.toString().trim();
+    if (!brandName) {
+      throw new NotFoundException('brand_name is required');
+    }
+
+    const brand = await this.brandModel.findOne({ name: { $regex: `^${brandName}$`, $options: 'i' } }).exec();
+    if (!brand) {
+      throw new NotFoundException(`Brand not found: ${brandName}`);
+    }
+
+    const payload = {
+      ...createModelDto,
+      brand_id: brand._id,
+    } as any;
+
+    const model = new this.modelModel(payload);
     return model.save();
   }
 
   async findAll(filter: FilterModelsDto = {}, page = 1, limit = 20) {
-    const query: FilterQuery<Model> = {};
+    const query: FilterQuery<Models> = {};
 
     if (filter.brand_id) {
       query.brand_id = filter.brand_id;
@@ -43,16 +62,18 @@ export class ModelsService {
 
     const skip = (page - 1) * limit;
 
+    // ...existing code...
     const [data, total] = await Promise.all([
       this.modelModel
         .find(query)
-        .populate('brand_id')
+        .populate({ path: 'brand_id', select: '_id name' })
         .sort({ listing_count: -1, name: 1 })
         .skip(skip)
         .limit(limit)
         .lean(),
       this.modelModel.countDocuments(query),
     ]);
+// ...existing code...
 
     return {
       data,
