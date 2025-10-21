@@ -7,12 +7,20 @@ import {
   Patch,
   Post,
   Query,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { FilterTransactionsDto } from './dto/filter-transactions.dto';
 import { UpdateTransactionStatusDto } from './dto/update-transaction-status.dto';
+import type { Request as ExpressRequest } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+interface AuthenticatedRequest extends ExpressRequest {
+  user: { userId: string };
+}
 
 @ApiTags('transactions')
 @Controller('transactions')
@@ -27,6 +35,12 @@ export class TransactionsController {
   @Get()
   findAll(@Query() filters: FilterTransactionsDto) {
     return this.transactionsService.findAll(filters);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('my')
+  findMine(@Request() req: AuthenticatedRequest) {
+    return this.transactionsService.findForUser(req.user.userId);
   }
 
   @Get(':id')

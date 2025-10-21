@@ -23,7 +23,6 @@ import { CategoriesModule } from './categories/categories.module';
 import { CommissionConfigsModule } from './commission-configs/commission-configs.module';
 import { CommissionsModule } from './commissions/commissions.module';
 
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -33,9 +32,25 @@ import { CommissionsModule } from './commissions/commissions.module';
         GOOGLE_CLIENT_ID: Joi.string().required(),
         GOOGLE_CLIENT_SECRET: Joi.string().required(),
         GOOGLE_CALLBACK_URL: Joi.string().uri().required(),
+        FACEBOOK_CLIENT_ID: Joi.string().required(),
+        FACEBOOK_CLIENT_SECRET: Joi.string().required(),
+        FACEBOOK_CALLBACK_URL: Joi.string().uri().required(),
         JWT_SECRET: Joi.string().required(),
+        JWT_EXPIRES_IN: Joi.string().optional(),
+        DEFAULT_ADMIN_EMAIL: Joi.string()
+          .email({ tlds: { allow: false } })
+          .optional(),
+        DEFAULT_ADMIN_PASSWORD: Joi.string().min(6).optional(),
+        DEFAULT_ADMIN_NAME: Joi.string().min(2).optional(),
+        DEFAULT_MEMBER_EMAIL: Joi.string()
+          .email({ tlds: { allow: false } })
+          .optional(),
+        DEFAULT_MEMBER_PASSWORD: Joi.string().min(6).optional(),
+        DEFAULT_MEMBER_NAME: Joi.string().min(2).optional(),
         FRONTEND_URL: Joi.string().uri().optional(),
-        NODE_ENV: Joi.string().valid('development','test','production').default('development'),
+        NODE_ENV: Joi.string()
+          .valid('development', 'test', 'production')
+          .default('development'),
       }),
     }),
 

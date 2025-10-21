@@ -1,21 +1,24 @@
 // src/components/modules/ImageGallery/ImageGallery.tsx
-import React from 'react';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Thumbs } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/navigation';
-import 'swiper/css/thumbs';
-import './ImageGallery.scss';
+import React from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Thumbs } from "swiper/modules";
+import type { Swiper as SwiperInstance } from "swiper";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/thumbs";
+import "./ImageGallery.scss";
 
 interface ImageGalleryProps {
   images: string[];
 }
 
 const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
-  const [thumbsSwiper, setThumbsSwiper] = React.useState<any>(null);
+  const [thumbsSwiper, setThumbsSwiper] = React.useState<SwiperInstance | null>(
+    null
+  );
 
-  console.log('ImageGallery: Received images:', images);
-  console.log('ImageGallery: Images length:', images?.length);
+  console.log("ImageGallery: Received images:", images);
+  console.log("ImageGallery: Images length:", images?.length);
 
   if (!images || images.length === 0) {
     return (
@@ -33,20 +36,22 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
         modules={[Navigation, Thumbs]}
         spaceBetween={10}
         navigation
-        thumbs={{ swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null }}
+        thumbs={{
+          swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null,
+        }}
         className="main-swiper"
       >
         {images.map((img, index) => (
           <SwiperSlide key={index}>
-            <img 
-              src={img} 
+            <img
+              src={img}
               alt={`Product image ${index + 1}`}
               onError={(e) => {
-                console.error('ImageGallery: Failed to load image:', img);
-                e.currentTarget.style.display = 'none';
+                console.error("ImageGallery: Failed to load image:", img);
+                e.currentTarget.style.display = "none";
               }}
               onLoad={() => {
-                console.log('ImageGallery: Successfully loaded image:', img);
+                console.log("ImageGallery: Successfully loaded image:", img);
               }}
             />
           </SwiperSlide>
@@ -62,12 +67,12 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
       >
         {images.map((img, index) => (
           <SwiperSlide key={index}>
-            <img 
-              src={img} 
+            <img
+              src={img}
               alt={`Thumbnail ${index + 1}`}
               onError={(e) => {
-                console.error('ImageGallery: Failed to load thumbnail:', img);
-                e.currentTarget.style.display = 'none';
+                console.error("ImageGallery: Failed to load thumbnail:", img);
+                e.currentTarget.style.display = "none";
               }}
             />
           </SwiperSlide>

@@ -9,7 +9,7 @@ import "./AdminAuctionManagementPage.scss"; // Sẽ tạo file style này
 type AuctionStatus = "scheduled" | "live" | "ended" | "cancelled";
 
 const AdminAuctionManagementPage: React.FC = () => {
-  const [auctions, setAuctions] = useState<(Auction & { listing: Product })[]>(
+  const [auctions, setAuctions] = useState<(Auction & { listing?: Product })[]>(
     []
   );
   const [isLoading, setIsLoading] = useState(true);
@@ -25,10 +25,10 @@ const AdminAuctionManagementPage: React.FC = () => {
       .getAllAuctions(status, page)
       .then((response) => {
         if (response.data.success) {
-          setAuctions(response.data.data);
+          setAuctions(response.data.data ?? []);
           setPagination({
-            currentPage: response.data.pagination.page,
-            totalPages: response.data.pagination.pages,
+            currentPage: response.data.pagination?.page ?? 1,
+            totalPages: response.data.pagination?.pages ?? 1,
           });
         }
       })
@@ -44,16 +44,20 @@ const AdminAuctionManagementPage: React.FC = () => {
     setPagination((p) => ({ ...p, currentPage: 1 }));
   };
 
-
   const handleApproveAuction = (auctionId: string) => {
-    if (!window.confirm("Bạn có chắc muốn duyệt và bắt đầu phiên đấu giá này không?")) return;
+    if (
+      !window.confirm(
+        "Bạn có chắc muốn duyệt và bắt đầu phiên đấu giá này không?"
+      )
+    )
+      return;
 
-    auctionApi.approveAuction(auctionId).then(response => {
+    auctionApi.approveAuction(auctionId).then((response) => {
       if (response.data.success) {
-        alert('Duyệt thành công!');
-        setAuctions(prev => prev.filter(a => a._id !== auctionId));
+        alert("Duyệt thành công!");
+        setAuctions((prev) => prev.filter((a) => a._id !== auctionId));
       } else {
-        alert('Có lỗi xảy ra, vui lòng thử lại.');
+        alert("Có lỗi xảy ra, vui lòng thử lại.");
       }
     });
   };
@@ -108,51 +112,63 @@ const AdminAuctionManagementPage: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              auctions.map((auction) => (
-                <tr key={auction._id}>
-                  <td>
-                    <div className="product-cell">
-                      {/* Truy cập listing qua auction.listing */}
-                      <img
-                        src={auction.listing.images[0]}
-                        alt={auction.listing.title}
-                      />
-                      <div className="product-info">
-                        <Link to={`/auctions/${auction._id}`} target="_blank">
-                          {auction.listing.title}
-                        </Link>
-                        {/* Đảm bảo seller_id được populate */}
-                        <span>
-                          Người bán:{" "}
-                          {(auction.listing.seller_id as any)?.full_name ||
-                            "N/A"}
-                        </span>
+              auctions.map((auction) => {
+                if (!auction.listing) {
+                  return (
+                    <tr key={auction._id}>
+                      <td colSpan={6}>
+                        Không tìm thấy thông tin sản phẩm cho phiên đấu giá này.
+                      </td>
+                    </tr>
+                  );
+                }
+
+                const listing = auction.listing;
+
+                return (
+                  <tr key={auction._id}>
+                    <td>
+                      <div className="product-cell">
+                        <img src={listing.images[0]} alt={listing.title} />
+                        <div className="product-info">
+                          <Link to={`/auctions/${auction._id}`} target="_blank">
+                            {listing.title}
+                          </Link>
+                          <span>
+                            Người bán:{" "}
+                            {(listing.seller_id as any)?.full_name || "N/A"}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td>{auction.current_price.toLocaleString("vi-VN")} ₫</td>
-                  <td>{new Date(auction.end_time).toLocaleString("vi-VN")}</td>
-                  <td>{auction.bids.length}</td>
-                  <td>
-                    <span className={`status-badge status--${auction.status}`}>
-                      {auction.status}
-                    </span>
-                  </td>
-                  <td className="actions-cell">
-                    {activeTab === 'scheduled' && (
-                        <button 
-                            className="action-btn btn--approve" 
-                            onClick={() => handleApproveAuction(auction._id)}
+                    </td>
+                    <td>{auction.current_price.toLocaleString("vi-VN")} ₫</td>
+                    <td>
+                      {new Date(auction.end_time).toLocaleString("vi-VN")}
+                    </td>
+                    <td>{auction.bids.length}</td>
+                    <td>
+                      <span
+                        className={`status-badge status--${auction.status}`}
+                      >
+                        {auction.status}
+                      </span>
+                    </td>
+                    <td className="actions-cell">
+                      {activeTab === "scheduled" && (
+                        <button
+                          className="action-btn btn--approve"
+                          onClick={() => handleApproveAuction(auction._id)}
                         >
-                            Duyệt
+                          Duyệt
                         </button>
-                    )}
-                    <button className="action-btn btn--reject">
-                      Hủy phiên
-                    </button>
-                  </td>
-                </tr>
-              ))
+                      )}
+                      <button className="action-btn btn--reject">
+                        Hủy phiên
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

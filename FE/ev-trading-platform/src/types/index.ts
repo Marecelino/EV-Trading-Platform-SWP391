@@ -1,6 +1,20 @@
 // src/types/index.ts
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data: T;
+  pagination?: PaginationMeta;
+}
+
 export interface IEVDetails {
-mileage: number;
+  mileage: number;
   year_of_manufacture: number;
   battery_capacity: number;
   range: number;
@@ -17,22 +31,22 @@ export interface IBatteryDetails {
 
 export interface Product {
   _id: string;
-  seller_id: User | string; 
-  brand_id: string;  
-  model_id: string;  
+  seller_id: User | string;
+  brand_id: string;
+  model_id: string;
   title: string;
   description: string;
   price: number;
-  condition: 'new' | 'like_new' | 'good' | 'fair';
-  status: 'pending_payment' | 'pending' | 'active' | 'sold' | 'rejected';
+  condition: "new" | "like_new" | "good" | "fair";
+  status: "pending_payment" | "pending" | "active" | "sold" | "rejected";
   location: ILocation;
-  images: string[]; 
+  images: string[];
   views: number;
   is_verified: boolean;
   is_featured: boolean;
-  created_at: string; 
-  listing_type: 'direct_sale' | 'auction';
-  auction_id?: string; 
+  created_at: string;
+  listing_type: "direct_sale" | "auction";
+  auction_id?: string;
   ev_details?: IEVDetails;
   battery_details?: IBatteryDetails;
 }
@@ -41,31 +55,32 @@ export interface User {
   _id: string;
   email: string;
   full_name: string;
-  role: 'member' | 'admin';
+  role: "member" | "admin" | "user";
   avatar_url?: string;
   phone?: string;
-  status: 'active' | 'suspended';
+  status: "active" | "suspended" | "inactive" | "banned";
   rating?: {
     average: number;
     count: number;
   };
+  oauthProviders?: { provider: string; providerId: string }[];
 }
 export interface Review {
-    _id: string;
-    reviewer_id: string; 
-    reviewee_id: string;
-    rating: number; 
-    comment?: string;
-    created_at: string;
+  _id: string;
+  reviewer_id: string;
+  reviewee_id: string;
+  rating: number;
+  comment?: string;
+  created_at: string;
 }
 
 export interface Notification {
-    _id: string;
-    type: string; // Ví dụ: 'listing_approved', 'review_received'
-    title: string;
-    message: string;
-    is_read: boolean;
-    created_at: string;
+  _id: string;
+  type: string; // Ví dụ: 'listing_approved', 'review_received'
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
 }
 
 export interface ILocation {
@@ -77,42 +92,27 @@ export interface ILocation {
 export interface PaginatedListingsResponse {
   success: boolean;
   data: Product[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
+  pagination: PaginationMeta;
 }
 export interface ITransaction {
   _id: string;
-  listing_id: Product; 
-  buyer_id: User;    
-  seller_id: User;   
+  listing_id: Product;
+  buyer_id: User;
+  seller_id: User;
   amount: number;
-  status: 'pending' | 'completed' | 'cancelled';
+  status: "pending" | "completed" | "cancelled";
   created_at: string;
-  transaction_date?: string; 
+  transaction_date?: string;
 }
 export interface PaginatedTransactionsResponse {
-    success: boolean;
-    data: ITransaction[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        pages: number;
-    };
+  success: boolean;
+  data: ITransaction[];
+  pagination: PaginationMeta;
 }
 export interface PaginatedUsersResponse {
   success: boolean;
   data: User[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
+  pagination: PaginationMeta;
 }
 export interface Attribute {
   key: string;
@@ -123,15 +123,6 @@ export interface AttributeGroup {
   title: string;
   attributes: Attribute[];
 }
-export interface Review {
-  _id: string;
-  reviewer_id: string;
-  reviewee_id: string;
-  rating: number;
-  comment: string | undefined;
-  created_at: string;
-}
-
 export interface Bid {
   _id: string;
   user_id: User | string;
@@ -149,21 +140,27 @@ export interface Auction {
   current_price: number;
   min_increment: number;
   buy_now_price?: number;
-  status: 'scheduled' | 'live' | 'ended' | 'cancelled';
+  status: "scheduled" | "live" | "ended" | "cancelled";
   winner_id?: string;
   bids: Bid[];
+  listing?: Product;
 }
 export interface ListingFee {
   _id: string;
   listing_id: string;
-  fee_type: 'ev_listing' | 'battery_listing' | 'auction_creation';
+  fee_type: "ev_listing" | "battery_listing" | "auction_creation";
   amount: number;
-  status: 'pending' | 'paid';
+  status: "pending" | "paid";
+}
+
+export interface FavoriteEntry {
+  _id: string;
+  listing_id: string;
 }
 
 export interface Payment {
-    _id: string;
-    purpose: 'listing_fee' | 'purchase';
-    related_id: string; // ID của ListingFee hoặc Transaction
-    status: 'pending' | 'success' | 'failed';
+  _id: string;
+  purpose: "listing_fee" | "purchase";
+  related_id: string; // ID của ListingFee hoặc Transaction
+  status: "pending" | "success" | "failed";
 }

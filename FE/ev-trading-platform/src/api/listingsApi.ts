@@ -1,33 +1,31 @@
 // src/api/listingsApi.ts
-import axiosClient from './axiosClient';
-import type { Product } from '../types/index'; 
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
+import axiosClient from "./axiosClient";
+import type { ApiResponse, Product } from "../types/index";
+
+interface CreateListingResponse {
+  listing_fee_id: string;
+  amount_due: number;
 }
 
 const listingsApi = {
   // GET /api/listings
-  getAll: (): Promise<ApiResponse<Product[]>> => {
-    return axiosClient.get('/listings');
+  getAll: () => {
+    return axiosClient.get<ApiResponse<Product[]>>("/listings");
   },
-  getById: (id: string): Promise<ApiResponse<Product>> => {
-    return axiosClient.get(`/listings/${id}`);
+  getById: (id: string) => {
+    return axiosClient.get<ApiResponse<Product>>(`/listings/${id}`);
   },
-   getMyListings: (status?: string): Promise<{ data: { success: boolean, data: Product[] } }> => {
-    return axiosClient.get('/listings/my', { params: { status } });
+  getMyListings: (status?: string) => {
+    return axiosClient.get<ApiResponse<Product[]>>("/listings/my", {
+      params: { status },
+    });
   },
-  create: (listingData: Partial<Product>): Promise<{ data: any }> => {
-    return axiosClient.post('/listings', listingData);
+  create: (listingData: Partial<Product>) => {
+    return axiosClient.post<ApiResponse<CreateListingResponse>>(
+      "/listings",
+      listingData
+    );
   },
- 
 };
 
 export default listingsApi;

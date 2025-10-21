@@ -1,9 +1,9 @@
 // src/components/modules/AuctionCard/AuctionCard.tsx
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Timer, Hammer } from 'lucide-react';
-import type { Auction, Product } from '../../../types';
-import './AuctionCard.scss';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Timer, Hammer } from "lucide-react";
+import type { Auction, Product } from "../../../types";
+import "./AuctionCard.scss";
 
 // --- HOOK ĐẾM NGƯỢC THỜI GIAN (ĐÃ HOÀN THIỆN) ---
 const useCountdown = (endTime: string) => {
@@ -39,15 +39,19 @@ const useCountdown = (endTime: string) => {
 };
 
 interface AuctionCardProps {
-  auction: Auction & { listing: Product };
+  auction: Auction & { listing?: Product };
 }
 
 const AuctionCard: React.FC<AuctionCardProps> = ({ auction }) => {
   // Kiểm tra an toàn phòng trường hợp `listing` không tồn tại
   if (!auction.listing) {
-    return <div className="auction-card--error">Lỗi: Không có thông tin sản phẩm.</div>;
+    return (
+      <div className="auction-card--error">
+        Lỗi: Không có thông tin sản phẩm.
+      </div>
+    );
   }
-  
+
   const { listing } = auction;
   const timeLeft = useCountdown(auction.end_time);
 
@@ -56,12 +60,12 @@ const AuctionCard: React.FC<AuctionCardProps> = ({ auction }) => {
       <Link to={`/auctions/${auction._id}`}>
         <div className="auction-card__image">
           <img src={listing.images[0]} alt={listing.title} />
-          <div className={`timer-overlay ${timeLeft.isOver ? 'ended' : ''}`}>
+          <div className={`timer-overlay ${timeLeft.isOver ? "ended" : ""}`}>
             <Timer size={16} />
             {/* SỬA LỖI: Hiển thị "Đã kết thúc" nếu thời gian đã hết */}
             <span>
               {timeLeft.isOver
-                ? 'Đã kết thúc'
+                ? "Đã kết thúc"
                 : `${timeLeft.days}d ${timeLeft.hours}h ${timeLeft.minutes}m ${timeLeft.seconds}s`}
             </span>
           </div>
@@ -69,7 +73,9 @@ const AuctionCard: React.FC<AuctionCardProps> = ({ auction }) => {
         <div className="auction-card__info">
           <h3 className="title">{listing.title}</h3>
           <p className="price-label">Giá cao nhất hiện tại</p>
-          <p className="current-price">{auction.current_price.toLocaleString('vi-VN')} ₫</p>
+          <p className="current-price">
+            {auction.current_price.toLocaleString("vi-VN")} ₫
+          </p>
           <div className="bid-info">
             <Hammer size={16} />
             <span>{auction.bids.length} lượt đấu giá</span>

@@ -12,17 +12,20 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
-import { 
-  ApiBearerAuth, 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
-  ApiParam, 
-  ApiQuery 
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
-import { Request as ExpressRequest } from 'express';
+import type { Request as ExpressRequest, Response } from 'express';
 import { AuthService } from './auth.service';
+import { AuthGuard } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
 
 // DTOs
 import { RegisterDto, LoginDto, UpdateUserDto, ChangePasswordDto } from './dto';
@@ -35,16 +38,30 @@ interface AuthenticatedRequest extends ExpressRequest {
   user: Omit<User, 'password'> & { userId: string };
 }
 
+interface OAuthPassportUser {
+  provider: 'google' | 'facebook';
+  providerId: string;
+  email: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   // ✅ Đăng ký tài khoản
   @Post('register')
   @ApiOperation({ summary: 'Đăng ký tài khoản mới' })
   @ApiResponse({ status: 201, description: 'Đăng ký thành công' })
-  @ApiResponse({ status: 400, description: 'Email đã tồn tại hoặc dữ liệu không hợp lệ' })
+  @ApiResponse({
+    status: 400,
+    description: 'Email đã tồn tại hoặc dữ liệu không hợp lệ',
+  })
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
@@ -67,18 +84,23 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Lấy thông tin thành công' })
   @ApiResponse({ status: 401, description: 'Chưa đăng nhập' })
   getProfile(@Request() req: AuthenticatedRequest) {
-    return req.user;
+    return this.authService.getProfile(req.user.userId);
   }
 
   // ✅ Cập nhật thông tin người dùng hiện tại
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Put('profile')
-  @ApiOperation({ summary: 'Cập nhật thông tin profile của người dùng hiện tại' })
+  @ApiOperation({
+    summary: 'Cập nhật thông tin profile của người dùng hiện tại',
+  })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 401, description: 'Chưa đăng nhập' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
-  updateProfile(@Request() req: AuthenticatedRequest, @Body() updateUserDto: UpdateUserDto) {
+  updateProfile(
+    @Request() req: AuthenticatedRequest,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
     return this.authService.updateUser(req.user.userId, updateUserDto);
   }
 
@@ -89,7 +111,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Đổi mật khẩu' })
   @ApiResponse({ status: 200, description: 'Đổi mật khẩu thành công' })
   @ApiResponse({ status: 401, description: 'Mật khẩu hiện tại không đúng' })
-  changePassword(@Request() req: AuthenticatedRequest, @Body() changePasswordDto: ChangePasswordDto) {
+  changePassword(
+    @Request() req: AuthenticatedRequest,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
     return this.authService.changePassword(req.user.userId, changePasswordDto);
   }
 
@@ -130,7 +155,11 @@ export class AuthController {
   @ApiBearerAuth()
   @Get('users/by-role/:role')
   @ApiOperation({ summary: 'Lấy danh sách người dùng theo vai trò' })
-  @ApiParam({ name: 'role', description: 'Vai trò người dùng', example: 'user' })
+  @ApiParam({
+    name: 'role',
+    description: 'Vai trò người dùng',
+    example: 'user',
+  })
   @ApiResponse({ status: 200, description: 'Lấy danh sách thành công' })
   findUsersByRole(@Param('role') role: string) {
     return this.authService.findUsersByRole(role);
@@ -141,7 +170,11 @@ export class AuthController {
   @ApiBearerAuth()
   @Get('users/:id')
   @ApiOperation({ summary: 'Lấy thông tin người dùng theo ID' })
-  @ApiParam({ name: 'id', description: 'ID người dùng', example: 'user_1729012345678_abc123def' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID người dùng',
+    example: 'user_1729012345678_abc123def',
+  })
   @ApiResponse({ status: 200, description: 'Lấy thông tin thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy người dùng' })
   async findUserById(@Param('id') id: string) {
@@ -157,8 +190,14 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Put('users/:id')
-  @ApiOperation({ summary: 'Cập nhật thông tin người dùng theo ID (Admin only)' })
-  @ApiParam({ name: 'id', description: 'ID người dùng', example: 'user_1729012345678_abc123def' })
+  @ApiOperation({
+    summary: 'Cập nhật thông tin người dùng theo ID (Admin only)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID người dùng',
+    example: 'user_1729012345678_abc123def',
+  })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy người dùng' })
   updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
@@ -170,10 +209,77 @@ export class AuthController {
   @ApiBearerAuth()
   @Delete('users/:id')
   @ApiOperation({ summary: 'Xóa người dùng theo ID (Admin only)' })
-  @ApiParam({ name: 'id', description: 'ID người dùng', example: 'user_1729012345678_abc123def' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID người dùng',
+    example: 'user_1729012345678_abc123def',
+  })
   @ApiResponse({ status: 200, description: 'Xóa thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy người dùng' })
   deleteUser(@Param('id') id: string) {
     return this.authService.deleteUser(id);
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    return;
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleCallback(
+    @Request() req: ExpressRequest & { user: OAuthPassportUser },
+    @Res() res: Response,
+  ) {
+    return this.handleSocialRedirect(req.user, res);
+  }
+
+  @Get('facebook')
+  @UseGuards(AuthGuard('facebook'))
+  async facebookAuth() {
+    return;
+  }
+
+  @Get('facebook/callback')
+  @UseGuards(AuthGuard('facebook'))
+  async facebookCallback(
+    @Request() req: ExpressRequest & { user: OAuthPassportUser },
+    @Res() res: Response,
+  ) {
+    return this.handleSocialRedirect(req.user, res);
+  }
+
+  private async handleSocialRedirect(
+    passportUser: OAuthPassportUser,
+    res: Response,
+  ) {
+    const baseUrl = (
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173'
+    ).replace(/\/$/, '');
+    const redirectUrl = new URL(`${baseUrl}/auth/social/callback`);
+
+    if (!passportUser) {
+      redirectUrl.searchParams.set(
+        'error',
+        'Thiếu thông tin người dùng từ nhà cung cấp.',
+      );
+      return res.redirect(redirectUrl.toString());
+    }
+
+    try {
+      const result = await this.authService.handleOAuthLogin(passportUser);
+      redirectUrl.searchParams.set('token', result.data.token);
+      redirectUrl.searchParams.set('provider', passportUser.provider);
+      if (result.isNewUser) {
+        redirectUrl.searchParams.set('isNew', '1');
+      }
+    } catch (error: any) {
+      const message =
+        error?.message || 'Không thể đăng nhập bằng tài khoản mạng xã hội.';
+      redirectUrl.searchParams.set('error', message);
+    }
+
+    return res.redirect(redirectUrl.toString());
   }
 }

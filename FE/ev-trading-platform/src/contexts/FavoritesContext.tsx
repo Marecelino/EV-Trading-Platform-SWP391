@@ -1,7 +1,9 @@
 // src/contexts/FavoritesContext.tsx
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import favoritesApi from '../api/favoritesApi'; // Sẽ tạo file này
-import { useAuth } from './AuthContext';
+import { createContext, useState, useContext, useEffect } from "react";
+import type { ReactNode } from "react";
+import favoritesApi from "../api/favoritesApi";
+import { useAuth } from "./AuthContext";
+import type { FavoriteEntry } from "../types";
 
 interface FavoritesContextType {
   favoriteIds: Set<string>;
@@ -9,7 +11,9 @@ interface FavoritesContextType {
   isFavorite: (productId: string) => boolean;
 }
 
-const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
+const FavoritesContext = createContext<FavoritesContextType | undefined>(
+  undefined
+);
 
 export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
@@ -18,10 +22,9 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   // Tải danh sách yêu thích khi người dùng đăng nhập
   useEffect(() => {
     if (user) {
-      favoritesApi.getFavorites().then(res => {
+      favoritesApi.getFavorites().then((res) => {
         if (res.data.success) {
-          // API trả về mảng các object, chúng ta chỉ cần lấy listing_id
-          const ids = res.data.data.map((fav: any) => fav.listing_id);
+          const ids = res.data.data.map((fav: FavoriteEntry) => fav.listing_id);
           setFavoriteIds(new Set(ids));
         }
       });
@@ -45,7 +48,9 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const isFavorite = (productId: string) => favoriteIds.has(productId);
 
   return (
-    <FavoritesContext.Provider value={{ favoriteIds, toggleFavorite, isFavorite }}>
+    <FavoritesContext.Provider
+      value={{ favoriteIds, toggleFavorite, isFavorite }}
+    >
       {children}
     </FavoritesContext.Provider>
   );
@@ -54,7 +59,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 export const useFavorites = () => {
   const context = useContext(FavoritesContext);
   if (!context) {
-    throw new Error('useFavorites must be used within a FavoritesProvider');
+    throw new Error("useFavorites must be used within a FavoritesProvider");
   }
   return context;
 };

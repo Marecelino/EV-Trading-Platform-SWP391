@@ -1,16 +1,34 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { RegisterDto, UpdateUserDto, ChangePasswordDto } from './dto';
-import { User, UserDocument } from '../model/users.schema';
+import {
+  User,
+  UserDocument,
+  UserRole,
+  UserStatus,
+} from '../model/users.schema';
+
+interface OAuthProfilePayload {
+  provider: 'google' | 'facebook';
+  providerId: string;
+  email: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+}
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
   ) {}
 
   /** Đăng ký tài khoản với email/password */
@@ -24,7 +42,7 @@ export class AuthService {
 
       // Hash password
       const hashedPassword = await bcrypt.hash(dto.password, 10);
-      
+
       // Create new user
       const newUser = new this.userModel({
         email: dto.email,
@@ -38,16 +56,15 @@ export class AuthService {
       const savedUser = await newUser.save();
       console.log('User saved successfully:', savedUser._id);
 
-      const payload = { 
-        sub: savedUser._id.toString(), 
-        email: savedUser.email, 
-        role: savedUser.role 
-      };
-      const access_token = await this.jwtService.signAsync(payload);
+      const token = await this.signToken(savedUser);
 
       return {
-        user: this.sanitizeUser(savedUser),
-        access_token,
+        success: true,
+        message: 'Đăng ký thành công',
+        data: {
+          user: this.sanitizeUser(savedUser),
+          token,
+        },
       };
     } catch (error) {
       console.error('Registration error:', error);
@@ -77,16 +94,15 @@ export class AuthService {
       user.lastLogin = new Date();
       await user.save();
 
-      const payload = { 
-        sub: user._id.toString(), 
-        email: user.email, 
-        role: user.role 
-      };
-      const access_token = await this.jwtService.signAsync(payload);
+      const token = await this.signToken(user);
 
       return {
-        user: this.sanitizeUser(user),
-        access_token,
+        success: true,
+        message: 'Đăng nhập thành công',
+        data: {
+          user: this.sanitizeUser(user),
+          token,
+        },
       };
     } catch (error) {
       console.error('Login error:', error);
@@ -94,11 +110,100 @@ export class AuthService {
     }
   }
 
+  async handleOAuthLogin(
+    payload: OAuthProfilePayload,
+  ): Promise<{
+    success: true;
+    data: { user: any; token: string };
+    isNewUser: boolean;
+  }> {
+    if (!payload.email) {
+      throw new BadRequestException(
+        'Không thể xác thực tài khoản vì nhà cung cấp không trả về email.',
+      );
+    }
+
+    let user = await this.userModel.findOne({
+      'oauthProviders.provider': payload.provider,
+      'oauthProviders.providerId': payload.providerId,
+    });
+
+    let isNewUser = false;
+
+    if (!user) {
+      user = await this.userModel.findOne({ email: payload.email });
+    }
+
+    if (!user) {
+      user = new this.userModel({
+        email: payload.email,
+        name: payload.name ?? payload.email.split('@')[0],
+        avatar: payload.avatarUrl ?? undefined,
+        role: UserRole.USER,
+        status: UserStatus.ACTIVE,
+        isEmailVerified: true,
+        oauthProviders: [
+          {
+            provider: payload.provider,
+            providerId: payload.providerId,
+          },
+        ],
+      });
+      isNewUser = true;
+    } else {
+      const hasProvider = user.oauthProviders?.some(
+        (provider) =>
+          provider.provider === payload.provider &&
+          provider.providerId === payload.providerId,
+      );
+
+      if (!hasProvider) {
+        user.oauthProviders = [
+          ...(user.oauthProviders ?? []),
+          {
+            provider: payload.provider,
+            providerId: payload.providerId,
+          },
+        ];
+      }
+
+      if (!user.name && payload.name) {
+        user.name = payload.name;
+      }
+
+      if (!user.avatar && payload.avatarUrl) {
+        user.avatar = payload.avatarUrl;
+      }
+
+      if (!user.isEmailVerified) {
+        user.isEmailVerified = true;
+      }
+    }
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    const token = await this.signToken(user);
+
+    return {
+      success: true,
+      data: {
+        user: this.sanitizeUser(user),
+        token,
+      },
+      isNewUser,
+    };
+  }
+
   /** Get all users (Admin only) */
   async findAllUsers(): Promise<any[]> {
     try {
-      const users = await this.userModel.find().select('-password -refreshTokenHash -passwordResetToken -passwordResetExpires');
-      return users.map(user => this.sanitizeUser(user));
+      const users = await this.userModel
+        .find()
+        .select(
+          '-password -refreshTokenHash -passwordResetToken -passwordResetExpires',
+        );
+      return users.map((user) => this.sanitizeUser(user));
     } catch (error) {
       console.error('Find all users error:', error);
       throw error;
@@ -125,6 +230,19 @@ export class AuthService {
     }
   }
 
+  async getProfile(userId: string) {
+    try {
+      const user = await this.userModel.findById(userId);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+      return this.sanitizeUser(user);
+    } catch (error) {
+      console.error('Get profile error:', error);
+      throw error;
+    }
+  }
+
   /** Update user */
   async updateUser(id: string, updateUserDto: UpdateUserDto): Promise<any> {
     try {
@@ -135,7 +253,9 @@ export class AuthService {
 
       // Check email uniqueness if email is being updated
       if (updateUserDto.email && updateUserDto.email !== user.email) {
-        const existingUser = await this.userModel.findOne({ email: updateUserDto.email });
+        const existingUser = await this.userModel.findOne({
+          email: updateUserDto.email,
+        });
         if (existingUser) {
           throw new BadRequestException('Email already exists');
         }
@@ -144,7 +264,7 @@ export class AuthService {
       const updatedUser = await this.userModel.findByIdAndUpdate(
         id,
         updateUserDto,
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       );
 
       if (!updatedUser) {
@@ -172,7 +292,10 @@ export class AuthService {
   }
 
   /** Change password */
-  async changePassword(id: string, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+  async changePassword(
+    id: string,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
     try {
       const user = await this.userModel.findById(id);
       if (!user) {
@@ -183,12 +306,18 @@ export class AuthService {
         throw new BadRequestException('Cannot change password for OAuth users');
       }
 
-      const isCurrentPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
+      const isCurrentPasswordValid = await bcrypt.compare(
+        changePasswordDto.currentPassword,
+        user.password,
+      );
       if (!isCurrentPasswordValid) {
         throw new UnauthorizedException('Current password is incorrect');
       }
 
-      const hashedNewPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+      const hashedNewPassword = await bcrypt.hash(
+        changePasswordDto.newPassword,
+        10,
+      );
       user.password = hashedNewPassword;
       await user.save();
 
@@ -202,8 +331,12 @@ export class AuthService {
   /** Get users by role */
   async findUsersByRole(role: string): Promise<any[]> {
     try {
-      const users = await this.userModel.find({ role }).select('-password -refreshTokenHash -passwordResetToken -passwordResetExpires');
-      return users.map(user => this.sanitizeUser(user));
+      const users = await this.userModel
+        .find({ role })
+        .select(
+          '-password -refreshTokenHash -passwordResetToken -passwordResetExpires',
+        );
+      return users.map((user) => this.sanitizeUser(user));
     } catch (error) {
       console.error('Find users by role error:', error);
       throw error;
@@ -211,16 +344,20 @@ export class AuthService {
   }
 
   /** Get user statistics */
-  async getUserStats(): Promise<{ total: number; byRole: Record<string, number>; byStatus: Record<string, number> }> {
+  async getUserStats(): Promise<{
+    total: number;
+    byRole: Record<string, number>;
+    byStatus: Record<string, number>;
+  }> {
     try {
       const [total, roleStats, statusStats] = await Promise.all([
         this.userModel.countDocuments(),
         this.userModel.aggregate([
-          { $group: { _id: '$role', count: { $sum: 1 } } }
+          { $group: { _id: '$role', count: { $sum: 1 } } },
         ]),
         this.userModel.aggregate([
-          { $group: { _id: '$status', count: { $sum: 1 } } }
-        ])
+          { $group: { _id: '$status', count: { $sum: 1 } } },
+        ]),
       ]);
 
       const byRole = roleStats.reduce((acc, item) => {
@@ -247,30 +384,63 @@ export class AuthService {
         .find({
           $or: [
             { name: { $regex: query, $options: 'i' } },
-            { email: { $regex: query, $options: 'i' } }
-          ]
+            { email: { $regex: query, $options: 'i' } },
+          ],
         })
-        .select('-password -refreshTokenHash -passwordResetToken -passwordResetExpires');
-      
-      return users.map(user => this.sanitizeUser(user));
+        .select(
+          '-password -refreshTokenHash -passwordResetToken -passwordResetExpires',
+        );
+
+      return users.map((user) => this.sanitizeUser(user));
     } catch (error) {
       console.error('Search users error:', error);
       throw error;
     }
   }
 
-  /** Remove password from user object */
-  private sanitizeUser(user: UserDocument): any {
+  private async signToken(user: UserDocument): Promise<string> {
+    const payload = {
+      sub: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    };
+    return this.jwtService.signAsync(payload);
+  }
+
+  /** Remove sensitive fields & chuẩn hóa dữ liệu cho FE */
+  private sanitizeUser(
+    user: UserDocument | (UserDocument & { toObject?: () => any }) | any,
+  ): any {
     if (!user) return null;
-    
-    const userObj = user.toObject ? user.toObject() : user;
-    
-    // Remove sensitive fields
-    delete userObj.password;
-    delete userObj.refreshTokenHash;
-    delete userObj.passwordResetToken;
-    delete userObj.passwordResetExpires;
-    
-    return userObj;
+
+    const raw = typeof user.toObject === 'function' ? user.toObject() : user;
+    const {
+      password,
+      refreshTokenHash,
+      passwordResetToken,
+      passwordResetExpires,
+      __v,
+      ...rest
+    } = raw;
+
+    const id =
+      raw._id?.toString?.() ?? raw.id?.toString?.() ?? raw._id ?? raw.id;
+    const fallbackName =
+      raw.name ?? rest.full_name ?? (raw.email ? raw.email.split('@')[0] : '');
+    const fullName = rest.full_name ?? raw.name ?? fallbackName;
+    const avatarUrl = rest.avatar_url ?? raw.avatar ?? null;
+
+    return {
+      ...rest,
+      _id: id,
+      id,
+      name: raw.name ?? fullName,
+      full_name: fullName,
+      avatar: raw.avatar ?? avatarUrl ?? undefined,
+      avatar_url: avatarUrl ?? undefined,
+      oauthProviders: Array.isArray(raw.oauthProviders)
+        ? raw.oauthProviders
+        : [],
+    };
   }
 }

@@ -1,10 +1,16 @@
 // src/api/favoritesApi.ts
-import axiosClient from './axiosClient';
+import axiosClient from "./axiosClient";
+import type { ApiResponse, FavoriteEntry } from "../types";
 
 const favoritesApi = {
-  getFavorites: () => axiosClient.get('/favorites'),
-  addFavorite: (listing_id: string) => axiosClient.post('/favorites', { listing_id }),
-  removeFavorite: (listing_id: string) => axiosClient.delete(`/favorites/${listing_id}`),
+  getFavorites: () =>
+    axiosClient.get<ApiResponse<FavoriteEntry[]>>("/favorites"),
+  addFavorite: (listingId: string) =>
+    axiosClient.post<ApiResponse<FavoriteEntry>>("/favorites", {
+      listing_id: listingId,
+    }),
+  removeFavorite: (listingId: string) =>
+    axiosClient.delete<ApiResponse<FavoriteEntry>>(`/favorites/${listingId}`),
 };
 
 export default favoritesApi;

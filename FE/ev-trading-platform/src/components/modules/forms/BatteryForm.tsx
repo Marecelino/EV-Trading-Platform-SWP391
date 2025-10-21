@@ -1,9 +1,9 @@
 // src/components/modules/forms/BatteryForm.tsx
-import React from 'react';
-import Button from '../../common/Button/Button';
-import './BatteryForm.scss';
+import React from "react";
+import Button from "../../common/Button/Button";
+import "./BatteryForm.scss";
 
-const BatteryForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean }> = ({ onSubmit, isLoading }) => {
+const BatteryForm: React.FC<{ isLoading: boolean }> = ({ isLoading }) => {
   return (
     <form className="battery-form">
       <div className="form-header">
@@ -12,9 +12,7 @@ const BatteryForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean 
 
       <div className="form-section">
         <div className="form-group">
-          <label htmlFor="battery-type">
-            Loại pin
-          </label>
+          <label htmlFor="battery-type">Loại pin</label>
           <select id="battery-type" required>
             <option value="">Chọn loại</option>
             <option value="lithium-ion">Lithium-ion</option>
@@ -25,25 +23,21 @@ const BatteryForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean 
         </div>
 
         <div className="form-group">
-          <label htmlFor="battery-title">
-            Tiêu đề tin đăng
-          </label>
-          <input 
+          <label htmlFor="battery-title">Tiêu đề tin đăng</label>
+          <input
             id="battery-title"
-            type="text" 
-            placeholder="VD: Pin Lithium-ion cho xe máy điện" 
-            required 
+            type="text"
+            placeholder="VD: Pin Lithium-ion cho xe máy điện"
+            required
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="battery-description">
-            Mô tả chi tiết
-          </label>
-          <textarea 
+          <label htmlFor="battery-description">Mô tả chi tiết</label>
+          <textarea
             id="battery-description"
-            placeholder="Mô tả tình trạng pin, khả năng tương thích..." 
-            rows={5} 
+            placeholder="Mô tả tình trạng pin, khả năng tương thích..."
+            rows={5}
             required
           ></textarea>
         </div>
@@ -57,22 +51,22 @@ const BatteryForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean 
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="battery-capacity">Dung lượng (Ah)</label>
-            <input 
+            <input
               id="battery-capacity"
-              type="number" 
-              placeholder="" 
+              type="number"
+              placeholder=""
               min="0"
               step="0.1"
-              required 
+              required
             />
           </div>
 
           <div className="form-group">
             <label htmlFor="battery-voltage">Điện áp (V)</label>
-            <input 
+            <input
               id="battery-voltage"
-              type="number" 
-              placeholder="" 
+              type="number"
+              placeholder=""
               min="0"
               step="0.1"
             />
@@ -80,24 +74,19 @@ const BatteryForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean 
 
           <div className="form-group">
             <label htmlFor="battery-health">Tình trạng pin (%)</label>
-            <input 
+            <input
               id="battery-health"
-              type="number" 
-              placeholder="" 
+              type="number"
+              placeholder=""
               min="0"
               max="100"
-              required 
+              required
             />
           </div>
 
           <div className="form-group">
             <label htmlFor="battery-cycles">Số lần sạc</label>
-            <input 
-              id="battery-cycles"
-              type="number" 
-              placeholder="" 
-              min="0"
-            />
+            <input id="battery-cycles" type="number" placeholder="" min="0" />
           </div>
         </div>
       </div>
@@ -109,7 +98,14 @@ const BatteryForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean 
       <div className="form-section">
         <div className="image-upload-area">
           <div className="upload-placeholder">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />
               <line x1="12" y1="3" x2="12" y2="15" />
@@ -138,12 +134,12 @@ const BatteryForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean 
 
           <div className="form-group">
             <label htmlFor="battery-price">Giá bán (VND)</label>
-            <input 
+            <input
               id="battery-price"
-              type="number" 
-              placeholder="" 
+              type="number"
+              placeholder=""
               min="0"
-              required 
+              required
             />
           </div>
 
@@ -159,18 +155,14 @@ const BatteryForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean 
 
           <div className="form-group">
             <label htmlFor="battery-district">Quận/Huyện</label>
-            <input 
-              id="battery-district"
-              type="text" 
-              placeholder="" 
-            />
+            <input id="battery-district" type="text" placeholder="" />
           </div>
         </div>
       </div>
 
       <div className="form-actions">
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Đang xử lý...' : 'Hoàn tất'}
+          {isLoading ? "Đang xử lý..." : "Hoàn tất"}
         </Button>
       </div>
     </form>
