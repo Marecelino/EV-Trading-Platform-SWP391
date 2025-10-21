@@ -1,8 +1,10 @@
 // app.module.ts
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -62,6 +64,12 @@ import { CommissionsModule } from './commissions/commissions.module';
         autoIndex: cfg.get('NODE_ENV') !== 'production', // tránh build index tự động ở prod
       }),
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60,
+        limit: 100,
+      },
+    ]),
     AuthModule,
     ListingsModule,
     TransactionsModule,
@@ -79,6 +87,12 @@ import { CommissionsModule } from './commissions/commissions.module';
     PriceSuggestionsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

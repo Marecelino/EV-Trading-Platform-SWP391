@@ -115,6 +115,7 @@ async function seedDefaultUsers(app: INestApplication) {
         password: hashedPassword,
         role: config.role,
         status: config.status,
+        profileCompleted: true,
         isEmailVerified: true,
       });
 

@@ -26,13 +26,23 @@ import type { Request as ExpressRequest, Response } from 'express';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 
 // DTOs
-import { RegisterDto, LoginDto, UpdateUserDto, ChangePasswordDto } from './dto';
+import {
+  RegisterDto,
+  LoginDto,
+  UpdateUserDto,
+  ChangePasswordDto,
+  CompleteRegistrationDto,
+} from './dto';
 
 // Guards
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 import { User } from 'src/model/users.schema';
+import { Roles } from './decorators/roles.decorator';
+import { UserRole } from '../model/users.schema';
 
 interface AuthenticatedRequest extends ExpressRequest {
   user: Omit<User, 'password'> & { userId: string };
@@ -56,6 +66,7 @@ export class AuthController {
 
   // ✅ Đăng ký tài khoản
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60 } })
   @ApiOperation({ summary: 'Đăng ký tài khoản mới' })
   @ApiResponse({ status: 201, description: 'Đăng ký thành công' })
   @ApiResponse({
@@ -64,6 +75,13 @@ export class AuthController {
   })
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
+  }
+
+  @Post('register/complete')
+  @ApiOperation({ summary: 'Hoàn tất thông tin cá nhân sau khi đăng ký' })
+  @ApiResponse({ status: 200, description: 'Hoàn tất đăng ký thành công' })
+  completeRegistration(@Body() dto: CompleteRegistrationDto) {
+    return this.authService.completeRegistration(dto);
   }
 
   // ✅ Đăng nhập
@@ -119,7 +137,8 @@ export class AuthController {
   }
 
   // ✅ Lấy danh sách tất cả người dùng (Admin only)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @Get('users')
   @ApiOperation({ summary: 'Lấy danh sách tất cả người dùng (Admin only)' })
@@ -130,7 +149,8 @@ export class AuthController {
   }
 
   // ✅ Tìm kiếm người dùng
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @Get('users/search')
   @ApiOperation({ summary: 'Tìm kiếm người dùng theo tên hoặc email' })
@@ -141,7 +161,8 @@ export class AuthController {
   }
 
   // ✅ Lấy thống kê người dùng
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @Get('users/stats')
   @ApiOperation({ summary: 'Lấy thống kê người dùng' })
@@ -151,7 +172,8 @@ export class AuthController {
   }
 
   // ✅ Lấy người dùng theo vai trò
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @Get('users/by-role/:role')
   @ApiOperation({ summary: 'Lấy danh sách người dùng theo vai trò' })
@@ -166,7 +188,8 @@ export class AuthController {
   }
 
   // ✅ Lấy thông tin người dùng theo ID
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @Get('users/:id')
   @ApiOperation({ summary: 'Lấy thông tin người dùng theo ID' })
@@ -187,7 +210,8 @@ export class AuthController {
   }
 
   // ✅ Cập nhật thông tin người dùng theo ID (Admin only)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @Put('users/:id')
   @ApiOperation({
@@ -205,7 +229,8 @@ export class AuthController {
   }
 
   // ✅ Xóa người dùng theo ID (Admin only)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @Delete('users/:id')
   @ApiOperation({ summary: 'Xóa người dùng theo ID (Admin only)' })

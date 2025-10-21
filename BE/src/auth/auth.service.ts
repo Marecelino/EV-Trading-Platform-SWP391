@@ -8,7 +8,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { RegisterDto, UpdateUserDto, ChangePasswordDto } from './dto';
+import {
+  RegisterDto,
+  UpdateUserDto,
+  ChangePasswordDto,
+  CompleteRegistrationDto,
+} from './dto';
 import {
   User,
   UserDocument,
@@ -35,7 +40,10 @@ export class AuthService {
   async register(dto: RegisterDto) {
     try {
       // Check if user already exists
-      const existingUser = await this.userModel.findOne({ email: dto.email });
+      const normalizedEmail = dto.email.trim().toLowerCase();
+      const existingUser = await this.userModel.findOne({
+        email: normalizedEmail,
+      });
       if (existingUser) {
         throw new BadRequestException('Email already exists');
       }
@@ -43,33 +51,63 @@ export class AuthService {
       // Hash password
       const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-      // Create new user
+      // Create new user in inactive state until profile is completed
       const newUser = new this.userModel({
-        email: dto.email,
-        name: dto.name,
+        email: normalizedEmail,
         password: hashedPassword,
-        role: dto.role || 'user',
-        phone: dto.phone,
-        address: dto.address,
+        role: UserRole.USER,
+        status: UserStatus.INACTIVE,
+        isEmailVerified: false,
+        profileCompleted: false,
       });
 
       const savedUser = await newUser.save();
-      console.log('User saved successfully:', savedUser._id);
-
-      const token = await this.signToken(savedUser);
 
       return {
         success: true,
-        message: 'Đăng ký thành công',
+        message:
+          'Đăng ký thành công. Vui lòng hoàn tất thông tin cá nhân để kích hoạt tài khoản.',
         data: {
-          user: this.sanitizeUser(savedUser),
-          token,
+          userId: savedUser._id.toString(),
+          email: savedUser.email,
+          requiresProfileCompletion: true,
         },
       };
     } catch (error) {
       console.error('Registration error:', error);
       throw error;
     }
+  }
+
+  async completeRegistration(dto: CompleteRegistrationDto) {
+    const user = await this.userModel.findById(dto.userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.profileCompleted) {
+      throw new BadRequestException('Profile already completed');
+    }
+
+    user.name = dto.fullName;
+    user.phone = dto.phone;
+    user.address = dto.address;
+    user.dateOfBirth = new Date(dto.dateOfBirth);
+    user.profileCompleted = true;
+    user.status = UserStatus.ACTIVE;
+
+    await user.save();
+
+    const token = await this.signToken(user);
+
+    return {
+      success: true,
+      message: 'Hoàn tất đăng ký thành công',
+      data: {
+        user: this.sanitizeUser(user),
+        token,
+      },
+    };
   }
 
   /** Đăng nhập email/password */
@@ -88,6 +126,14 @@ export class AuthService {
       const isPasswordValid = await bcrypt.compare(dto.password, user.password);
       if (!isPasswordValid) {
         throw new BadRequestException('Invalid email or password');
+      }
+
+      const isProfileCompleted =
+        user.profileCompleted === undefined ? true : user.profileCompleted;
+      if (!isProfileCompleted || user.status !== UserStatus.ACTIVE) {
+        throw new BadRequestException(
+          'Tài khoản chưa được kích hoạt. Vui lòng hoàn tất thông tin cá nhân.',
+        );
       }
 
       // Update last login
@@ -110,9 +156,7 @@ export class AuthService {
     }
   }
 
-  async handleOAuthLogin(
-    payload: OAuthProfilePayload,
-  ): Promise<{
+  async handleOAuthLogin(payload: OAuthProfilePayload): Promise<{
     success: true;
     data: { user: any; token: string };
     isNewUser: boolean;
@@ -429,6 +473,18 @@ export class AuthService {
       raw.name ?? rest.full_name ?? (raw.email ? raw.email.split('@')[0] : '');
     const fullName = rest.full_name ?? raw.name ?? fallbackName;
     const avatarUrl = rest.avatar_url ?? raw.avatar ?? null;
+    const dateOfBirthValue =
+      raw.dateOfBirth ?? rest.dateOfBirth ?? rest.date_of_birth ?? undefined;
+
+    let normalizedDob: string | undefined;
+    if (dateOfBirthValue instanceof Date) {
+      normalizedDob = dateOfBirthValue.toISOString().split('T')[0];
+    } else if (typeof dateOfBirthValue === 'string' && dateOfBirthValue) {
+      const parsed = new Date(dateOfBirthValue);
+      normalizedDob = Number.isNaN(parsed.getTime())
+        ? undefined
+        : parsed.toISOString().split('T')[0];
+    }
 
     return {
       ...rest,
@@ -438,6 +494,10 @@ export class AuthService {
       full_name: fullName,
       avatar: raw.avatar ?? avatarUrl ?? undefined,
       avatar_url: avatarUrl ?? undefined,
+      dateOfBirth: normalizedDob,
+      profileCompleted: Boolean(
+        rest.profileCompleted ?? raw.profileCompleted ?? true,
+      ),
       oauthProviders: Array.isArray(raw.oauthProviders)
         ? raw.oauthProviders
         : [],
