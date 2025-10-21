@@ -7,3 +7,4 @@ export * from './forgot-password.dto';
 export * from './reset-password.dto';
 export * from './refresh-token.dto';
 export * from './logout.dto';
+export * from './complete-registration.dto';

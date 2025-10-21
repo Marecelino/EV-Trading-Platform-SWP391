@@ -17,8 +17,8 @@ export type UserDocument = HydratedDocument<User>;
 
 @Schema({ timestamps: true })
 export class User {
-  @Prop({ required: true, trim: true, minlength: 2, maxlength: 50 })
-  name: string;
+  @Prop({ trim: true, minlength: 2, maxlength: 50 })
+  name?: string;
 
   @Prop({ required: true, unique: true, lowercase: true, trim: true })
   email: string;
@@ -41,6 +41,10 @@ export class User {
   @Prop() phone?: string;
   @Prop() address?: string;
   @Prop() avatar?: string;
+  @Prop({ type: Date }) dateOfBirth?: Date;
+
+  @Prop({ default: false })
+  profileCompleted: boolean;
 
   @Prop({ default: Date.now })
   lastLogin: Date;
@@ -52,7 +56,7 @@ export class User {
   @Prop({
     type: [
       {
-        provider: { type: String, required: true },   // ví dụ: 'google'
+        provider: { type: String, required: true }, // ví dụ: 'google'
         providerId: { type: String, required: true }, // profile.id
       },
     ],
