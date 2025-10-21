@@ -7,11 +7,24 @@ const authApi = {
     return axiosClient.post("/auth/login", { email, password });
   },
   // register
-  register: (fullName: string, email: string, password: string) => {
+  register: (email: string, password: string) => {
     return axiosClient.post("/auth/register", {
-      name: fullName,
       email,
       password,
+    });
+  },
+  completeRegistration: (
+    userId: string,
+    payload: {
+      fullName: string;
+      phone: string;
+      address: string;
+      dateOfBirth: string;
+    }
+  ) => {
+    return axiosClient.post("/auth/register/complete", {
+      userId,
+      ...payload,
     });
   },
 };

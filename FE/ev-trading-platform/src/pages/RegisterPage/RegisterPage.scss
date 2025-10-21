@@ -1,11 +1,13 @@
 // src/pages/LoginPage.scss
-@import '../../styles/variables';
+@import "../../styles/variables";
 
 .register-page {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - #{$header-height}); // Chiều cao màn hình trừ đi header
+  min-height: calc(
+    100vh - #{$header-height}
+  ); // Chiều cao màn hình trừ đi header
   padding: 40px 20px;
 }
 
@@ -46,48 +48,80 @@
       border-radius: 8px;
       font-size: 1rem;
     }
-  }
-  
-  .btn {
+
+    textarea {
       width: 100%;
-      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid $border-color;
+      border-radius: 8px;
+      font-size: 1rem;
+      resize: vertical;
+    }
+  }
+
+  .btn {
+    width: 100%;
+    margin-top: 10px;
   }
 
   .error-message {
     color: #e74c3c;
     margin-bottom: 15px;
   }
-  
+
+  .back-link {
+    margin-top: 15px;
+    background: transparent;
+    border: none;
+    color: $primary-color;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  &.profile-card {
+    max-width: 520px;
+    text-align: left;
+
+    h2 {
+      text-align: center;
+    }
+  }
+
   .signup-link {
-      margin-top: 25px;
-      font-size: 0.9rem;
-      a {
-          color: $primary-color;
-          font-weight: 600;
-          text-decoration: none;
-      }
+    margin-top: 25px;
+    font-size: 0.9rem;
+    a {
+      color: $primary-color;
+      font-weight: 600;
+      text-decoration: none;
+    }
   }
   .divider {
-  margin: 25px 0;
-  text-align: center;
-  position: relative;
-  color: #aaa;
-  
-  &::before, &::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    width: 40%;
-    height: 1px;
-    background-color: #ddd;
-  }
-  &::before { left: 0; }
-  &::after { right: 0; }
-}
+    margin: 25px 0;
+    text-align: center;
+    position: relative;
+    color: #aaa;
 
-.social-login-group {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background-color: #ddd;
+    }
+    &::before {
+      left: 0;
+    }
+    &::after {
+      right: 0;
+    }
+  }
+
+  .social-login-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
 }

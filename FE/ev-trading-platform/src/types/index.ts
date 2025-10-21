@@ -58,6 +58,9 @@ export interface User {
   role: "member" | "admin" | "user";
   avatar_url?: string;
   phone?: string;
+  address?: string;
+  dateOfBirth?: string;
+  profileCompleted?: boolean;
   status: "active" | "suspended" | "inactive" | "banned";
   rating?: {
     average: number;

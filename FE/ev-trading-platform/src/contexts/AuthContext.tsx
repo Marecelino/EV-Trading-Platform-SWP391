@@ -16,10 +16,10 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<User>;
   logout: () => void;
   isLoading: boolean;
-  register: (
-    fullName: string,
-    email: string,
-    password: string
+  register: (email: string, password: string) => Promise<RegistrationTicket>;
+  completeRegistration: (
+    userId: string,
+    payload: RegistrationProfilePayload
   ) => Promise<User>;
   completeSocialLogin: (token: string) => Promise<User>;
 }
@@ -33,6 +33,19 @@ const allowedStatuses: User["status"][] = [
   "inactive",
   "banned",
 ];
+
+export interface RegistrationTicket {
+  userId: string;
+  email: string;
+  requiresProfileCompletion: boolean;
+}
+
+export interface RegistrationProfilePayload {
+  fullName: string;
+  phone: string;
+  address: string;
+  dateOfBirth: string;
+}
 
 const normalizeUser = (data: any): User => {
   const email: string = data?.email ?? "";
@@ -52,6 +65,11 @@ const normalizeUser = (data: any): User => {
     role,
     avatar_url: data?.avatar_url ?? data?.avatar ?? undefined,
     phone: data?.phone ?? undefined,
+    address: data?.address ?? undefined,
+    dateOfBirth: data?.dateOfBirth ?? data?.date_of_birth ?? undefined,
+    profileCompleted: Boolean(
+      data?.profileCompleted ?? data?.profile_completed ?? true
+    ),
     status,
     rating: data?.rating,
     oauthProviders: Array.isArray(data?.oauthProviders)
@@ -160,21 +178,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const register = useCallback(
+    async (email: string, password: string): Promise<RegistrationTicket> => {
+      setIsLoading(true);
+      try {
+        const response = await authApi.register(email, password);
+        const payload = response.data?.data ?? response.data;
+        const userId: string | undefined = payload?.userId ?? payload?._id;
+        if (!userId) {
+          throw new Error(
+            payload?.message ?? "Đăng ký thất bại. Vui lòng thử lại sau."
+          );
+        }
+
+        return {
+          userId,
+          email: payload?.email ?? email,
+          requiresProfileCompletion: Boolean(
+            payload?.requiresProfileCompletion ?? true
+          ),
+        };
+      } catch (error: any) {
+        throw new Error(resolveErrorMessage(error, "Đăng ký thất bại"));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  const completeRegistration = useCallback(
     async (
-      fullName: string,
-      email: string,
-      password: string
+      userId: string,
+      payload: RegistrationProfilePayload
     ): Promise<User> => {
       setIsLoading(true);
       try {
-        const response = await authApi.register(fullName, email, password);
+        const response = await authApi.completeRegistration(userId, payload);
         const {
           userData,
           token: newToken,
           message,
         } = pickAuthPayload(response.data);
         if (!userData || !newToken) {
-          throw new Error(message ?? "Đăng ký thất bại");
+          throw new Error(message ?? "Hoàn tất đăng ký thất bại");
         }
         const normalized = normalizeUser(userData);
         setUser(normalized);
@@ -182,7 +228,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem("token", newToken);
         return normalized;
       } catch (error: any) {
-        throw new Error(resolveErrorMessage(error, "Đăng ký thất bại"));
+        throw new Error(
+          resolveErrorMessage(error, "Hoàn tất đăng ký thất bại")
+        );
       } finally {
         setIsLoading(false);
       }
@@ -220,6 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
     isLoading,
     register,
+    completeRegistration,
     completeSocialLogin,
   };
 
