@@ -1,11 +1,10 @@
 // src/components/modules/forms/EVForm.tsx
-import React from 'react';
-import Button from '../../common/Button/Button';
-import './EVForm.scss';
+import React from "react";
+import Button from "../../common/Button/Button";
+import "./EVForm.scss";
 
-const EVForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean }> = ({ onSubmit, isLoading }) => {
-  
-  const handleSubmit = (e: React.FormEvent) => {
+const EVForm: React.FC<{ isLoading: boolean }> = ({ isLoading }) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
   };
 
@@ -17,9 +16,7 @@ const EVForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean }> = 
 
       <div className="form-section">
         <div className="form-group">
-          <label htmlFor="ev-brand">
-            Hãng
-          </label>
+          <label htmlFor="ev-brand">Hãng</label>
           <select id="ev-brand" required>
             <option value="">Chọn hãng</option>
             <option value="vinfast">VinFast</option>
@@ -32,25 +29,21 @@ const EVForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean }> = 
         </div>
 
         <div className="form-group">
-          <label htmlFor="ev-title">
-            Tiêu đề tin đăng
-          </label>
-          <input 
+          <label htmlFor="ev-title">Tiêu đề tin đăng</label>
+          <input
             id="ev-title"
-            type="text" 
-            placeholder="VD: Vinfast VF8 Eco 2023 còn mới" 
-            required 
+            type="text"
+            placeholder="VD: Vinfast VF8 Eco 2023 còn mới"
+            required
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="ev-description">
-            Mô tả chi tiết
-          </label>
-          <textarea 
+          <label htmlFor="ev-description">Mô tả chi tiết</label>
+          <textarea
             id="ev-description"
-            placeholder="Mô tả tình trạng, lịch sử bảo dưỡng..." 
-            rows={5} 
+            placeholder="Mô tả tình trạng, lịch sử bảo dưỡng..."
+            rows={5}
             required
           ></textarea>
         </div>
@@ -64,33 +57,33 @@ const EVForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean }> = 
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="ev-year">Năm sản xuất</label>
-            <input 
+            <input
               id="ev-year"
-              type="number" 
-              placeholder="" 
+              type="number"
+              placeholder=""
               min="2000"
               max="2025"
-              required 
+              required
             />
           </div>
 
           <div className="form-group">
             <label htmlFor="ev-mileage">Số km đã đi</label>
-            <input 
+            <input
               id="ev-mileage"
-              type="number" 
-              placeholder="" 
+              type="number"
+              placeholder=""
               min="0"
-              required 
+              required
             />
           </div>
 
           <div className="form-group">
             <label htmlFor="ev-battery">Dung lượng pin (kWh)</label>
-            <input 
+            <input
               id="ev-battery"
-              type="number" 
-              placeholder="" 
+              type="number"
+              placeholder=""
               min="0"
               step="0.1"
             />
@@ -98,12 +91,7 @@ const EVForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean }> = 
 
           <div className="form-group">
             <label htmlFor="ev-range">Quãng đường (km)</label>
-            <input 
-              id="ev-range"
-              type="number" 
-              placeholder="" 
-              min="0"
-            />
+            <input id="ev-range" type="number" placeholder="" min="0" />
           </div>
         </div>
       </div>
@@ -115,7 +103,14 @@ const EVForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean }> = 
       <div className="form-section">
         <div className="image-upload-area">
           <div className="upload-placeholder">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />
               <line x1="12" y1="3" x2="12" y2="15" />
@@ -144,12 +139,12 @@ const EVForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean }> = 
 
           <div className="form-group">
             <label htmlFor="ev-price">Giá bán (VND)</label>
-            <input 
+            <input
               id="ev-price"
-              type="number" 
-              placeholder="" 
+              type="number"
+              placeholder=""
               min="0"
-              required 
+              required
             />
           </div>
 
@@ -165,18 +160,14 @@ const EVForm: React.FC<{ onSubmit: (data: any) => void; isLoading: boolean }> = 
 
           <div className="form-group">
             <label htmlFor="ev-district">Quận/Huyện</label>
-            <input 
-              id="ev-district"
-              type="text" 
-              placeholder="" 
-            />
+            <input id="ev-district" type="text" placeholder="" />
           </div>
         </div>
       </div>
 
       <div className="form-actions">
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Đang xử lý...' : 'Hoàn tất'}
+          {isLoading ? "Đang xử lý..." : "Hoàn tất"}
         </Button>
       </div>
     </form>

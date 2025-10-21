@@ -1,25 +1,32 @@
 // src/api/auctionApi.ts
-import axiosClient from './axiosClient';
+import axiosClient from "./axiosClient";
+import type { ApiResponse, Auction } from "../types";
 
 const auctionApi = {
-  getAuctionById: (id: string): Promise<any> => {
-    return axiosClient.get(`/auctions/${id}`);
+  getAuctionById: (id: string) => {
+    return axiosClient.get<ApiResponse<Auction>>(`/auctions/${id}`);
   },
-  placeBid: (auctionId: string, amount: number): Promise<any> => {
-    return axiosClient.post(`/auctions/${auctionId}/bids`, { amount });
+  placeBid: (auctionId: string, amount: number) => {
+    return axiosClient.post<ApiResponse<Auction>>(
+      `/auctions/${auctionId}/bids`,
+      { amount }
+    );
   },
-  createAuction: (fullAuctionData: any): Promise<any> => {
-    
-    return axiosClient.post('/auctions', fullAuctionData);
+  createAuction: (fullAuctionData: unknown) => {
+    return axiosClient.post<ApiResponse<Auction>>("/auctions", fullAuctionData);
   },
-    getActiveAuctions: (): Promise<any> => {
-    return axiosClient.get('/auctions');
+  getActiveAuctions: () => {
+    return axiosClient.get<ApiResponse<Auction[]>>("/auctions");
   },
-    getAllAuctions: (status?: string, page: number = 1): Promise<any> => {
-    return axiosClient.get('/admin/auctions', { params: { status, page, limit: 3 } });
+  getAllAuctions: (status?: string, page: number = 1) => {
+    return axiosClient.get<ApiResponse<Auction[]>>("/admin/auctions", {
+      params: { status, page, limit: 3 },
+    });
   },
-  approveAuction: (auctionId: string): Promise<any> => {
-    return axiosClient.put(`/admin/auctions/${auctionId}/approve`);
+  approveAuction: (auctionId: string) => {
+    return axiosClient.put<ApiResponse<Auction>>(
+      `/admin/auctions/${auctionId}/approve`
+    );
   },
 };
 export default auctionApi;

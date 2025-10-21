@@ -5,15 +5,13 @@ import { Car, BatteryCharging } from "lucide-react";
 import AuctionFormSection from "../../components/modules/forms/AuctionFormSection";
 import Button from "../../components/common/Button/Button";
 import ImageUploader from "../../components/common/ImageUploader/ImageUploader";
-import PaymentModal from "../../components/modals/PaymentModal/PaymentModal"; // Import modal mới
-
-//import api
-import auctionApi from "../../api/auctionApi";
+import PaymentModal from "../../components/modals/PaymentModal/PaymentModal";
 import listingsApi from "../../api/listingsApi";
 import "./CreateListingPage.scss";
 
 type Category = "ev" | "battery";
 type ListingType = "direct_sale" | "auction";
+type FormState = Record<string, unknown>;
 
 const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({
   title,
@@ -31,7 +29,7 @@ const CreateListingPage: React.FC = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const navigate = useNavigate();
   const [listingType, setListingType] = useState<ListingType>("direct_sale");
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<FormState>({});
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [feeInfo, setFeeInfo] = useState<{
     listing_fee_id: string;
@@ -46,19 +44,27 @@ const CreateListingPage: React.FC = () => {
     // Xử lý input cho các trường lồng nhau như auction.starting_price
     if (name.includes(".")) {
       const [outer, inner] = name.split(".");
-      setFormData((prev) => ({
-        ...prev,
-        [outer]: {
-          ...prev[outer],
+      setFormData((prev) => {
+        const next: FormState = { ...prev };
+        const nested = next[outer];
+        const nestedObject =
+          nested && typeof nested === "object"
+            ? (nested as Record<string, unknown>)
+            : {};
+
+        next[outer] = {
+          ...nestedObject,
           [inner]: value,
-        },
-      }));
+        };
+
+        return next;
+      });
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-const handleFormSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -73,16 +79,16 @@ const handleFormSubmit = async (e: React.FormEvent) => {
 
       // Luôn gọi API POST /listings để khởi tạo
       const response = await listingsApi.create(finalData);
-      
+
       if (response.data.success) {
-        // Thay vì chuyển trang, giờ đây chúng ta lấy thông tin phí và mở modal
         setFeeInfo(response.data.data);
         setIsPaymentModalOpen(true);
       } else {
-        throw new Error(response.data.message || 'Có lỗi xảy ra');
+        throw new Error(response.data.message || "Có lỗi xảy ra");
       }
-    } catch (error: any) {
-      alert(`Không thể tạo tin đăng: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Có lỗi xảy ra";
+      alert(`Không thể tạo tin đăng: ${message}`);
     } finally {
       setIsLoading(false);
     }

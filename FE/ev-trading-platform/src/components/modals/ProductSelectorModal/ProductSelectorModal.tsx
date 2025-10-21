@@ -1,54 +1,60 @@
 // src/components/modals/ProductSelectorModal/ProductSelectorModal.tsx
-import React, { useState, useEffect, useMemo } from 'react';
-import type { Product } from '../../../types';
-import listingsApi from '../../../api/listingsApi';
-import { X, Search } from 'lucide-react';
-import './ProductSelectorModal.scss';
+import React, { useState, useEffect, useMemo } from "react";
+import type { Product } from "../../../types";
+import listingsApi from "../../../api/listingsApi";
+import { X, Search } from "lucide-react";
+import "./ProductSelectorModal.scss";
 
 interface ProductSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (product: Product) => void;
-  currentCategory: 'ev' | 'battery' | null;
+  currentCategory: "ev" | "battery" | null;
 }
 
-const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onSelect, 
-  currentCategory 
+const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
+  isOpen,
+  onClose,
+  onSelect,
+  currentCategory,
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (isOpen) {
       setIsLoading(true);
-      setSearchQuery(''); // Reset search khi mở modal
-      
-      listingsApi.getAll().then(res => {
-        if (res.data.success) {
-          // Lọc sản phẩm theo danh mục đã chọn (nếu có)
-          const filtered = res.data.data.filter(p => {
-            if (!currentCategory) return true;
-            return currentCategory === 'ev' ? !!p.ev_details : !!p.battery_details;
-          });
-          setProducts(filtered);
-        }
-      }).finally(() => setIsLoading(false));
+      setSearchQuery(""); // Reset search khi mở modal
+
+      listingsApi
+        .getAll()
+        .then((res) => {
+          if (res.data.success) {
+            // Lọc sản phẩm theo danh mục đã chọn (nếu có)
+            const filtered = res.data.data.filter((p: Product) => {
+              if (!currentCategory) return true;
+              return currentCategory === "ev"
+                ? !!p.ev_details
+                : !!p.battery_details;
+            });
+            setProducts(filtered);
+          }
+        })
+        .finally(() => setIsLoading(false));
     }
   }, [isOpen, currentCategory]);
 
   // Filter products based on search query
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
-    
+
     const query = searchQuery.toLowerCase().trim();
-    return products.filter(product => 
-      product.title.toLowerCase().includes(query) ||
-      product.description?.toLowerCase().includes(query) ||
-      product.price.toString().includes(query)
+    return products.filter(
+      (product) =>
+        product.title.toLowerCase().includes(query) ||
+        product.description?.toLowerCase().includes(query) ||
+        product.price.toString().includes(query)
     );
   }, [products, searchQuery]);
 
@@ -77,8 +83,8 @@ const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
               autoFocus
             />
             {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
+              <button
+                onClick={() => setSearchQuery("")}
                 className="clear-search-btn"
                 title="Xóa tìm kiếm"
               >
@@ -96,8 +102,8 @@ const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
               {searchQuery ? (
                 <>
                   <p>Không tìm thấy sản phẩm nào với từ khóa "{searchQuery}"</p>
-                  <button 
-                    onClick={() => setSearchQuery('')}
+                  <button
+                    onClick={() => setSearchQuery("")}
                     className="reset-search-btn"
                   >
                     Xóa bộ lọc
@@ -115,20 +121,22 @@ const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
                 </div>
               )}
               <div className="product-selection-list">
-                {filteredProducts.map(product => (
-                  <div 
-                    key={product._id} 
-                    className="selection-item" 
+                {filteredProducts.map((product) => (
+                  <div
+                    key={product._id}
+                    className="selection-item"
                     onClick={() => onSelect(product)}
                   >
                     <img src={product.images[0]} alt={product.title} />
                     <div className="selection-item-info">
                       <p className="title">{product.title}</p>
-                      <p className="price">{product.price.toLocaleString('vi-VN')} ₫</p>
+                      <p className="price">
+                        {product.price.toLocaleString("vi-VN")} ₫
+                      </p>
                       {product.description && (
                         <p className="description">
                           {product.description.substring(0, 60)}
-                          {product.description.length > 60 ? '...' : ''}
+                          {product.description.length > 60 ? "..." : ""}
                         </p>
                       )}
                     </div>

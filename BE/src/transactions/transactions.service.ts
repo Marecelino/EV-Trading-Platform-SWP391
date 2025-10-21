@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, Types } from 'mongoose';
 import {
@@ -120,6 +124,22 @@ export class TransactionsService {
     }
 
     return transaction;
+  }
+
+  async findForUser(userId: string) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid user id');
+    }
+
+    return this.transactionModel
+      .find({
+        $or: [{ buyer_id: userId }, { seller_id: userId }],
+      })
+      .sort({ createdAt: -1 })
+      .populate('listing_id', 'title price status images')
+      .populate('buyer_id', 'name email phone')
+      .populate('seller_id', 'name email phone')
+      .lean();
   }
 
   async updateStatus(id: string, updateDto: UpdateTransactionStatusDto) {

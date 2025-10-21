@@ -1,5 +1,5 @@
 // src/pages/HomePage.tsx
-import React, { useState, useEffect ,useMemo  } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import HeroSection from "../components/modules/HeroSection/HeroSection";
 //import ProductCard from '../components/modules/ProductCard/ProductCard';
 import listingsApi from "../api/listingsApi";
@@ -9,7 +9,6 @@ const HomePage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [totalProducts, setTotalProducts] = useState(0);
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -17,7 +16,6 @@ const HomePage: React.FC = () => {
         const response = await listingsApi.getAll();
         if (response.data.success) {
           setProducts(response.data.data);
-          setTotalProducts(response.data.pagination?.total || 0);
         } else {
           setError(response.data.message || "Có lỗi xảy ra");
         }
