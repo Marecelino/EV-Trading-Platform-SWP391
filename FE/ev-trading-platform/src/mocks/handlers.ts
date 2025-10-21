@@ -711,12 +711,50 @@ mockProducts[0].auction_id = "auction001";
 
 let mockListingFees: ListingFee[] = [];
 
+const decodeJwt = (token: string): Record<string, unknown> | null => {
+  try {
+    const [, payload] = token.split(".");
+    if (!payload) {
+      return null;
+    }
+
+    const base64 = payload
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(payload.length + ((4 - (payload.length % 4 || 4)) % 4), "=");
+
+    const json = atob(base64);
+    return JSON.parse(json);
+  } catch (error) {
+    console.warn("[MSW] Unable to decode JWT payload", error);
+    return null;
+  }
+};
+
 const getUserIdFromToken = (request: Request): string | null => {
   const authorization = request.headers.get("Authorization");
-  if (authorization && authorization.startsWith("Bearer fake-jwt-token-for-")) {
-    return authorization.replace("Bearer fake-jwt-token-for-", "");
+  if (!authorization || !authorization.startsWith("Bearer ")) {
+    return null;
   }
-  return null;
+
+  const token = authorization.replace("Bearer ", "");
+
+  if (token.startsWith("fake-jwt-token-for-")) {
+    return token.replace("fake-jwt-token-for-", "");
+  }
+
+  const payload = decodeJwt(token);
+  if (!payload) {
+    return null;
+  }
+
+  const candidate =
+    (payload.sub as string | undefined) ||
+    (payload.userId as string | undefined) ||
+    (payload.id as string | undefined) ||
+    (payload._id as string | undefined);
+
+  return candidate ?? null;
 };
 const getAverageRating = (userId: string) => {
   const userReviews = mockReviews.filter((r) => r.reviewee_id === userId);

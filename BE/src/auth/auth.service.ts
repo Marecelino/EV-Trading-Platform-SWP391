@@ -186,6 +186,7 @@ export class AuthService {
         role: UserRole.USER,
         status: UserStatus.ACTIVE,
         isEmailVerified: true,
+        profileCompleted: true,
         oauthProviders: [
           {
             provider: payload.provider,
@@ -221,6 +222,10 @@ export class AuthService {
 
       if (!user.isEmailVerified) {
         user.isEmailVerified = true;
+      }
+
+      if (user.profileCompleted === undefined) {
+        user.profileCompleted = true;
       }
     }
 
