@@ -23,7 +23,9 @@ const ProductListPage: React.FC = () => {
       setIsLoading(true);
       try {
         const response = await listingApi.getListings();
+        console.log("API Response:", response.data);
         if (response.data.data) {
+          console.log("Products data:", response.data.data);
           setAllProducts(response.data.data);
         }
       } catch (error) {
@@ -36,15 +38,12 @@ const ProductListPage: React.FC = () => {
 
   // Lọc danh sách sản phẩm trên frontend dựa vào state `filters`
   const filteredProducts = useMemo(() => {
-    return allProducts.filter((product) => {
-      // 1. Lọc theo Danh mục
-      const categoryMatch =
-        filters.category === "xe-dien"
-          ? !!product.ev_details
-          : !!product.battery_details;
-      if (!categoryMatch) return false;
-
-      // 2. Lọc theo Từ khóa tìm kiếm (ví dụ đơn giản)
+    console.log("Filtering products:", allProducts.length, "total products");
+    const filtered = allProducts.filter((product) => {
+      // 1. Lọc theo Danh mục - dựa vào brand name thay vì ev_details/battery_details
+      const categoryMatch = true; // Tạm thời bỏ qua lọc category vì API không có ev_details/battery_details
+      
+      // 2. Lọc theo Từ khóa tìm kiếm
       if (
         filters.searchTerm &&
         !product.title.toLowerCase().includes(filters.searchTerm.toLowerCase())
@@ -57,18 +56,20 @@ const ProductListPage: React.FC = () => {
         return false;
       }
 
-      // 4. Lọc theo Năm sản xuất (chỉ cho xe điện)
-      if (
-        filters.category === "xe-dien" &&
-        filters.year_of_manufacture &&
-        product.ev_details?.year_of_manufacture !== filters.year_of_manufacture
-      ) {
-        return false;
-      }
+      // 4. Lọc theo Năm sản xuất (chỉ cho xe điện) - tạm thời bỏ qua vì không có ev_details
+      // if (
+      //   filters.category === "xe-dien" &&
+      //   filters.year_of_manufacture &&
+      //   product.ev_details?.year_of_manufacture !== filters.year_of_manufacture
+      // ) {
+      //   return false;
+      // }
 
       // Nếu qua hết các điều kiện thì giữ lại sản phẩm
-      return true;
+      return categoryMatch;
     });
+    console.log("Filtered products:", filtered.length, "products after filtering");
+    return filtered;
   }, [allProducts, filters]); // Tính toán lại mỗi khi `allProducts` hoặc `filters` thay đổi
 
   const handleFilterChange = (newFilters: Partial<Filters>) => {
@@ -84,7 +85,7 @@ const ProductListPage: React.FC = () => {
 
       <div className="page-header">
         <h1>
-          {filters.category === "ev" ? "Danh sách xe điện" : "Danh sách Pin"}
+          Danh sách sản phẩm
         </h1>
       </div>
 

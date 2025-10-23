@@ -30,14 +30,29 @@ const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
       listingApi
         .getListings()
         .then((res) => {
-          if (res.data.success) {
-            // Lọc sản phẩm theo danh mục đã chọn (nếu có)
+          console.log("ProductSelectorModal API Response:", res.data);
+          if (res.data.data) {
+            // Filter products by brand names since API doesn't have ev_details/battery_details
             const filtered = res.data.data.filter((p: Product) => {
               if (!currentCategory) return true;
-              return currentCategory === "ev"
-                ? !!p.ev_details
-                : !!p.battery_details;
+              
+              if (currentCategory === "ev") {
+                // Filter by EV brand names
+                if (typeof p.brand_id === 'object') {
+                  const brandName = (p.brand_id as any).name.toLowerCase();
+                  return brandName.includes('tesla') || brandName.includes('vinfast') || brandName.includes('byd');
+                }
+                return false;
+              } else {
+                // Filter by battery brand names or products with "pin" in title
+                if (typeof p.brand_id === 'object') {
+                  const brandName = (p.brand_id as any).name.toLowerCase();
+                  return brandName.includes('catl') || p.title.toLowerCase().includes('pin');
+                }
+                return false;
+              }
             });
+            console.log("Filtered products for category", currentCategory, ":", filtered.length);
             setProducts(filtered);
           }
         })

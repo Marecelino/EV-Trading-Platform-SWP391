@@ -104,6 +104,18 @@
     color: lighten($text-color, 40%);
     margin: 0;
   }
+
+  &__meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+  }
+
+  &__views {
+    font-size: 0.85rem;
+    color: lighten($text-color, 40%);
+  }
 }
 
 .product-card--detailed {

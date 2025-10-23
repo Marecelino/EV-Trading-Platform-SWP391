@@ -14,10 +14,11 @@ const HomePage: React.FC = () => {
       try {
         setIsLoading(true);
         const response = await listingApi.getListings();
-        if (response.data.success) {
+        console.log("HomePage API Response:", response.data);
+        if (response.data.data) {
           setProducts(response.data.data);
         } else {
-          setError(response.data.message || "Có lỗi xảy ra");
+          setError("Không có dữ liệu sản phẩm");
         }
       } catch (err) {
         setError("Không thể kết nối đến server.");
@@ -30,12 +31,26 @@ const HomePage: React.FC = () => {
     fetchProducts();
   }, []);
   const evProducts = useMemo(
-    () => products.filter((p) => p.ev_details),
+    () => products.filter((p) => {
+      // Filter by brand names that are typically EV brands
+      if (typeof p.brand_id === 'object') {
+        const brandName = (p.brand_id as any).name.toLowerCase();
+        return brandName.includes('tesla') || brandName.includes('vinfast') || brandName.includes('byd');
+      }
+      return false;
+    }),
     [products]
   );
 
   const batteryProducts = useMemo(
-    () => products.filter((p) => p.battery_details),
+    () => products.filter((p) => {
+      // Filter by brand names that are typically battery brands or products with "pin" in title
+      if (typeof p.brand_id === 'object') {
+        const brandName = (p.brand_id as any).name.toLowerCase();
+        return brandName.includes('catl') || p.title.toLowerCase().includes('pin');
+      }
+      return false;
+    }),
     [products]
   );
   return (

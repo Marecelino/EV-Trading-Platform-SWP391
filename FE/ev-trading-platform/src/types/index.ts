@@ -324,3 +324,80 @@ export interface CompleteRegistrationDto {
   address: string;
   dateOfBirth: string;
 }
+
+export interface ListingBase {
+  _id: string;
+  seller_id: string; // Assuming User/Seller info might be fetched separately later
+  brand_id: string;  // Assuming Brand info might be fetched separately
+  model_id: string;  // Assuming Model info might be fetched separately
+  title?: string; // Optional for Battery
+  name?: string; // Optional for EV, used in Battery listing
+  description: string;
+  price: number;
+  condition: 'new' | 'like_new' | 'good' | 'fair' | 'poor' | string; // Allow string for flexibility
+  status: 'active' | 'sold' | 'inactive' | string; // Allow string
+  location?: {
+    city?: string;
+    district?: string;
+    address?: string; // Added address
+  };
+  images: string[];
+  views: number;
+  is_verified?: boolean;
+  is_featured?: boolean;
+  created_at: string; // ISO Date string
+  updated_at: string; // ISO Date string
+  // Add view_count, favorite_count if needed from Battery listing_id
+  view_count?: number;
+  favorite_count?: number;
+}
+
+// EV Specific Details
+export interface EVSpecifics {
+  _id: string; // The specific detail record ID
+  listing_id: ListingBase; // Nested common listing info
+  mileage: number;
+  year_of_manufacture: number;
+  battery_capacity: number; // kWh
+  range: number; // km
+  charging_time: number; // minutes (Assumption)
+  motor_power: number; // kW (Assumption)
+  transmission: string;
+  color: string;
+  seats: number;
+  doors: number;
+  features: string[];
+  registration_status: string;
+  warranty_remaining: string;
+}
+
+// Battery Specific Details
+export interface BatterySpecifics {
+  _id: string; // The specific detail record ID
+  listing_id: ListingBase; // Nested common listing info (name is used instead of title here)
+  capacity: number; // kWh
+  voltage: number; // V
+  chemistry_type: string;
+  state_of_health: number; // Percentage
+  cycle_count: number;
+  manufacturing_date: string; // ISO Date string
+  warranty_remaining: string;
+  compatible_models: string[];
+  dimensions?: {
+    length?: number; // mm (Assumption)
+    width?: number; // mm (Assumption)
+    height?: number; // mm (Assumption)
+  };
+  weight: number; // kg (Assumption)
+  certification: string[];
+}
+
+export type ProductDetailData = EVSpecifics | BatterySpecifics;
+
+export function isEV(product: ProductDetailData | null): product is EVSpecifics {
+  return product !== null && (product as EVSpecifics).mileage !== undefined;
+}
+
+export function isBattery(product: ProductDetailData | null): product is BatterySpecifics {
+  return product !== null && (product as BatterySpecifics).capacity !== undefined && (product as BatterySpecifics).voltage !== undefined;
+}

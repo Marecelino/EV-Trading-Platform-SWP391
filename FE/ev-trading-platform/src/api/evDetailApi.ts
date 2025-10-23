@@ -1,8 +1,8 @@
 import axiosClient from './axiosClient';
-import { IEVDetails } from '../types';
+import { type EVDetail } from '../types';
 
 const evDetailApi = {
-  createEVDetail: (data: Partial<IEVDetails>) => {
+  createEVDetail: (data: Partial<EVDetail>) => {
     return axiosClient.post('/evdetails', data);
   },
 
@@ -18,7 +18,7 @@ const evDetailApi = {
     return axiosClient.get(`/evdetails/listing/${listingId}`);
   },
 
-  updateEVDetail: (id: string, data: Partial<IEVDetails>) => {
+  updateEVDetail: (id: string, data: Partial<EVDetail>) => {
     return axiosClient.put(`/evdetails/${id}`, data);
   },
 

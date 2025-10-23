@@ -16,7 +16,7 @@ const MyListingsPage: React.FC = () => {
     setIsLoading(true);
     // API thật có thể không có status 'expired', chúng ta sẽ xử lý sau
     const apiStatus = status === "expired" ? "active" : status;
-    listingsApi
+    listingApi
       .getMyListings(apiStatus)
       .then((response) => {
         if (response.data.success) {

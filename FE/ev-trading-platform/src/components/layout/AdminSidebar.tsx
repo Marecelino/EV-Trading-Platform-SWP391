@@ -9,7 +9,11 @@ import {
   ArrowLeftRight, 
   Settings, 
   LogOut, 
-  Hammer
+  Hammer,
+  MessageSquare,
+  Star,
+  DollarSign,
+  Shield
 } from 'lucide-react';
 import './AdminSidebar.scss';
 
@@ -28,22 +32,42 @@ const AdminSidebar: React.FC = () => {
           <LayoutDashboard size={20} />
           <span>Tổng quan</span>
         </NavLink>
+        
         <NavLink to="/admin/users" className="nav-link">
           <Users size={20} />
           <span>Quản lý người dùng</span>
         </NavLink>
+        
         <NavLink to="/admin/listings" className="nav-link">
-    <FileText size={20} />
-    <span>Tin Bán trực tiếp</span>
-  </NavLink>
-  <NavLink to="/admin/auctions" className="nav-link">
-    <Hammer size={20} /> {/* Thêm icon cho đấu giá */}
-    <span>Tin Đấu giá</span>
-  </NavLink>
+          <FileText size={20} />
+          <span>Tin Bán trực tiếp</span>
+        </NavLink>
+        
+        <NavLink to="/admin/auctions" className="nav-link">
+          <Hammer size={20} />
+          <span>Tin Đấu giá</span>
+        </NavLink>
+        
         <NavLink to="/admin/transactions" className="nav-link">
           <ArrowLeftRight size={20} />
           <span>Quản lý giao dịch</span>
         </NavLink>
+        
+        <NavLink to="/admin/contacts" className="nav-link">
+          <MessageSquare size={20} />
+          <span>Quản lý liên hệ</span>
+        </NavLink>
+        
+        <NavLink to="/admin/reviews" className="nav-link">
+          <Star size={20} />
+          <span>Quản lý đánh giá</span>
+        </NavLink>
+        
+        <NavLink to="/admin/commissions" className="nav-link">
+          <DollarSign size={20} />
+          <span>Quản lý hoa hồng</span>
+        </NavLink>
+        
         <NavLink to="/admin/settings" className="nav-link">
           <Settings size={20} />
           <span>Cấu hình hệ thống</span>

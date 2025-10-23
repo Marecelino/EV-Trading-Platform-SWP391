@@ -96,6 +96,9 @@ const ComparePage: React.FC = () => {
         },
         { key: "condition", label: "Tình trạng" },
         { key: "location.city", label: "Thành phố" },
+        { key: "views", label: "Lượt xem" },
+        { key: "is_verified", label: "Đã kiểm định", format: (val) => val ? "Có" : "Không" },
+        { key: "is_featured", label: "Nổi bật", format: (val) => val ? "Có" : "Không" },
       ],
     };
 
@@ -103,35 +106,22 @@ const ComparePage: React.FC = () => {
       return [
         commonGroup,
         {
-          title: "Thông số kỹ thuật xe điện",
+          title: "Thông tin xe điện",
           attributes: [
-            { key: "ev_details.year_of_manufacture", label: "Năm sản xuất" },
-            {
-              key: "ev_details.mileage",
-              label: "Số KM đã đi",
-              format: (val) =>
-                typeof val === "number"
-                  ? `${val.toLocaleString("vi-VN")} km`
-                  : "-",
+            { 
+              key: "brand_id.name", 
+              label: "Hãng xe",
+              format: (val) => val || "-"
             },
-            {
-              key: "ev_details.range",
-              label: "Quãng đường tối đa",
-              format: (val) =>
-                typeof val === "number"
-                  ? `${val.toLocaleString("vi-VN")} km`
-                  : "-",
+            { 
+              key: "model_id.name", 
+              label: "Model",
+              format: (val) => val || "-"
             },
-            {
-              key: "ev_details.battery_capacity",
-              label: "Dung lượng pin",
-              format: (val) =>
-                typeof val === "number"
-                  ? `${val.toLocaleString("vi-VN")} kWh`
-                  : "-",
-            },
-            { key: "ev_details.color", label: "Màu sắc" },
-            { key: "ev_details.seats", label: "Số ghế" },
+            { key: "title", label: "Tiêu đề" },
+            { key: "description", label: "Mô tả" },
+            { key: "location.district", label: "Quận/Huyện" },
+            { key: "location.address", label: "Địa chỉ" },
           ],
         },
       ];
@@ -141,22 +131,22 @@ const ComparePage: React.FC = () => {
       return [
         commonGroup,
         {
-          title: "Thông số kỹ thuật Pin",
+          title: "Thông tin Pin & Phụ kiện",
           attributes: [
-            {
-              key: "battery_details.capacity",
-              label: "Dung lượng",
-              format: (val) =>
-                typeof val === "number"
-                  ? `${val.toLocaleString("vi-VN")} Ah`
-                  : "-",
+            { 
+              key: "brand_id.name", 
+              label: "Hãng sản xuất",
+              format: (val) => val || "-"
             },
-            {
-              key: "battery_details.state_of_health",
-              label: "Sức khỏe pin",
-              format: (val) => (typeof val === "number" ? `${val}%` : "-"),
+            { 
+              key: "model_id.name", 
+              label: "Model",
+              format: (val) => val || "-"
             },
-            { key: "battery_details.cycle_count", label: "Số lần sạc" },
+            { key: "title", label: "Tiêu đề" },
+            { key: "description", label: "Mô tả" },
+            { key: "location.district", label: "Quận/Huyện" },
+            { key: "location.address", label: "Địa chỉ" },
           ],
         },
       ];

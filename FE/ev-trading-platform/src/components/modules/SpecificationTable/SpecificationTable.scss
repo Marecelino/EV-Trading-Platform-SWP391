@@ -1,16 +1,85 @@
 // src/components/modules/SpecificationTable/SpecificationTable.scss
-@import '../../../styles/variables';
+@import "../../../styles/variables";
+@import '../../../styles/mixins';
+
 .spec-table {
-  h3 { margin-bottom: 16px; }
+  h3.spec-group-title {
+    margin-top: $spacing-6; // Add space above new group titles
+    margin-bottom: $spacing-4;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+    padding-bottom: $spacing-2;
+    border-bottom: 2px solid $primary-color;
+    
+    &:first-of-type {
+      margin-top: 0; // No margin for the very first title
+    }
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;
+
     tbody tr {
-      border-bottom: 1px solid $border-color;
+      border-bottom: 1px solid $border-light; // Lighter border for rows
+      transition: background-color $duration-fast $ease-in-out;
+
+      &:last-child {
+        border-bottom: none;
+      }
+      
+      &:hover {
+        background-color: $gray-50; // Hover effect for rows
+      }
+
       td {
-        padding: 12px 0;
-        &:first-child { color: lighten($text-color, 30%); }
-        &:last-child { font-weight: 500; text-align: right; }
+        padding: $spacing-4 $spacing-2;
+        vertical-align: top; // Align top for lists
+        line-height: 1.6;
+
+        // Label column
+        &:first-child {
+          color: $text-secondary;
+          font-weight: $font-weight-medium;
+          width: 40%; // Give label column a fixed width
+          
+          @include mobile {
+            width: 45%;
+          }
+        }
+        
+        // Value column
+        &:last-child {
+          font-weight: $font-weight-semibold;
+          color: $text-primary;
+          text-align: left; // Align values to the left
+        }
+      }
+    }
+  }
+  
+  // Styling for lists (e.g., features, compatible models)
+  .spec-list {
+    margin: 0;
+    padding-left: $spacing-5;
+    list-style-type: none; // Remove default bullets
+    
+    li {
+      position: relative;
+      margin-bottom: $spacing-2;
+      
+      &::before {
+        content: '✓'; // Use a checkmark
+        position: absolute;
+        left: -$spacing-5;
+        top: 2px;
+        color: $primary-color;
+        font-weight: $font-weight-bold;
+      }
+      
+      &:last-child {
+        margin-bottom: 0;
       }
     }
   }

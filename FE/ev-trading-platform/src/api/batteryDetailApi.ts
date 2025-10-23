@@ -1,8 +1,8 @@
 import axiosClient from './axiosClient';
-import { IBatteryDetails } from '../types';
+import { type BatteryDetail } from '../types';
 
 const batteryDetailApi = {
-  createBatteryDetail: (data: Partial<IBatteryDetails>) => {
+  createBatteryDetail: (data: Partial<BatteryDetail>) => {
     return axiosClient.post('/battery-details', data);
   },
 
@@ -18,7 +18,7 @@ const batteryDetailApi = {
     return axiosClient.get(`/battery-details/by-listing/${listingId}`);
   },
 
-  updateBatteryDetail: (id: string, data: Partial<IBatteryDetails>) => {
+  updateBatteryDetail: (id: string, data: Partial<BatteryDetail>) => {
     return axiosClient.patch(`/battery-details/${id}`, data);
   },
 

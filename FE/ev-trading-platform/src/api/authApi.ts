@@ -2,6 +2,7 @@ import axiosClient from './axiosClient';
 import { RegisterDto, LoginDto, UpdateUserDto, ChangePasswordDto, CompleteRegistrationDto } from '../types';
 
 const authApi = {
+  // === BASIC AUTH ===
   register: (data: RegisterDto) => {
     return axiosClient.post('/auth/register', data);
   },
@@ -10,14 +11,11 @@ const authApi = {
     return axiosClient.post('/auth/login', data);
   },
 
-  getUsers: (page: number, limit: number) => {
-    return axiosClient.get('/auth/users', { params: { page, limit } });
+  completeRegistration: (data: CompleteRegistrationDto) => {
+    return axiosClient.post('/auth/register/complete', data);
   },
 
-  updateUserStatus: (id: string, status: string) => {
-    return axiosClient.put(`/auth/users/${id}`, { status });
-  },
-
+  // === PROFILE MANAGEMENT ===
   getProfile: () => {
     return axiosClient.get('/auth/profile');
   },
@@ -30,8 +28,51 @@ const authApi = {
     return axiosClient.patch('/auth/change-password', data);
   },
 
-  completeRegistration: (data: CompleteRegistrationDto) => {
-    return axiosClient.post('/auth/register/complete', data);
+  // === USER MANAGEMENT (Admin only) ===
+  getUsers: () => {
+    return axiosClient.get('/auth/users');
+  },
+
+  getUserById: (id: string) => {
+    return axiosClient.get(`/auth/users/${id}`);
+  },
+
+  updateUser: (id: string, data: UpdateUserDto) => {
+    return axiosClient.put(`/auth/users/${id}`, data);
+  },
+
+  deleteUser: (id: string) => {
+    return axiosClient.delete(`/auth/users/${id}`);
+  },
+
+  // === USER SEARCH & FILTERS ===
+  searchUsers: (query: string) => {
+    return axiosClient.get('/auth/users/search', { params: { q: query } });
+  },
+
+  getUserStats: () => {
+    return axiosClient.get('/auth/users/stats');
+  },
+
+  getUsersByRole: (role: string) => {
+    return axiosClient.get(`/auth/users/by-role/${role}`);
+  },
+
+  // === SOCIAL AUTH ===
+  googleAuth: () => {
+    return axiosClient.get('/auth/google');
+  },
+
+  googleCallback: () => {
+    return axiosClient.get('/auth/google/callback');
+  },
+
+  facebookAuth: () => {
+    return axiosClient.get('/auth/facebook');
+  },
+
+  facebookCallback: () => {
+    return axiosClient.get('/auth/facebook/callback');
   },
 };
 

@@ -3,7 +3,7 @@ import React from "react";
 import { Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import StarRating from "../../common/StarRating/StarRating";
-import type { Product } from "../../../types"; // Import type đã cập nhật
+import type { Product, User } from "../../../types"; // Import type đã cập nhật
 //import Button from '../../common/Button/Button';
 import "./ProductCard.scss";
 import { useFavorites } from "../../../contexts/FavoritesContext";
@@ -19,6 +19,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   product,
   variant = "default",
 }) => {
+  console.log("Product in ProductCard:", product);
   const formatPrice = (price: number) => {
     if (typeof price !== "number") return "Thương lượng";
     return new Intl.NumberFormat("vi-VN", {
@@ -39,7 +40,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
     toggleFavorite(product._id);
   };
   if (variant === "detailed") {
-    const seller = typeof product.seller_id === 'object' ? product.seller_id as User : null;
+    // Handle seller data from API - API only returns _id, email, phone
+    const seller = typeof product.seller_id === 'object' ? product.seller_id as any : null;
+    const brand = typeof product.brand_id === 'object' ? product.brand_id as any : null;
+    const model = typeof product.model_id === 'object' ? product.model_id as any : null;
 
     return (
       <div className="product-card--detailed">
@@ -65,17 +69,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <p className="product-card__price">{formatPrice(product.price)}</p>
 
           <div className="product-card__specs-detailed">
-            {product.ev_details && (
+            {brand && model && (
               <>
-                <span>{product.ev_details.year_of_manufacture}</span>
-                <span>- {formatNumber(product.ev_details.mileage)} km</span>
+                <span>{brand.name} {model.name}</span>
+                <span>- {product.condition === 'new' ? 'Mới' : product.condition === 'like_new' ? 'Như mới' : 'Đã sử dụng'}</span>
               </>
             )}
-            {product.battery_details && (
-              <>
-                <span>{formatNumber(product.battery_details.capacity)} Ah</span>
-                <span>- {product.battery_details.state_of_health}%</span>
-              </>
+            {!product.ev_details && !product.battery_details && (
+              <span>Chi tiết sản phẩm</span>
             )}
           </div>
 
@@ -83,26 +84,21 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <span className="product-card__location">
               {product.location.city}
             </span>
+            {typeof product.views === 'number' && (
+              <span className="product-card__views">
+                {formatNumber(product.views)} lượt xem
+              </span>
+            )}
           </div>
           <div className="product-card__actions">
             {seller && (
               <div className="seller-info">
-                <img
-                  src={seller.avatar_url}
-                  alt={seller.full_name}
-                  className="seller-info__avatar"
-                />
+                <div className="seller-info__avatar">
+                  {seller.email?.charAt(0).toUpperCase() || 'U'}
+                </div>
                 <div className="seller-info__details">
-                  <span className="seller-info__name">{seller.full_name}</span>
-                  {/* SỬ DỤNG COMPONENT STAR RATING */}
-                  {seller.rating ? (
-                    <StarRating
-                      rating={seller.rating.average}
-                      count={seller.rating.count}
-                    />
-                  ) : (
-                    <span className="no-rating">Chưa có đánh giá</span>
-                  )}
+                  <span className="seller-info__name">{seller.email || 'Người bán'}</span>
+                  <span className="no-rating">Liên hệ: {seller.phone || 'N/A'}</span>
                 </div>
               </div>
             )}
@@ -141,23 +137,24 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <h3 className="product-card__name">{product.title}</h3>
         <p className="product-card__price">{formatPrice(product.price)}</p>
         <div className="product-card__specs">
-          {/* SỬA LỖI: Truy cập dữ liệu chi tiết lồng nhau */}
-          {product.ev_details && (
+          {/* Handle brand and model from API */}
+          {typeof product.brand_id === 'object' && typeof product.model_id === 'object' && (
             <>
-              <span>{product.ev_details.year_of_manufacture}</span>
+              <span>{(product.brand_id as any).name} {(product.model_id as any).name}</span>
               <span>•</span>
-              <span>{formatNumber(product.ev_details.mileage)} km</span>
+              <span>{product.condition === 'new' ? 'Mới' : product.condition === 'like_new' ? 'Như mới' : 'Đã sử dụng'}</span>
             </>
           )}
-          {product.battery_details && (
-            <>
-              <span>{formatNumber(product.battery_details.capacity)} Ah</span>
-              <span>•</span>
-              <span>Sức khỏe: {product.battery_details.state_of_health}%</span>
-            </>
+          {!product.ev_details && !product.battery_details && (
+            <span>Chi tiết sản phẩm</span>
           )}
         </div>
-        <p className="product-card__location">{product.location.city}</p>
+        <div className="product-card__meta">
+          <p className="product-card__location">{product.location.city}</p>
+          {typeof product.views === 'number' && (
+            <p className="product-card__views">{formatNumber(product.views)} lượt xem</p>
+          )}
+        </div>
       </div>
     </div>
   );

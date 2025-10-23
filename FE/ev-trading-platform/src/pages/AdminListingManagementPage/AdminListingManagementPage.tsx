@@ -15,19 +15,14 @@ const AdminListingManagementPage: React.FC = () => {
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
   const ITEMS_PER_PAGE = 3;
 
-  const fetchListings = (status: ListingStatus, page: number) => {
+  const fetchListings = useCallback(() => {
     setIsLoading(true);
-    listingApi.getListings(status, page, ITEMS_PER_PAGE).then(response => {
-      if (response.data.success) {
-        setListings(response.data.data);
-        setPagination({
-
-          currentPage: response.data.pagination.page || 1,
-          totalPages: response.data.pagination.pages || 1,
-        });
+    listingApi.getListings().then(response => {
+      if (response.data.data) {
+        setAllListings(response.data.data);
       }
     }).finally(() => setIsLoading(false));
-  };
+  }, []);
 
   // useEffect sẽ gọi lại fetchListings mỗi khi activeTab hoặc currentPage thay đổi
   useEffect(() => {
