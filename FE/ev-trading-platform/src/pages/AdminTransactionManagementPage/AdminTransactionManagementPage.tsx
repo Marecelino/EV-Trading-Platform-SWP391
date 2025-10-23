@@ -13,16 +13,11 @@ const AdminTransactionManagementPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TransactionStatus | 'all'>('all');
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
 
-  const fetchTransactions = useCallback((status: string, page: number) => {
+  const fetchTransactions = useCallback(() => {
     setIsLoading(true);
-    const apiStatus = status === 'all' ? undefined : status;
-    adminApi.getTransactions(apiStatus, page).then(response => {
-      if (response.data.success) {
-        setTransactions(response.data.data);
-        setPagination({
-            currentPage: response.data.pagination.page,
-            totalPages: response.data.pagination.pages,
-        });
+    transactionApi.getTransactions().then(response => {
+      if (response.data.data) {
+        setAllTransactions(response.data.data);
       }
     }).finally(() => setIsLoading(false));
   }, []);

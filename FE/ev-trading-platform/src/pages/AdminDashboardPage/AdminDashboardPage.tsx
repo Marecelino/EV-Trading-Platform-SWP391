@@ -1,6 +1,6 @@
 // src/pages/AdminDashboardPage/AdminDashboardPage.tsx
 import React, { useEffect, useState } from 'react';
-import adminApi from '../../api/adminApi';
+import dashboardApi from '../../api/dashboardApi';
 import TrendChart from '../../components/admin/TrendChart'; // Import component biểu đồ
 import './AdminDashboardPage.scss';
 
@@ -22,8 +22,8 @@ const AdminDashboardPage: React.FC = () => {
             try {
                 // Gọi song song 2 API để tăng tốc
                 const [statsRes, trendsRes] = await Promise.all([
-                    adminApi.getDashboardStats(),
-                    adminApi.getDashboardTrends(),
+                    listingApi.getDashboardStats(),
+                    listingApi.getDashboardTrends(),
                 ]);
 
                 if (statsRes.data.success) {

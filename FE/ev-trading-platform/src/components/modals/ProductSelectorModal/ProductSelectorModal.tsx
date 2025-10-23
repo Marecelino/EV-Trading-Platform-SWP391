@@ -1,7 +1,7 @@
 // src/components/modals/ProductSelectorModal/ProductSelectorModal.tsx
 import React, { useState, useEffect, useMemo } from "react";
 import type { Product } from "../../../types";
-import listingsApi from "../../../api/listingsApi";
+import listingApi from "../../../api/listingApi";
 import { X, Search } from "lucide-react";
 import "./ProductSelectorModal.scss";
 
@@ -27,8 +27,8 @@ const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
       setIsLoading(true);
       setSearchQuery(""); // Reset search khi mở modal
 
-      listingsApi
-        .getAll()
+      listingApi
+        .getListings()
         .then((res) => {
           if (res.data.success) {
             // Lọc sản phẩm theo danh mục đã chọn (nếu có)

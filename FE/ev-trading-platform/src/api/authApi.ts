@@ -10,6 +10,14 @@ const authApi = {
     return axiosClient.post('/auth/login', data);
   },
 
+  getUsers: (page: number, limit: number) => {
+    return axiosClient.get('/auth/users', { params: { page, limit } });
+  },
+
+  updateUserStatus: (id: string, status: string) => {
+    return axiosClient.put(`/auth/users/${id}`, { status });
+  },
+
   getProfile: () => {
     return axiosClient.get('/auth/profile');
   },

@@ -15,15 +15,19 @@ const ProductListPage: React.FC = () => {
 
   // State trung tâm cho tất cả bộ lọc
   const [filters, setFilters] = useState<Filters>({
-    category: "ev", // Mặc định là xe điện
+    category: "xe-dien", // Mặc định là xe điện
   });
 
   useEffect(() => {
     const fetchAllProducts = async () => {
       setIsLoading(true);
-      const response = await listingsApi.getAll(); // Lấy TẤT CẢ sản phẩm một lần
-      if (response.data.success) {
-        setAllProducts(response.data.data);
+      try {
+        const response = await listingApi.getListings();
+        if (response.data.data) {
+          setAllProducts(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
       }
       setIsLoading(false);
     };
@@ -35,7 +39,7 @@ const ProductListPage: React.FC = () => {
     return allProducts.filter((product) => {
       // 1. Lọc theo Danh mục
       const categoryMatch =
-        filters.category === "ev"
+        filters.category === "xe-dien"
           ? !!product.ev_details
           : !!product.battery_details;
       if (!categoryMatch) return false;
@@ -49,14 +53,13 @@ const ProductListPage: React.FC = () => {
       }
 
       // 3. Lọc theo Hãng
-      if (filters.brand && product.brand_id !== filters.brand) {
-        // Lưu ý: Cần mock brand_id cho sản phẩm để hoạt động
+      if (filters.brand && typeof product.brand_id === 'object' && (product.brand_id as Brand)._id !== filters.brand) {
         return false;
       }
 
       // 4. Lọc theo Năm sản xuất (chỉ cho xe điện)
       if (
-        filters.category === "ev" &&
+        filters.category === "xe-dien" &&
         filters.year_of_manufacture &&
         product.ev_details?.year_of_manufacture !== filters.year_of_manufacture
       ) {

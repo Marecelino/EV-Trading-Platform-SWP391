@@ -1,6 +1,6 @@
 // src/pages/AdminUserManagementPage/AdminUserManagementPage.tsx
 import React, { useEffect, useState, useCallback } from "react";
-import adminApi from "../../api/adminApi";
+import authApi from "../../api/authApi";
 import type { User } from "../../types";
 import "./AdminUserManagementPage.scss";
 import Pagination from "../../components/common/Pagination/Pagination";
@@ -16,7 +16,7 @@ const AdminUserManagementPage: React.FC = () => {
 
   const fetchUsers = useCallback((page: number) => {
     setIsLoading(true);
-    adminApi
+    authApi
       .getUsers(page, ITEMS_PER_PAGE)
       .then((response) => {
         if (response.data.success) {
@@ -48,7 +48,7 @@ const AdminUserManagementPage: React.FC = () => {
     const newStatus: "active" | "suspended" =
       currentStatus === "active" ? "suspended" : "active";
 
-    adminApi.updateUserStatus(userId, newStatus).then((response) => {
+    authApi.updateUserStatus(userId, newStatus).then((response) => {
       if (response.data.success) {
         setUsers((currentUsers) =>
           currentUsers.map((user) =>

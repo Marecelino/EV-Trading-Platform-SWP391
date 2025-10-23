@@ -1,17 +1,17 @@
-// src/pages/ProductDetailPage/ProductDetailPage.tsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import listingApi from "../../api/listingApi";
-import type { Product, User } from "../../types";
-import ImageGallery from "../../components/modules/ImageGallery/ImageGallery";
-import SpecificationTable from "../../components/modules/SpecificationTable/SpecificationTable";
-//import Button from '../../components/common/Button/Button';
-import SellerInfoCard from "../../components/modules/SellerInfoCard/SellerInfoCard";
-import KeySpecsBar from "../../components/modules/KeySpecsBar/KeySpecsBar";
-import "./ProductDetailPage.scss";
 import priceSuggestionApi from "../../api/priceSuggestionApi";
 import favoriteApi from "../../api/favoriteApi";
 import type { Product, User, PriceSuggestion as PriceSuggestionType } from "../../types";
+import ImageGallery from "../../components/modules/ImageGallery/ImageGallery";
+import SpecificationTable from "../../components/modules/SpecificationTable/SpecificationTable";
+import Button from '../../components/common/Button/Button';
+import SellerInfoCard from "../../components/modules/SellerInfoCard/SellerInfoCard";
+import KeySpecsBar from "../../components/modules/KeySpecsBar/KeySpecsBar";
+import PriceSuggestion from "../../components/modules/PriceSuggestion/PriceSuggestion";
+import { useAuth } from "../../contexts/AuthContext";
+import "./ProductDetailPage.scss";
 
 type PriceSuggestionSummary = {
   title: string;
@@ -25,30 +25,33 @@ type PriceSuggestionSummary = {
 };
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [priceSuggestion, setPriceSuggestion] =
-    useState<PriceSuggestionSummary | null>(null);
+  const [priceSuggestion, setPriceSuggestion] = useState<PriceSuggestionType | null>(null);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   useEffect(() => {
     if (id) {
-      const fetchProductAndSuggestion = async () => {
+      const fetchProductData = async () => {
         setIsLoading(true);
         try {
-          const productRes = await listingsApi.getById(id);
-          if (productRes.data.success) {
-            const fetchedProduct = productRes.data.data;
+          const productRes = await listingApi.getListingById(id);
+          if (productRes.data) {
+            const fetchedProduct = productRes.data;
             setProduct(fetchedProduct);
 
-            // Gọi API gợi ý giá ngay sau khi có thông tin sản phẩm
-            const suggestionRes = await aiApi.getPriceSuggestion(
-              fetchedProduct
-            );
-            setPriceSuggestion(
-              (suggestionRes.data.uiSummary as
-                | PriceSuggestionSummary
-                | undefined) ?? null
-            );
+            const suggestionRes = await priceSuggestionApi.getLatestPriceSuggestionByListingId(id);
+            if (suggestionRes.data) {
+              setPriceSuggestion(suggestionRes.data);
+            }
+
+            if (user) {
+              const favoriteRes = await favoriteApi.checkFavorite(user._id, id);
+              if (favoriteRes.data) {
+                setIsFavorited(true);
+              }
+            }
           }
         } catch (error) {
           console.error("Lỗi khi tải dữ liệu:", error);
@@ -56,9 +59,9 @@ const ProductDetailPage: React.FC = () => {
           setIsLoading(false);
         }
       };
-      fetchProductAndSuggestion();
+      fetchProductData();
     }
-  }, [id]);
+  }, [id, user]);
 
   if (isLoading)
     return (

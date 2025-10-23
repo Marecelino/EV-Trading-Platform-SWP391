@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import HeroSection from "../components/modules/HeroSection/HeroSection";
 //import ProductCard from '../components/modules/ProductCard/ProductCard';
-import listingsApi from "../api/listingsApi";
+import listingApi from "../api/listingApi";
 import type { Product } from "../types/index";
 import FeaturedProducts from "../components/modules/FeaturedProducts/FeaturedProducts";
 const HomePage: React.FC = () => {
@@ -13,7 +13,7 @@ const HomePage: React.FC = () => {
     const fetchProducts = async () => {
       try {
         setIsLoading(true);
-        const response = await listingsApi.getAll();
+        const response = await listingApi.getListings();
         if (response.data.success) {
           setProducts(response.data.data);
         } else {

@@ -1,6 +1,6 @@
 // src/pages/AdminListingManagementPage/AdminListingManagementPage.tsx
 import React, { useEffect, useState } from 'react';
-import adminApi from '../../api/adminApi';
+import listingApi from '../../api/listingApi';
 import type { Product } from '../../types';
 import { Link } from 'react-router-dom';
 import './AdminListingManagementPage.scss';
@@ -17,7 +17,7 @@ const AdminListingManagementPage: React.FC = () => {
 
   const fetchListings = (status: ListingStatus, page: number) => {
     setIsLoading(true);
-    adminApi.getListings(status, page, ITEMS_PER_PAGE).then(response => {
+    listingApi.getListings(status, page, ITEMS_PER_PAGE).then(response => {
       if (response.data.success) {
         setListings(response.data.data);
         setPagination({
@@ -46,7 +46,7 @@ const AdminListingManagementPage: React.FC = () => {
       return;
     }
 
-    adminApi.updateListingStatus(id, newStatus).then(response => {
+    listingApi.updateListingStatus(id, newStatus).then(response => {
       if (response.data.success) {
         alert(`Đã ${actionText} tin đăng thành công!`);
         // Tải lại dữ liệu của trang hiện tại để cập nhật danh sách
@@ -59,7 +59,7 @@ const AdminListingManagementPage: React.FC = () => {
   
   // Tương tự, gọi lại fetchListings sau khi bật/tắt kiểm định
   const handleToggleVerification = (id: string, currentVerification: boolean) => {
-    adminApi.updateListingVerification(id, !currentVerification).then(response => {
+    listingApi.updateListingVerification(id, !currentVerification).then(response => {
        if (response.data.success) {
          // Tải lại dữ liệu để hiển thị trạng thái mới nhất
          fetchListings(activeTab, pagination.currentPage);

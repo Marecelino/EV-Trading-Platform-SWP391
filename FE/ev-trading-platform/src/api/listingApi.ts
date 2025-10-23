@@ -40,6 +40,10 @@ const listingApi = {
   
   getMyListings: () => {
     return axiosClient.get('/listings/my');
+  },
+
+  updateListingVerification: (id: string, is_verified: boolean) => {
+    return axiosClient.put(`/listings/${id}/verify`, { is_verified });
   }
 };
 

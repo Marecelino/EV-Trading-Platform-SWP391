@@ -39,8 +39,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     toggleFavorite(product._id);
   };
   if (variant === "detailed") {
-    const seller =
-      typeof product.seller_id === "object" ? product.seller_id : null;
+    const seller = typeof product.seller_id === 'object' ? product.seller_id as User : null;
 
     return (
       <div className="product-card--detailed">
