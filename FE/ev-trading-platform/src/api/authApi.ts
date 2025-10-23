@@ -1,31 +1,29 @@
-// src/api/authApi.ts
-import axiosClient from "./axiosClient";
+import axiosClient from './axiosClient';
+import { RegisterDto, LoginDto, UpdateUserDto, ChangePasswordDto, CompleteRegistrationDto } from '../types';
 
 const authApi = {
-  // POST /api/auth/login
-  login: (email: string, password: string) => {
-    return axiosClient.post("/auth/login", { email, password });
+  register: (data: RegisterDto) => {
+    return axiosClient.post('/auth/register', data);
   },
-  // register
-  register: (email: string, password: string) => {
-    return axiosClient.post("/auth/register", {
-      email,
-      password,
-    });
+
+  login: (data: LoginDto) => {
+    return axiosClient.post('/auth/login', data);
   },
-  completeRegistration: (
-    userId: string,
-    payload: {
-      fullName: string;
-      phone: string;
-      address: string;
-      dateOfBirth: string;
-    }
-  ) => {
-    return axiosClient.post("/auth/register/complete", {
-      userId,
-      ...payload,
-    });
+
+  getProfile: () => {
+    return axiosClient.get('/auth/profile');
+  },
+
+  updateProfile: (data: UpdateUserDto) => {
+    return axiosClient.put('/auth/profile', data);
+  },
+
+  changePassword: (data: ChangePasswordDto) => {
+    return axiosClient.patch('/auth/change-password', data);
+  },
+
+  completeRegistration: (data: CompleteRegistrationDto) => {
+    return axiosClient.post('/auth/register/complete', data);
   },
 };
 

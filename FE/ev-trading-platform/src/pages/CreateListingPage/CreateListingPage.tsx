@@ -6,7 +6,10 @@ import AuctionFormSection from "../../components/modules/forms/AuctionFormSectio
 import Button from "../../components/common/Button/Button";
 import ImageUploader from "../../components/common/ImageUploader/ImageUploader";
 import PaymentModal from "../../components/modals/PaymentModal/PaymentModal";
-import listingsApi from "../../api/listingsApi";
+import listingApi from "../../api/listingApi";
+import brandApi from "../../api/brandApi";
+import modelApi from "../../api/modelApi";
+import { Brand, Model, Category } from "../../types";
 import "./CreateListingPage.scss";
 
 type Category = "ev" | "battery";
@@ -206,7 +209,7 @@ const CreateListingPage: React.FC = () => {
             </div>
           </div>
         )}
-        {category === "battery" && (
+        {category?.slug === "pin-xe-dien" && (
           <div className="form-grid">
             <div className="form-group">
               <label>Dung lượng (Ah)</label>
@@ -222,6 +225,96 @@ const CreateListingPage: React.FC = () => {
               <input
                 name="battery_details.state_of_health"
                 type="number"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Điện áp (V)</label>
+              <input
+                name="battery_details.voltage"
+                type="number"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Loại hóa chất</label>
+              <input
+                name="battery_details.chemistry_type"
+                type="text"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Ngày sản xuất</label>
+              <input
+                name="battery_details.manufacturing_date"
+                type="date"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Bảo hành còn lại</label>
+              <input
+                name="battery_details.warranty_remaining"
+                type="text"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Các dòng xe tương thích</label>
+              <input
+                name="battery_details.compatible_models"
+                type="text"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Kích thước (dài)</label>
+              <input
+                name="battery_details.dimensions.length"
+                type="number"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Kích thước (rộng)</label>
+              <input
+                name="battery_details.dimensions.width"
+                type="number"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Kích thước (cao)</label>
+              <input
+                name="battery_details.dimensions.height"
+                type="number"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Cân nặng (kg)</label>
+              <input
+                name="battery_details.weight"
+                type="number"
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Chứng nhận</label>
+              <input
+                name="battery_details.certification"
+                type="text"
                 onChange={handleInputChange}
                 required
               />

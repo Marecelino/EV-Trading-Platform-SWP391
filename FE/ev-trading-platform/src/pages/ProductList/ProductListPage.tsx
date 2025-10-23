@@ -5,8 +5,8 @@ import SidebarFilter from "../../components/modules/SidebarFilter/SidebarFilter"
 import TopFilterBar, {
   type Filters,
 } from "../../components/modules/TopFilterBar/TopFilterBar";
-import listingsApi from "../../api/listingsApi";
-import type { Product } from "../../types";
+import listingApi from "../../api/listingApi";
+import type { Product, Brand } from "../../types";
 import "./ProductListPage.scss";
 
 const ProductListPage: React.FC = () => {

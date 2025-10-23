@@ -1,13 +1,10 @@
 // src/pages/RegisterPage/RegisterPage.tsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
-import type {
-  RegistrationProfilePayload,
-  RegistrationTicket,
-} from "../../contexts/AuthContext";
 import Button from "../../components/common/Button/Button";
 import "./RegisterPage.scss";
+import authApi from "../../api/authApi";
+import { CompleteRegistrationDto, RegisterDto } from "../../types";
 
 type RegisterStage = "credentials" | "profile";
 
@@ -17,7 +14,7 @@ const initialCredentials = {
   confirmPassword: "",
 };
 
-const initialProfile: RegistrationProfilePayload = {
+const initialProfile: Omit<CompleteRegistrationDto, 'userId'> = {
   fullName: "",
   phone: "",
   address: "",
@@ -26,13 +23,12 @@ const initialProfile: RegistrationProfilePayload = {
 
 const RegisterPage: React.FC = () => {
   const [credentials, setCredentials] = useState(initialCredentials);
-  const [profileData, setProfileData] =
-    useState<RegistrationProfilePayload>(initialProfile);
+  const [profileData, setProfileData] = useState(initialProfile);
   const [error, setError] = useState<string | null>(null);
-  const [ticket, setTicket] = useState<RegistrationTicket | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [stage, setStage] = useState<RegisterStage>("credentials");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { register, completeRegistration, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleCredentialChange = (
@@ -65,29 +61,39 @@ const RegisterPage: React.FC = () => {
     }
 
     setError(null);
+    setIsLoading(true);
     try {
-      const response = await register(credentials.email, credentials.password);
-      setTicket(response);
+      const registerData: RegisterDto = { email: credentials.email, password: credentials.password };
+      const response = await authApi.register(registerData);
+      // Assuming the response contains the user ID
+      const newUserId = response.data.data.user._id;
+      setUserId(newUserId);
       setStage("profile");
     } catch (err: any) {
-      setError(err.message ?? "Đăng ký thất bại. Vui lòng thử lại.");
+      setError(err.response?.data?.message ?? "Đăng ký thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleProfileSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!ticket) {
+    if (!userId) {
       setError("Phiên đăng ký không hợp lệ. Vui lòng thử lại.");
       setStage("credentials");
       return;
     }
 
     setError(null);
+    setIsLoading(true);
     try {
-      await completeRegistration(ticket.userId, profileData);
-      navigate("/");
+      const completeRegistrationData: CompleteRegistrationDto = { userId, ...profileData };
+      await authApi.completeRegistration(completeRegistrationData);
+      navigate("/login"); // Redirect to login after successful registration
     } catch (err: any) {
-      setError(err.message ?? "Không thể hoàn tất đăng ký. Vui lòng thử lại.");
+      setError(err.response?.data?.message ?? "Không thể hoàn tất đăng ký. Vui lòng thử lại.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -146,7 +152,7 @@ const RegisterPage: React.FC = () => {
           <h2>Hoàn tất thông tin cá nhân</h2>
           <p>
             Chúng tôi cần thêm một vài thông tin để tạo tài khoản cho địa chỉ
-            <strong> {ticket?.email}</strong>.
+            <strong> {credentials.email}</strong>.
           </p>
           <form onSubmit={handleProfileSubmit}>
             <div className="form-group">
@@ -200,7 +206,7 @@ const RegisterPage: React.FC = () => {
                 setStage("credentials");
                 setError(null);
                 setProfileData(initialProfile);
-                setTicket(null);
+                setUserId(null);
               }}
               disabled={isLoading}
             >

@@ -1,6 +1,6 @@
 // src/pages/MyListingsPage/MyListingsPage.tsx
 import React, { useState, useEffect, useCallback } from "react";
-import listingsApi from "../../api/listingsApi";
+import listingApi from "../../api/listingApi";
 import type { Product } from "../../types";
 import "./MyListingsPage.scss";
 import MyListingItem from "../../components/modules/MyListingItem/MyListingItem";

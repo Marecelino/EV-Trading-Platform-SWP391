@@ -1,7 +1,7 @@
 // src/pages/ProductDetailPage/ProductDetailPage.tsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import listingsApi from "../../api/listingsApi";
+import listingApi from "../../api/listingApi";
 import type { Product, User } from "../../types";
 import ImageGallery from "../../components/modules/ImageGallery/ImageGallery";
 import SpecificationTable from "../../components/modules/SpecificationTable/SpecificationTable";
@@ -9,8 +9,9 @@ import SpecificationTable from "../../components/modules/SpecificationTable/Spec
 import SellerInfoCard from "../../components/modules/SellerInfoCard/SellerInfoCard";
 import KeySpecsBar from "../../components/modules/KeySpecsBar/KeySpecsBar";
 import "./ProductDetailPage.scss";
-import aiApi from "../../api/aiApi";
-import PriceSuggestion from "../../components/modules/PriceSuggestion/PriceSuggestion";
+import priceSuggestionApi from "../../api/priceSuggestionApi";
+import favoriteApi from "../../api/favoriteApi";
+import type { Product, User, PriceSuggestion as PriceSuggestionType } from "../../types";
 
 type PriceSuggestionSummary = {
   title: string;

@@ -5,20 +5,12 @@ import App from './App.tsx';
 import './styles/main.scss';
 import 'swiper/css';
 import 'swiper/css/navigation';
-import { startWorker } from './mocks/browser.ts';
+import { AuthProvider } from './contexts/AuthContext.tsx';
 
-async function enableMocking() {
-  if (process.env.NODE_ENV !== 'development') {
-    return;
-  }
- 
-  await startWorker();
-}
- 
-enableMocking().then(() => {
-    ReactDOM.createRoot(document.getElementById('root')!).render(
-        <React.StrictMode>
-            <App />
-        </React.StrictMode>,
-    )
-});
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  </React.StrictMode>
+);

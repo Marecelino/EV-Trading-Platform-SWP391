@@ -1,56 +1,64 @@
 // src/contexts/FavoritesContext.tsx
-import { createContext, useState, useContext, useEffect } from "react";
-import type { ReactNode } from "react";
-import favoritesApi from "../api/favoritesApi";
-import { useAuth } from "./AuthContext";
-import type { FavoriteEntry } from "../types";
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import favoriteApi from '../api/favoriteApi';
+import { useAuth } from './AuthContext';
+import { Favorite } from '../types';
 
 interface FavoritesContextType {
   favoriteIds: Set<string>;
-  toggleFavorite: (productId: string) => void;
-  isFavorite: (productId: string) => boolean;
+  isFavorite: (listingId: string) => boolean;
+  toggleFavorite: (listingId: string) => void;
+  isLoading: boolean;
 }
 
-const FavoritesContext = createContext<FavoritesContextType | undefined>(
-  undefined
-);
+const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
 
-export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
+export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
-  const { user } = useAuth(); // Lấy thông tin người dùng
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Tải danh sách yêu thích khi người dùng đăng nhập
-  useEffect(() => {
+  const fetchFavorites = useCallback(async () => {
     if (user) {
-      favoritesApi.getFavorites().then((res) => {
-        if (res.data.success) {
-          const ids = res.data.data.map((fav: FavoriteEntry) => fav.listing_id);
-          setFavoriteIds(new Set(ids));
+      setIsLoading(true);
+      try {
+        const response = await favoriteApi.getFavorites(user._id, 1, 1000); // Fetch up to 1000 favorites
+        if (response.data.data) {
+          const ids = new Set(response.data.data.map((fav: Favorite) => fav.listing_id as string));
+          setFavoriteIds(ids);
         }
-      });
-    } else {
-      setFavoriteIds(new Set()); // Xóa danh sách yêu thích khi logout
+      } catch (error) {
+        console.error("Failed to fetch favorites", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   }, [user]);
 
-  const toggleFavorite = async (productId: string) => {
+  useEffect(() => {
+    fetchFavorites();
+  }, [fetchFavorites]);
+
+  const isFavorite = (listingId: string) => {
+    return favoriteIds.has(listingId);
+  };
+
+  const toggleFavorite = async (listingId: string) => {
+    if (!user) return;
+
     const newFavoriteIds = new Set(favoriteIds);
-    if (newFavoriteIds.has(productId)) {
-      await favoritesApi.removeFavorite(productId);
-      newFavoriteIds.delete(productId);
+    if (isFavorite(listingId)) {
+      await favoriteApi.deleteFavorite(listingId);
+      newFavoriteIds.delete(listingId);
     } else {
-      await favoritesApi.addFavorite(productId);
-      newFavoriteIds.add(productId);
+      await favoriteApi.createFavorite({ user_id: user._id, listing_id: listingId });
+      newFavoriteIds.add(listingId);
     }
     setFavoriteIds(newFavoriteIds);
   };
 
-  const isFavorite = (productId: string) => favoriteIds.has(productId);
-
   return (
-    <FavoritesContext.Provider
-      value={{ favoriteIds, toggleFavorite, isFavorite }}
-    >
+    <FavoritesContext.Provider value={{ favoriteIds, isFavorite, toggleFavorite, isLoading }}>
       {children}
     </FavoritesContext.Provider>
   );
@@ -58,8 +66,8 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 
 export const useFavorites = () => {
   const context = useContext(FavoritesContext);
-  if (!context) {
-    throw new Error("useFavorites must be used within a FavoritesProvider");
+  if (context === undefined) {
+    throw new Error('useFavorites must be used within a FavoritesProvider');
   }
   return context;
 };

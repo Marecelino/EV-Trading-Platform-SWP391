@@ -1,6 +1,6 @@
 // src/components/modules/SpecificationTable/SpecificationTable.tsx
 import React from 'react';
-import type { IEVDetails, IBatteryDetails } from '../../../types';
+import type { EVDetail, BatteryDetail } from '../../../types';
 import './SpecificationTable.scss';
 interface SpecTableProps {
   details: IEVDetails | IBatteryDetails;

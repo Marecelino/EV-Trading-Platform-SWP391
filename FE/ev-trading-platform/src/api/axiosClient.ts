@@ -1,23 +1,24 @@
-// src/api/axiosClient.ts
-import axios from "axios";
-
-const baseURL = (
-  import.meta.env.VITE_API_URL ?? "http://localhost:3000/api"
-).replace(/\/$/, "");
+import axios from 'axios';
 
 const axiosClient = axios.create({
-  baseURL,
+  baseURL: 'http://localhost:3000/api',
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 
-axiosClient.interceptors.request.use(async (config) => {
-  const token = localStorage.getItem("token"); // Lấy token đã lưu khi đăng nhập
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Add a request interceptor to include the token in headers
+axiosClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
 export default axiosClient;

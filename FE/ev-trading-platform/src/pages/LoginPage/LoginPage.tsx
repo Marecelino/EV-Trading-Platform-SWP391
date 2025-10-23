@@ -7,38 +7,42 @@ import { useAuth } from "../../contexts/AuthContext";
 import SocialButton from "../../components/common/SocialButton/SocialButton";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
-import axiosClient from "../../api/axiosClient";
+import authApi from "../../api/authApi";
 
-const API_BASE_URL = (
-  axiosClient.defaults.baseURL ?? "http://localhost:5000/api"
-).replace(/\/$/, "");
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  //const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
+    setIsLoading(true);
 
     try {
-      const loggedInUser = await login(email, password);
+      const response = await authApi.login({ email, password });
+      const { user, token } = response.data.data;
+      login(token, user);
 
-      if (loggedInUser.role === "admin") {
+      if (user.role === "admin") {
         navigate("/admin/dashboard");
       } else {
         navigate("/dashboard/profile");
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.response?.data?.message || "Đăng nhập thất bại");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSocialLogin = (provider: "google" | "facebook") => {
-    window.location.href = `${API_BASE_URL}/auth/${provider}`;
+    window.location.href = `http://localhost:3000/api/auth/${provider}`;
   };
+
   return (
     <div className="login-page">
       <div className="login-form-container">

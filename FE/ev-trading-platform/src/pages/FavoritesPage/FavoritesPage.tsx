@@ -1,9 +1,9 @@
 // src/pages/FavoritesPage/FavoritesPage.tsx
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom"; // Import the Link component
-import { useFavorites } from "../../contexts/FavoritesContext";
-import listingsApi from "../../api/listingsApi";
-import type { Product } from "../../types";
+import favoriteApi from "../../api/favoriteApi";
+import type { Favorite, Product } from "../../types";
+import { useAuth } from "../../contexts/AuthContext";
 import ProductCard from "../../components/modules/ProductCard/ProductCard";
 import "./FavoritesPage.scss";
 

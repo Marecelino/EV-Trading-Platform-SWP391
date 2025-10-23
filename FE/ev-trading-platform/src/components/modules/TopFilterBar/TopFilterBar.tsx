@@ -1,10 +1,13 @@
 // src/components/modules/TopFilterBar/TopFilterBar.tsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import './TopFilterBar.scss';
+import brandApi from '../../../api/brandApi';
+import categoryApi from '../../../api/categoryApi';
+import { Brand, Category } from '../../../types';
 
 export interface Filters {
-  category: 'ev' | 'battery';
+  category: string;
   searchTerm?: string;
   brand?: string;
   year_of_manufacture?: number;
@@ -17,23 +20,43 @@ interface TopFilterBarProps {
 }
 
 const TopFilterBar: React.FC<TopFilterBarProps> = ({ filters, onFilterChange }) => {
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [brandsResponse, categoriesResponse] = await Promise.all([
+          brandApi.getActiveBrands(),
+          categoryApi.getActiveCategories(),
+        ]);
+        if (brandsResponse.data) {
+          setBrands(brandsResponse.data);
+        }
+        if (categoriesResponse.data) {
+          setCategories(categoriesResponse.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch initial data", error);
+      }
+    };
+    fetchInitialData();
+  }, []);
+
   return (
     <div className="top-filter-bar content-card">
       
       <div className="filter-row">
         <div className="category-selector">
-          <button
-            className={filters.category === 'ev' ? 'active' : ''}
-            onClick={() => onFilterChange({ category: 'ev' })}
-          >
-            Xe điện
-          </button>
-          <button
-            className={filters.category === 'battery' ? 'active' : ''}
-            onClick={() => onFilterChange({ category: 'battery' })}
-          >
-            Pin
-          </button>
+          {categories.map(cat => (
+            <button
+              key={cat._id}
+              className={filters.category === cat.slug ? 'active' : ''}
+              onClick={() => onFilterChange({ category: cat.slug })}
+            >
+              {cat.name}
+            </button>
+          ))}
         </div>
         <div className="search-input">
           <Search size={20} />
@@ -50,14 +73,13 @@ const TopFilterBar: React.FC<TopFilterBarProps> = ({ filters, onFilterChange }) 
         
         <select onChange={(e) => onFilterChange({ brand: e.target.value })}>
           <option value="">Tất cả các hãng</option>
-          <option value="vinfast">VinFast</option>
-          <option value="tesla">Tesla</option>
-          <option value="kia">Kia</option>
-          <option value="lg">LG</option>
+          {brands.map(brand => (
+            <option key={brand._id} value={brand._id}>{brand.name}</option>
+          ))}
         </select>
 
         
-        {filters.category === 'ev' && (
+        {filters.category === 'xe-dien' && (
           <>
             <select onChange={(e) => onFilterChange({ year_of_manufacture: parseInt(e.target.value) || undefined })}>
               <option value="">Năm sản xuất</option>
@@ -70,7 +92,7 @@ const TopFilterBar: React.FC<TopFilterBarProps> = ({ filters, onFilterChange }) 
         )}
 
         
-        {filters.category === 'battery' && (
+        {filters.category === 'pin-xe-dien' && (
            <>
              <select>
               <option value="">Tình trạng pin</option>

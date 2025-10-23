@@ -1,7 +1,7 @@
 // src/pages/AdminTransactionManagementPage/AdminTransactionManagementPage.tsx
 import React, { useEffect, useState, useCallback } from 'react';
-import adminApi from '../../api/adminApi';
-import type { ITransaction } from '../../types';
+import transactionApi from '../../api/transactionApi';
+import type { Commission, ITransaction } from '../../types';
 import Pagination from '../../components/common/Pagination/Pagination';
 import './AdminTransactionManagementPage.scss';
 
