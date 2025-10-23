@@ -5,7 +5,7 @@ const favoriteApi = {
     return axiosClient.post('/favorites', data);
   },
 
-  getFavorites: (userId: string, page: number, limit: number) => {
+  getFavorites: (userId: string, page: number = 1, limit: number = 10) => {
     return axiosClient.get(`/favorites?user_id=${userId}&page=${page}&limit=${limit}`);
   },
 
@@ -13,8 +13,8 @@ const favoriteApi = {
     return axiosClient.get(`/favorites/check?user_id=${userId}&listing_id=${listingId}`);
   },
 
-  deleteFavorite: (listingId: string) => {
-    return axiosClient.delete(`/favorites/${listingId}`);
+  deleteFavorite: (listingId: string, userId: string) => {
+    return axiosClient.delete(`/favorites/${listingId}?user_id=${userId}`);
   },
 };
 

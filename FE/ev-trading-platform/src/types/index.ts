@@ -66,6 +66,13 @@ export interface BatteryDetail {
 export interface Brand {
   _id: string;
   name: string;
+  description?: string;
+  logo_url?: string;
+  country?: string;
+  is_active: boolean;
+  listing_count: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Model {
@@ -78,6 +85,16 @@ export interface Model {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // Additional fields for EV models
+  year_start?: number;
+  year_end?: number;
+  body_type?: string;
+  drivetrain?: string;
+  battery_capacity?: number;
+  range?: number;
+  charging_time?: number;
+  motor_power?: number;
+  top_speed?: number;
 }
 
 export interface Product {

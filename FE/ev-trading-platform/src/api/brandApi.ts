@@ -29,6 +29,18 @@ const brandApi = {
   deleteBrand: (id: string) => {
     return axiosClient.delete(`/brands/${id}`);
   },
+
+  toggleActive: (id: string) => {
+    return axiosClient.patch(`/brands/${id}/toggle-active`);
+  },
+
+  incrementListing: (id: string) => {
+    return axiosClient.patch(`/brands/${id}/increment-listing`);
+  },
+
+  decrementListing: (id: string) => {
+    return axiosClient.patch(`/brands/${id}/decrement-listing`);
+  },
 };
 
 export default brandApi;

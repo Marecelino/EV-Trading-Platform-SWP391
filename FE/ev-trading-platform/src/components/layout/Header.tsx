@@ -1,7 +1,7 @@
 // src/components/layout/Header.tsx
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, User, FolderKanban, LogOut } from "lucide-react";
+import { Menu, X, User, FolderKanban, LogOut, Heart } from "lucide-react";
 import Button from "../common/Button/Button";
 import "./Header.scss";
 import { useAuth } from "../../contexts/AuthContext";
@@ -95,6 +95,9 @@ const Header: React.FC = () => {
                   </Link>
                   <Link to="/dashboard/my-listings" className="dropdown-item" role="menuitem">
                     <FolderKanban size={16} /> Quản lý tin đăng
+                  </Link>
+                  <Link to="/favorites" className="dropdown-item" role="menuitem">
+                    <Heart size={16} /> Tin đăng đã lưu
                   </Link>
                   <button
                     onClick={() => { setIsUserMenuOpen(false); logout(); }}

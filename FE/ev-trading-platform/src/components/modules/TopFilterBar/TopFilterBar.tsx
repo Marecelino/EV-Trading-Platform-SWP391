@@ -4,14 +4,15 @@ import { Search } from 'lucide-react';
 import './TopFilterBar.scss';
 import brandApi from '../../../api/brandApi';
 import categoryApi from '../../../api/categoryApi';
-import { Brand, Category } from '../../../types';
+import modelApi from '../../../api/modelApi';
+import { Brand, Category, Model } from '../../../types';
 
 export interface Filters {
   category: string;
   searchTerm?: string;
   brand?: string;
+  model?: string;
   year_of_manufacture?: number;
- 
 }
 
 interface TopFilterBarProps {

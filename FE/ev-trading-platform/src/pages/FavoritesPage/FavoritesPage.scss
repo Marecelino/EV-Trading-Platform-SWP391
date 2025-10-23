@@ -1,9 +1,32 @@
 // src/pages/FavoritesPage/FavoritesPage.scss
 .favorites-page {
   padding: 40px 15px;
+  
   .product-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 30px;
+    
+    // Ensure Link wrapper doesn't interfere with ProductCard styling
+    a {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      
+      &:hover {
+        text-decoration: none;
+        color: inherit;
+      }
+      
+      // Ensure ProductCard maintains its styling when wrapped in Link
+      .product-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+      }
+    }
   }
 }

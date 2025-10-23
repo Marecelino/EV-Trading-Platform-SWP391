@@ -12,6 +12,8 @@ import AdminDashboardPage from "./pages/AdminDashboardPage/AdminDashboardPage";
 import AdminUserManagementPage from "./pages/AdminUserManagementPage/AdminUserManagementPage";
 import AdminListingManagementPage from "./pages/AdminListingManagementPage/AdminListingManagementPage";
 import AdminTransactionManagementPage from "./pages/AdminTransactionManagementPage/AdminTransactionManagementPage";
+import AdminBrandManagementPage from "./pages/AdminBrandManagementPage/AdminBrandManagementPage";
+import AdminModelManagementPage from "./pages/AdminModelManagementPage/AdminModelManagementPage";
 import MyListingsPage from "./pages/MyListingsPage/MyListingsPage";
 import CreateListingPage from "./pages/CreateListingPage/CreateListingPage";
 import RegisterPage from "./pages/RegisterPage/RegisterPage";
@@ -59,6 +61,7 @@ function App() {
                   element={<CreateListingPage />}
                 />
                 <Route path="/compare" element={<ComparePage />} />
+                <Route path="/favorites" element={<FavoritesPage />} />
                 {/*<Route path="/auctions/:id" element={<AuctionDetailPage />} />
                 <Route path="/auctions" element={<AuctionListPage />} /> */}
               </Route>
@@ -70,9 +73,8 @@ function App() {
                   path="transactions"
                   element={<div>Trang Lịch sử Giao dịch chi tiết</div>}
                 />
-                <Route path="favorites" element={<FavoritesPage />} />
               </Route>
-
+              
               {/* === ADMIN ROUTES === */}
               <Route element={<AdminRoute />}>
                 <Route path="/admin" element={<AdminLayout />}>
@@ -85,6 +87,14 @@ function App() {
                   <Route
                     path="transactions"
                     element={<AdminTransactionManagementPage />}
+                  />
+                  <Route
+                    path="brands"
+                    element={<AdminBrandManagementPage />}
+                  />
+                  <Route
+                    path="models"
+                    element={<AdminModelManagementPage />}
                   />
                   <Route
                     //path="auctions"
