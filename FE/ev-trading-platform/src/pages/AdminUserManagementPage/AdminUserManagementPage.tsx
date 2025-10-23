@@ -5,6 +5,39 @@ import type { User } from "../../types";
 import "./AdminUserManagementPage.scss";
 import Pagination from "../../components/common/Pagination/Pagination";
 
+// Interface cho API response
+interface UsersApiResponse {
+  data: User[] | {
+    success: boolean;
+    data: User[];
+    pagination?: {
+      page: number;
+      pages: number;
+      total: number;
+    };
+    meta?: {
+      page: number;
+      pages: number;
+      total: number;
+    };
+  };
+}
+
+interface ApiError {
+  message: string;
+  response?: {
+    data?: unknown;
+    status?: number;
+  };
+}
+
+interface ApiResponse {
+  data?: {
+    success?: boolean;
+  };
+  status?: number;
+}
+
 const AdminUserManagementPage: React.FC = () => {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,15 +66,15 @@ const AdminUserManagementPage: React.FC = () => {
     
     // Chỉ fetch tất cả users một lần
     authApi.getUsers()
-      .then((response: any) => {
+      .then((response: UsersApiResponse) => {
         console.log("=== USERS API RESPONSE ===");
         console.log("Full response:", response);
         console.log("Response data:", response.data);
         console.log("Response data structure:", {
-          success: response.data?.success,
-          data: response.data?.data,
-          pagination: response.data?.pagination,
-          meta: response.data?.meta
+          success: typeof response.data === 'object' && !Array.isArray(response.data) ? response.data.success : undefined,
+          data: typeof response.data === 'object' && !Array.isArray(response.data) ? response.data.data : undefined,
+          pagination: typeof response.data === 'object' && !Array.isArray(response.data) ? response.data.pagination : undefined,
+          meta: typeof response.data === 'object' && !Array.isArray(response.data) ? response.data.meta : undefined
         });
 
         // Theo Swagger, /auth/users trả về array trực tiếp
@@ -54,7 +87,7 @@ const AdminUserManagementPage: React.FC = () => {
           // Không có pagination từ API này, tự tính toán
           const totalPages = Math.ceil(response.data.length / ITEMS_PER_PAGE);
           paginationData = {
-            page: page,
+            page: 1,
             pages: totalPages,
             total: response.data.length
           };
@@ -81,7 +114,7 @@ const AdminUserManagementPage: React.FC = () => {
           setAllUsers([]);
         }
       })
-      .catch((error: any) => {
+      .catch((error: ApiError) => {
         console.error("Error fetching users:", error);
         console.error("Error details:", {
           message: error.message,
@@ -125,45 +158,45 @@ const AdminUserManagementPage: React.FC = () => {
     const newStatus: "active" | "suspended" =
       currentStatus === "active" ? "suspended" : "active";
 
-    authApi.updateUserStatus(userId, newStatus).then((response: any) => {
+    authApi.updateUser(userId, { status: newStatus } as Record<string, unknown>).then((response: ApiResponse) => {
       console.log("Status update response:", response);
       if (response.data?.success || response.status === 200) {
-        setAllUsers((currentUsers) =>
-          currentUsers.map((user) =>
+        setAllUsers((currentUsers: User[]) =>
+          currentUsers.map((user: User) =>
             user._id === userId ? { ...user, status: newStatus } : user
           )
         );
       }
-    }).catch((error: any) => {
+    }).catch((error: ApiError) => {
       console.error("Error updating user status:", error);
     });
   };
 
   const handleRoleChange = (userId: string, newRole: string) => {
-    authApi.updateUserRole(userId, newRole).then((response) => {
+    authApi.updateUser(userId, { role: newRole as 'user' | 'admin' | 'seller' }).then((response: ApiResponse) => {
       console.log("Role update response:", response);
       if (response.data?.success || response.status === 200) {
-        setUsers((currentUsers) =>
-          currentUsers.map((user) =>
+        setAllUsers((currentUsers: User[]) =>
+          currentUsers.map((user: User) =>
             user._id === userId ? { ...user, role: newRole as User["role"] } : user
           )
         );
       }
-    }).catch((error) => {
+    }).catch((error: ApiError) => {
       console.error("Error updating user role:", error);
     });
   };
 
   const handleDeleteUser = (userId: string) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
-      authApi.deleteUser(userId).then((response) => {
+      authApi.deleteUser(userId).then((response: ApiResponse) => {
         console.log("Delete user response:", response);
         if (response.data?.success || response.status === 200) {
-          setUsers((currentUsers) =>
-            currentUsers.filter((user) => user._id !== userId)
+          setAllUsers((currentUsers: User[]) =>
+            currentUsers.filter((user: User) => user._id !== userId)
           );
         }
-      }).catch((error) => {
+      }).catch((error: ApiError) => {
         console.error("Error deleting user:", error);
       });
     }
@@ -195,7 +228,7 @@ const AdminUserManagementPage: React.FC = () => {
       {/* Debug Info */}
       <div className="debug-info" style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '5px' }}>
         <h4>Debug Info:</h4>
-        <p>Đang hiển thị {users.length} người dùng</p>
+        <p>Đang hiển thị {displayedUsers.length} người dùng (tổng {allUsers.length})</p>
         <p>Trang hiện tại: {pagination.currentPage} / {pagination.totalPages}</p>
         <p>Query tìm kiếm: "{searchQuery}"</p>
         <p><strong>Lưu ý:</strong> Kiểm tra Console để xem chi tiết API responses.</p>
@@ -213,7 +246,7 @@ const AdminUserManagementPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {displayedUsers.map((user: User) => (
               <tr key={user._id}>
                 <td>
                   <div className="user-cell">
