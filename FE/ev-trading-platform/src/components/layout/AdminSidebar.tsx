@@ -6,8 +6,7 @@ import {
   LayoutDashboard, 
   Users, 
   FileText, 
-  ArrowLeftRight, 
-  Settings, 
+  ArrowLeftRight,  
   LogOut, 
   Hammer,
   MessageSquare,
@@ -66,7 +65,7 @@ const AdminSidebar: React.FC = () => {
         
         <NavLink to="/admin/contacts" className="nav-link">
           <MessageSquare size={20} />
-          <span>Quản lý liên hệ</span>
+          <span>Quản lý hợp đồng </span>
         </NavLink>
         
         <NavLink to="/admin/reviews" className="nav-link">
@@ -77,11 +76,6 @@ const AdminSidebar: React.FC = () => {
         <NavLink to="/admin/commissions" className="nav-link">
           <DollarSign size={20} />
           <span>Quản lý hoa hồng</span>
-        </NavLink>
-        
-        <NavLink to="/admin/settings" className="nav-link">
-          <Settings size={20} />
-          <span>Cấu hình hệ thống</span>
         </NavLink>
       </nav>
 
