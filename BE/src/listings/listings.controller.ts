@@ -8,7 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { ListingsService } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
@@ -54,6 +54,87 @@ export class ListingsController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.listingsService.remove(id);
+  }
+
+  @Get('seller/:sellerId')
+  @ApiOperation({
+    summary: 'Get listings by seller (user)',
+    description: 'Retrieve all listings created by a specific user (seller) with pagination and optional status filter'
+  })
+  @ApiParam({
+    name: 'sellerId',
+    description: 'User ID of the seller',
+    example: '671234567890abcdef123456'
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number (starts from 1)',
+    example: 1
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items per page',
+    example: 10
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter by listing status',
+    enum: ListingStatus
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Listings retrieved successfully',
+    schema: {
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              _id: { type: 'string' },
+              title: { type: 'string' },
+              description: { type: 'string' },
+              price: { type: 'number' },
+              status: { type: 'string' },
+              seller_id: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  email: { type: 'string' },
+                  phone: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        meta: {
+          type: 'object',
+          properties: {
+            page: { type: 'number' },
+            limit: { type: 'number' },
+            total: { type: 'number' },
+            totalPages: { type: 'number' }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Invalid seller ID'
+  })
+  findBySeller(
+    @Param('sellerId') sellerId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: ListingStatus
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.listingsService.findBySeller(sellerId, pageNum, limitNum, status);
   }
 
   @Post('price-suggestion')

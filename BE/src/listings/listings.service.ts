@@ -355,4 +355,105 @@ export class ListingsService {
       Listing & { _id: Types.ObjectId; createdAt?: Date }
     >;
   }
+
+  /**
+   * FIND BY SELLER - Get listings by seller (user) with pagination and filters
+   * @param sellerId - ID of the seller (user)
+   * @param page - Page number (starts from 1)
+   * @param limit - Number of items per page
+   * @param status - Optional filter by listing status
+   * @returns Paginated listings with seller info
+   */
+  async findBySeller(
+    sellerId: string,
+    page: number = 1,
+    limit: number = 10,
+    status?: ListingStatus
+  ) {
+    // Validate seller ID
+    if (!Types.ObjectId.isValid(sellerId)) {
+      throw new NotFoundException('Invalid seller ID format');
+    }
+
+    // Validate pagination params
+    if (page < 1) page = 1;
+    if (limit < 1) limit = 10;
+    if (limit > 50) limit = 50; // Maximum limit
+    
+    const skip = (page - 1) * limit;
+    
+    try {
+      // Build base query - try both string and ObjectId formats
+      const query: FilterQuery<ListingDocument> = {
+        $or: [
+          { seller_id: sellerId }, // Try matching the string directly
+          { seller_id: new Types.ObjectId(sellerId) } // Try matching as ObjectId
+        ]
+      };
+
+      // console.log('Query:', JSON.stringify(query));
+
+      // // Add status filter if provided
+      // if (status) {
+      //   // Convert status to lowercase to match DB format
+      //   query.status = status.toLowerCase();
+      // }
+
+      // console.log('Final query with status:', JSON.stringify(query));
+
+      // Execute query with pagination
+      const [data, total] = await Promise.all([
+        this.listingModel
+          .find(query)
+          .select([
+            'title',
+            'description',
+            'price',
+            'status',
+            'condition',
+            'location',
+            'images',
+            'view_count',
+            'favorite_count',
+            'createdAt',
+            'updatedAt',
+            'expiry_date',
+            'is_featured'
+          ])
+          .populate('seller_id', 'name email phone')
+          .populate('brand_id', 'name')
+          .populate('model_id', 'name')
+          .populate('category_id', 'name')
+          .sort({ is_featured: -1, createdAt: -1 }) // Featured items first, then newest
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        this.listingModel.countDocuments(query)
+      ]);
+
+      // Return formatted response
+      return {
+        data,
+        meta: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasPreviousPage: page > 1,
+          hasNextPage: page < Math.ceil(total / limit),
+          // Additional meta info
+          itemsInPage: data.length,
+          startIndex: skip + 1,
+          endIndex: skip + data.length,
+          status: status || 'all'
+        }
+      };
+
+    } catch (error) {
+      console.error('Find listings by seller error:', error);
+      throw new Error(
+        `Failed to fetch listings: ${error.message}`
+      );
+    }
+  }
 }
