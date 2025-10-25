@@ -18,13 +18,12 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { EvdetailsModule } from './evdetails/evdetails.module';
-import { ModelsModule } from './models/models.module';
 import { PriceSuggestionsModule } from './pricesuggestions/pricesuggestions.module';
 import { BatteryDetailsModule } from './battery-details/battery-details.module';
 import { BrandsModule } from './brands/brands.module';
-import { CategoriesModule } from './categories/categories.module';
 import { CommissionConfigsModule } from './commission-configs/commission-configs.module';
 import { CommissionsModule } from './commissions/commissions.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -80,13 +79,12 @@ import { CommissionsModule } from './commissions/commissions.module';
     NotificationsModule,
     BatteryDetailsModule,
     BrandsModule,
-    CategoriesModule,
     CommissionConfigsModule,
     CommissionsModule,
     ContactsModule,
     EvdetailsModule,
-    ModelsModule,
     PriceSuggestionsModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [

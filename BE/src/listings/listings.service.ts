@@ -1,18 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, Types } from 'mongoose';
-import { Listing, ListingDocument, ListingStatus } from '../model/listings';
+import { CategoryEnum, Listing, ListingDocument, ListingStatus } from '../model/listings';
 import {
   PriceSuggestion,
   PriceSuggestionDocument,
 } from '../model/pricesuggestions';
-import { CreateListingDto } from './dto/create-listing.dto';
-import { UpdateListingDto } from './dto/update-listing.dto';
+
 import { FilterListingsDto } from './dto/filter-listings.dto';
 import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { Brand, BrandDocument } from 'src/model/brands';
-import { ModelDocument, Models } from 'src/model/models';
 import { Category, CategoryDocument } from 'src/model/categories';
+import { EVDetail } from 'src/model/evdetails';
+import { BatteryDetail } from 'src/model/batterydetails';
 
 type NumberCondition = {
   $gte?: number;
@@ -43,84 +43,28 @@ export class ListingsService {
     // injected brand/model/category models
     @InjectModel(Brand.name)
     private readonly brandModel: Model<BrandDocument>,
-    @InjectModel(Models.name)
-    private readonly vehicleModel: Model<ModelDocument>,
+
     @InjectModel(Category.name)
     private readonly categoryModel: Model<CategoryDocument>,
-  ) {}
- private escapeRegex(input: string) {
+    @InjectModel(EVDetail.name)
+    private readonly evDetailModel: Model<any>,
+    @InjectModel(BatteryDetail.name)
+    private readonly batteryDetailModel: Model<any>,
+  ) { }
+  private escapeRegex(input: string) {
     return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
-   async create(createListingDto: CreateListingDto) {
-    const {
-      brand_name,
-      model_name,
-      category_name,
-      expiry_date,
-      status,
-      ...rest
-    } = createListingDto as any;
 
-    const payload: Record<string, unknown> = { ...rest };
-
-    // resolve brand_name -> brand_id
-    if (brand_name) {
-      const brand = await this.brandModel.findOne({
-        name: new RegExp(`^${this.escapeRegex(brand_name)}$`, 'i'),
-      });
-      if (!brand) {
-        throw new NotFoundException(`Brand "${brand_name}" not found`);
-      }
-      payload['brand_id'] = brand._id;
-    }
-
-    // resolve model_name -> model_id
-    if (model_name) {
-      const vehicleModel = await this.vehicleModel.findOne({
-        name: new RegExp(`^${this.escapeRegex(model_name)}$`, 'i'),
-      });
-      if (!vehicleModel) {
-        throw new NotFoundException(`Model "${model_name}" not found`);
-      }
-      payload['model_id'] = vehicleModel._id;
-    }
-
-    // resolve category_name -> category_id
-    if (category_name) {
-      const category = await this.categoryModel.findOne({
-        name: new RegExp(`^${this.escapeRegex(category_name)}$`, 'i'),
-      });
-      if (!category) {
-        throw new NotFoundException(`Category "${category_name}" not found`);
-      }
-      payload['category_id'] = category._id;
-    }
-
-    // expiry_date and status handling
-    if (expiry_date) {
-      payload['expiry_date'] = expiry_date ? new Date(expiry_date) : undefined;
-    }
-    payload['status'] = status ?? ListingStatus.DRAFT;
-
-    const listing = new this.listingModel(payload);
-    return listing.save();
-  }
 
   async findAll(filters: FilterListingsDto) {
     const {
       brand_id,
-      model_id,
-      category_id,
-      status = ListingStatus.ACTIVE,
+      status ,
       condition,
       search,
       minPrice,
       maxPrice,
       location,
-      minRange,
-      maxRange,
-      minCapacity,
-      maxCapacity,
       limit = 12,
       page = 1,
     } = filters;
@@ -128,8 +72,6 @@ export class ListingsService {
     const query: FilterQuery<ListingDocument> = {};
 
     if (brand_id) query.brand_id = brand_id;
-    if (model_id) query.model_id = model_id;
-    if (category_id) query.category_id = category_id;
     if (status) query.status = status;
     if (condition) query.condition = condition;
     if (location) query.location = { $regex: new RegExp(location, 'i') };
@@ -138,18 +80,6 @@ export class ListingsService {
     if (priceCondition) {
       query.price = priceCondition as unknown as ListingDocument['price'];
     }
-
-    const rangeCondition = buildNumberCondition(minRange, maxRange);
-    if (rangeCondition) {
-      query.range = rangeCondition as unknown as ListingDocument['range'];
-    }
-
-    const capacityCondition = buildNumberCondition(minCapacity, maxCapacity);
-    if (capacityCondition) {
-      query.battery_capacity =
-        capacityCondition as unknown as ListingDocument['battery_capacity'];
-    }
-
     if (search) {
       query.$text = { $search: search };
     }
@@ -160,8 +90,6 @@ export class ListingsService {
       this.listingModel
         .find(query).populate({ path: 'seller_id', select: 'name email phone' })
         .populate({ path: 'brand_id', select: 'name' })
-        .populate({ path: 'model_id', select: 'name' })
-        .populate({ path: 'category_id', select: 'name' })
         .sort({ is_featured: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -169,8 +97,22 @@ export class ListingsService {
       this.listingModel.countDocuments(query),
     ]);
 
+    const dataWithDetail = await Promise.all(
+      (Array.isArray(data) ? data : []).map(async (item) => {
+        if (item.category === 'ev' || item.category === CategoryEnum.EV) {
+          const evDetail = await this.evDetailModel.findOne({ listing_id: item._id }).lean();
+          return { ...item, evDetail };
+        }
+        if (item.category === 'battery' || item.category === CategoryEnum.BATTERY) {
+          const batteryDetail = await this.batteryDetailModel.findOne({ listing_id: item._id }).lean();
+          return { ...item, batteryDetail };
+        }
+        return item;
+      })
+    );
+
     return {
-      data,
+      data: dataWithDetail,
       meta: {
         page,
         limit,
@@ -193,49 +135,60 @@ export class ListingsService {
     return listing;
   }
 
-  async update(id: string, updateListingDto: UpdateListingDto) {
-    const updatePayload: Record<string, unknown> = {
-      ...updateListingDto,
-    };
+  // async updateStatus(id: string, status: ListingStatus) {
+  //   const listing = await this.listingModel
+  //     .findByIdAndUpdate(id, { status }, { new: true })
+  //     .lean<Listing & { _id: string }>();
 
-    if (updateListingDto.expiry_date) {
-      updatePayload.expiry_date = new Date(updateListingDto.expiry_date);
-    }
+  //   if (!listing) {
+  //     throw new NotFoundException('Listing not found');
+  //   }
 
-    const listing = await this.listingModel
-      .findByIdAndUpdate(id, updatePayload, { new: true, runValidators: true })
-      .lean<Listing & { _id: string }>();
+  //   return listing;
+  // }
 
-    if (!listing) {
-      throw new NotFoundException('Listing not found');
-    }
 
-    return listing;
-  }
 
-  async updateStatus(id: string, status: ListingStatus) {
-    const listing = await this.listingModel
-      .findByIdAndUpdate(id, { status }, { new: true })
-      .lean<Listing & { _id: string }>();
+  // async update(id: string, updateListingDto: UpdateListingDto) {
+  //   const updatePayload: Record<string, unknown> = {
+  //     ...updateListingDto,
+  //   };
 
-    if (!listing) {
-      throw new NotFoundException('Listing not found');
-    }
 
-    return listing;
-  }
+  //   const listing = await this.listingModel
+  //     .findByIdAndUpdate(id, updatePayload, { new: true, runValidators: true })
+  //     .lean<Listing & { _id: string }>();
 
-  async incrementViewCount(id: string) {
-    const listing = await this.listingModel
-      .findByIdAndUpdate(id, { $inc: { view_count: 1 } }, { new: true })
-      .lean<Listing & { _id: string }>();
+  //   if (!listing) {
+  //     throw new NotFoundException('Listing not found');
+  //   }
 
-    if (!listing) {
-      throw new NotFoundException('Listing not found');
-    }
+  //   return listing;
+  // }
 
-    return { view_count: listing.view_count };
-  }
+  // async updateStatus(id: string, status: ListingStatus) {
+  //   const listing = await this.listingModel
+  //     .findByIdAndUpdate(id, { status }, { new: true })
+  //     .lean<Listing & { _id: string }>();
+
+  //   if (!listing) {
+  //     throw new NotFoundException('Listing not found');
+  //   }
+
+  //   return listing;
+  // }
+
+  // async incrementViewCount(id: string) {
+  //   const listing = await this.listingModel
+  //     .findByIdAndUpdate(id, { $inc: { view_count: 1 } }, { new: true })
+  //     .lean<Listing & { _id: string }>();
+
+  //   if (!listing) {
+  //     throw new NotFoundException('Listing not found');
+  //   }
+
+  //   return { view_count: listing.view_count };
+  // }
 
   async remove(id: string) {
     const listing = await this.listingModel
@@ -247,6 +200,7 @@ export class ListingsService {
     return listing;
   }
 
+  // async adjustFavoriteCount(id: string, delta: number) {
   async adjustFavoriteCount(id: string, delta: number) {
     await this.listingModel
       .findByIdAndUpdate(id, { $inc: { favorite_count: delta } })
@@ -254,36 +208,27 @@ export class ListingsService {
   }
 
   async suggestPrice(dto: PriceSuggestionDto) {
-    const { model_id, mileage, condition, battery_capacity } = dto;
+    const { mileage, condition, battery_capacity } = dto;
 
     const query: FilterQuery<ListingDocument> = {
-      model_id,
       status: ListingStatus.SOLD,
     };
 
-    if (mileage !== undefined) {
-      query.mileage = {
-        $lte: mileage * 1.2,
-      } as unknown as ListingDocument['mileage'];
-    }
+   
 
     if (condition) {
       query.condition = condition;
     }
 
-    if (battery_capacity !== undefined) {
-      query.battery_capacity = {
-        $gte: battery_capacity * 0.8,
-      } as unknown as ListingDocument['battery_capacity'];
-    }
+    
 
     const comparableListings = (await this.listingModel
       .find(query)
       .sort({ createdAt: -1 })
       .limit(20)
       .lean()) as unknown as Array<
-      Listing & { _id: Types.ObjectId; createdAt?: Date }
-    >;
+        Listing & { _id: Types.ObjectId; createdAt?: Date }
+      >;
 
     if (comparableListings.length === 0) {
       return {
@@ -306,9 +251,9 @@ export class ListingsService {
       comparables: comparableListings.map((item) => ({
         id: item._id,
         price: item.price,
-        mileage: item.mileage,
+       
         condition: item.condition,
-        battery_capacity: item.battery_capacity,
+        
         createdAt: item.createdAt,
       })),
     };
@@ -340,7 +285,6 @@ export class ListingsService {
     const recommendationQuery: FilterQuery<ListingDocument> = {
       _id: { $ne: listingId },
       status: ListingStatus.ACTIVE,
-      category_id: baseListing.category_id,
     };
 
     if (baseListing.brand_id) {
@@ -352,8 +296,8 @@ export class ListingsService {
       .sort({ is_featured: -1, createdAt: -1 })
       .limit(limit)
       .lean()) as unknown as Array<
-      Listing & { _id: Types.ObjectId; createdAt?: Date }
-    >;
+        Listing & { _id: Types.ObjectId; createdAt?: Date }
+      >;
   }
 
   /**
@@ -379,9 +323,9 @@ export class ListingsService {
     if (page < 1) page = 1;
     if (limit < 1) limit = 10;
     if (limit > 50) limit = 50; // Maximum limit
-    
+
     const skip = (page - 1) * limit;
-    
+
     try {
       // Build base query - try both string and ObjectId formats
       const query: FilterQuery<ListingDocument> = {
@@ -422,7 +366,6 @@ export class ListingsService {
           ])
           .populate('seller_id', 'name email phone')
           .populate('brand_id', 'name')
-          .populate('model_id', 'name')
           .populate('category_id', 'name')
           .sort({ is_featured: -1, createdAt: -1 }) // Featured items first, then newest
           .skip(skip)

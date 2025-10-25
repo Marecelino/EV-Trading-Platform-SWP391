@@ -1,0 +1,55 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
+
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
+
+export enum PaymentMethod {
+  VNPAY = 'VNPAY',
+}
+
+@Schema({ timestamps: true })
+export class Payment {
+  @Prop({ type: Types.ObjectId, required: true })
+  buyer_id: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, required: true })
+  seller_id: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, required: true })
+  listing_id: Types.ObjectId;
+
+  @Prop({ required: true })
+  amount: number;
+
+  @Prop({ required: true, enum: PaymentMethod })
+  payment_method: PaymentMethod;
+
+  @Prop({ required: true, enum: PaymentStatus, default: PaymentStatus.PENDING })
+  status: PaymentStatus;
+
+  // VNPay specific fields
+  @Prop()
+  vnp_TransactionNo?: string;
+
+  @Prop()
+  vnp_PayDate?: string;
+
+  @Prop()
+  vnp_OrderInfo?: string;
+
+  @Prop()
+  vnp_ResponseCode?: string;
+
+  @Prop({ type: Object })
+  payment_response?: any;
+
+  @Prop({ type: Types.ObjectId })
+  transaction_id?: Types.ObjectId;
+}
+
+export type PaymentDocument = Payment & Document;
+export const PaymentSchema = SchemaFactory.createForClass(Payment);

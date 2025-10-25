@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsString, IsOptional, IsDateString, Min, Max } from 'class-validator';
-import { BatteryChemistry } from '../../model/batterydetails';
 
 export class CreateBatteryDetailDto {
   @ApiProperty({
@@ -10,13 +9,6 @@ export class CreateBatteryDetailDto {
   @IsString()
   listing_id: string;
 
-  @ApiProperty({
-    description: 'Loại hóa học pin',
-    enum: BatteryChemistry,
-    example: BatteryChemistry.LITHIUM_ION
-  })
-  @IsEnum(BatteryChemistry)
-  chemistry: BatteryChemistry;
 
   @ApiProperty({
     description: 'Dung lượng pin (kWh)',

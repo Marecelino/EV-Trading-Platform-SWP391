@@ -1,8 +1,6 @@
-import { PartialType } from "@nestjs/mapped-types";
 import { IsOptional, IsString, IsDateString, IsNumber, Min } from "class-validator";
 import { Type } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
-import { CreateAuctionDto } from "./create-auction.dto";
 
 export class UpdateAuctionDto {
   @ApiProperty({

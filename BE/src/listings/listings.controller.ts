@@ -10,20 +10,37 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { ListingsService } from './listings.service';
-import { CreateListingDto } from './dto/create-listing.dto';
-import { UpdateListingDto } from './dto/update-listing.dto';
+import { EVListingsService } from './ev-listings.service';
+import { BatteryListingsService } from './battery-listings.service';
+import { CreateEVListingDto } from './dto/create-ev-listing.dto';
+import { CreateBatteryListingDto } from './dto/create-battery-listing.dto';
 import { FilterListingsDto } from './dto/filter-listings.dto';
 import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { ListingStatus } from '../model/listings';
 
+
 @ApiTags('listings')
 @Controller('listings')
 export class ListingsController {
-  constructor(private readonly listingsService: ListingsService) {}
+  constructor(
+    private readonly listingsService: ListingsService,
+    private readonly evListingsService: EVListingsService,
+    private readonly batteryListingsService: BatteryListingsService,
+  ) { }
 
-  @Post()
-  create(@Body() createListingDto: CreateListingDto) {
-    return this.listingsService.create(createListingDto);
+  // @Post()
+  // create(@Body() createListingDto: CreateListingDto) {
+  //   return this.listingsService.create(createListingDto);
+  // }
+
+  @Post('ev')
+  createEV(@Body() dto: CreateEVListingDto) {
+    return this.evListingsService.create(dto);
+  }
+
+  @Post('battery')
+  createBattery(@Body() dto: CreateBatteryListingDto) {
+    return this.batteryListingsService.create(dto);
   }
 
   @Get()
@@ -35,21 +52,28 @@ export class ListingsController {
   findOne(@Param('id') id: string) {
     return this.listingsService.findOne(id);
   }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateListingDto: UpdateListingDto) {
-    return this.listingsService.update(id, updateListingDto);
+  @Patch('ev/:id')
+  updateEV(@Param('id') id: string, @Body() dto: CreateEVListingDto) {
+    return this.evListingsService.update(id, dto);
   }
-
-  @Patch(':id/status')
-  updateStatus(@Param('id') id: string, @Body('status') status: ListingStatus) {
-    return this.listingsService.updateStatus(id, status);
+  @Patch('battery/:id')
+  updateBattery(@Param('id') id: string, @Body() dto: CreateBatteryListingDto) {
+    return this.batteryListingsService.update(id, dto);
   }
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateListingDto: UpdateListingDto) {
+  //   return this.listingsService.update(id, updateListingDto);
+  // }
 
-  @Post(':id/views')
-  incrementView(@Param('id') id: string) {
-    return this.listingsService.incrementViewCount(id);
-  }
+  // @Patch(':id/status')
+  // updateStatus(@Param('id') id: string, @Body('status') status: ListingStatus) {
+  //   return this.listingsService.updateStatus(id, status);
+  // }
+
+  // @Post(':id/views')
+  // incrementView(@Param('id') id: string) {
+  //   return this.listingsService.incrementViewCount(id);
+  // }
 
   @Delete(':id')
   remove(@Param('id') id: string) {

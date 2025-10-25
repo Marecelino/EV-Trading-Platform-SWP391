@@ -22,34 +22,21 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { AuctionsService } from './auctions.service';
-import { CreateAuctionDto } from './dto/create-auction.dto';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { CreateBidDto } from './dto/create-bid.dto';
-import { AuctionResponseDto } from './dto/auction-response.dto';
+import { EVAuctionService } from './ev-auction.service';
+import { BatteryAuctionService } from './battery-auction.service';
+import { CreateBatteryAuctionDto } from './dto/create-battery-auction';
+import { CreateEVAuctionDto } from './dto/create-ev-auction';
 
 @ApiTags('Auctions')
 @Controller('auctions')
 export class AuctionsController {
-  constructor(private readonly auctionsService: AuctionsService) {}
-
-  @Post()
-  @ApiOperation({ 
-    summary: 'Create new auction',
-    description: 'Creates a new auction for a listing. The auction can be scheduled for future or start immediately based on start_time.'
-  })
-  @ApiBody({
-    type: CreateAuctionDto,
-    description: 'Auction creation data',
-  })
-
-  @ApiBearerAuth()
-  async create(@Body() createAuctionDto: CreateAuctionDto) {
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Auction created successfully',
-      data: await this.auctionsService.create(createAuctionDto),
-    };
-  }
+  constructor(
+    private readonly auctionsService: AuctionsService,
+    private readonly evAuctionService: EVAuctionService,
+    private readonly batteryAuctionService: BatteryAuctionService,
+  ) { }
 
   @Get()
   @ApiOperation({ 
@@ -100,6 +87,30 @@ export class AuctionsController {
         hasNextPage: result.hasNextPage,
         hasPrevPage: result.hasPrevPage,
       },
+    };
+  }
+
+  @Post('ev')
+  @ApiOperation({ summary: 'Create EV auction' })
+  @ApiBody({ type: CreateEVAuctionDto })
+  async createEvAuction(@Body() dto: CreateEVAuctionDto) {
+    const result = await this.evAuctionService.create(dto);
+    return {
+      statusCode: HttpStatus.CREATED,
+      message: 'EV auction created successfully',
+      data: result,
+    };
+  }
+
+  @Post('battery')
+  @ApiOperation({ summary: 'Create Battery auction' })
+  @ApiBody({ type: CreateBatteryAuctionDto })
+  async createBatteryAuction(@Body() dto: CreateBatteryAuctionDto) {
+    const result = await this.batteryAuctionService.create(dto);
+    return {
+      statusCode: HttpStatus.CREATED,
+      message: 'Battery auction created successfully',
+      data: result,
     };
   }
 

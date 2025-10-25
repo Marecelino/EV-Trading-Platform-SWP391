@@ -3,7 +3,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as mongoose from 'mongoose';
 import { Auction, AuctionStatus } from '../model/auctions';
-import { CreateAuctionDto } from './dto/create-auction.dto';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { CreateBidDto } from './dto/create-bid.dto';
 
@@ -11,72 +10,13 @@ import { CreateBidDto } from './dto/create-bid.dto';
 export class AuctionsService {
   constructor(
     @InjectModel(Auction.name) private auctionModel: Model<Auction>,
+    @InjectModel('EVDetail') private evDetailModel: Model<any>,
+    @InjectModel('BatteryDetail') private batteryDetailModel: Model<any>,
   ) {}
 
   /**
    * CREATE - Create new auction
    */
-  async create(dto: CreateAuctionDto) {
-    // Validate dates
-    const now = new Date();
-    const start = new Date(dto.start_time);
-    const end = new Date(dto.end_time);
-
-    if (end <= start) {
-      throw new BadRequestException('End time must be after start time');
-    }
-    if (end <= now) {
-      throw new BadRequestException('End time must be in the future');
-    }
-
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(dto.listing_id)) {
-      throw new BadRequestException('Invalid listing ID format');
-    }
-    if (!mongoose.Types.ObjectId.isValid(dto.seller_id)) {
-      throw new BadRequestException('Invalid user ID format (seller must be a user)');
-    }
-
-    try {
-      // Create auction data (seller_id references User model)
-      const auctionData = {
-        listing_id: new mongoose.Types.ObjectId(dto.listing_id),
-        seller_id: new mongoose.Types.ObjectId(dto.seller_id), // This is a user ID (role: user)
-        start_time: start,
-        end_time: end,
-        starting_price: dto.starting_price,
-        current_price: dto.starting_price,
-        min_increment: dto.min_increment,
-        buy_now_price: dto.buy_now_price,
-        status: start <= now ? AuctionStatus.LIVE : AuctionStatus.SCHEDULED,
-        bids: [],
-      };
-
-      // Create auction
-      const auction = await this.auctionModel.create(auctionData);
-      
-      // Return populated auction
-      return await this.auctionModel
-        .findById(auction._id)
-        .populate('listing_id')
-        .populate('seller_id', 'name email phone')
-        .exec();
-
-    } catch (error) {
-      console.error('Auction creation error:', error);
-      
-      if (error.name === 'ValidationError') {
-        const messages = Object.values(error.errors).map((err: any) => err.message);
-        throw new BadRequestException(`Validation failed: ${messages.join(', ')}`);
-      }
-      
-      if (error.code === 11000) {
-        throw new BadRequestException('Duplicate auction - may already exist');
-      }
-
-      throw new BadRequestException(`Failed to create auction: ${error.message || 'Unknown error'}`);
-    }
-  }
 
   /**
    * READ - Get all auctions with pagination
@@ -84,22 +24,41 @@ export class AuctionsService {
   async findAll(page = 1, limit = 10, filter = {}) {
     try {
       const skip = (page - 1) * limit;
-      
+
       const [auctions, total] = await Promise.all([
         this.auctionModel
           .find(filter)
-          .populate('listing_id')
-          .populate('seller_id', 'name email phone')
-          .populate('bids.user_id', 'name email phone')
-          .sort({ created_at: -1 })
+          .populate([
+            { path: 'seller_id', select: 'name email phone' },
+            { path: 'bids.user_id', select: 'name email phone' },
+          ])
+          .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
-          .exec(),
-        this.auctionModel.countDocuments(filter)
+          .lean(),
+        this.auctionModel.countDocuments(filter),
       ]);
 
+      const dataWithDetail = await Promise.all(
+        auctions.map(async (auction) => {
+          const category = String((auction as any).category || '').toLowerCase();
+          const auctionId = (auction as any)._id;
+
+          if (category === 'ev') {
+            const evDetail = await this.evDetailModel.findOne({ auction_id: auctionId }).lean();
+            return { ...auction, auction_id: auctionId, evDetail };
+          }
+          if (category === 'battery') {
+            const batteryDetail = await this.batteryDetailModel.findOne({ auction_id: auctionId }).lean();
+            return { ...auction, auction_id: auctionId, batteryDetail };
+          }
+
+          return { ...auction, auction_id: auctionId };
+        })
+      );
+
       return {
-        data: auctions,
+        data: dataWithDetail,
         total,
         page,
         totalPages: Math.ceil(total / limit),
@@ -110,7 +69,6 @@ export class AuctionsService {
       throw new BadRequestException('Failed to fetch auctions: ' + error.message);
     }
   }
-
   /**
    * READ - Get auction by ID
    */
