@@ -6,7 +6,9 @@ import { PaymentService } from './payment.service';
 import { Payment, PaymentSchema } from './schemas/payment.schema';
 import { ListingsModule } from '../listings/listings.module';
 import { TransactionsModule } from '../transactions/transactions.module';
-import { ContactsModule } from '../contacts/contacts.module';
+import { ContractsModule } from '../contracts/contracts.module';
+import { CommissionsModule } from '../commissions/commissions.module';
+import { SignnowModule } from '../signnow/signnow.module';
 
 @Module({
   imports: [
@@ -14,10 +16,12 @@ import { ContactsModule } from '../contacts/contacts.module';
     ConfigModule,
     ListingsModule,
     TransactionsModule,
-    ContactsModule,
+    ContractsModule,
+    CommissionsModule,
+    SignnowModule,
   ],
   controllers: [PaymentController],
   providers: [PaymentService],
-  exports: [PaymentService]
+  exports: [PaymentService],
 })
 export class PaymentModule {}

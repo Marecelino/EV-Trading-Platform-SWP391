@@ -1,33 +1,50 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
-// qs not required anymore — canonical signing built manually
-import { Payment, PaymentDocument, PaymentStatus } from './schemas/payment.schema';
+import {
+  Payment,
+  PaymentDocument,
+  PaymentStatus,
+  PaymentMethod,
+} from './schemas/payment.schema';
 import { CreatePaymentDto, VNPayIPNDto } from './dto/payment.dto';
-import { dateFormat, ProductCode, VNPay, VnpLocale } from 'vnpay';
+import { VNPay } from 'vnpay/vnpay';
+import { ProductCode, VnpLocale } from 'vnpay/enums';
+import { dateFormat } from 'vnpay/utils';
 import { ListingsService } from '../listings/listings.service';
 import { TransactionsService } from '../transactions/transactions.service';
-import { ContactsService } from '../contacts/contacts.service';
+import { ContractsService } from '../contracts/contracts.service';
+import { CommissionsService } from '../commissions/commissions.service';
+import { SignnowService } from '../signnow/signnow.service';
 import { ListingStatus } from '../model/listings';
 
 @Injectable()
 export class PaymentService {
-  private readonly vnpUrl: string;
+  private readonly vnpPaymentEndpoint: string;
+  private readonly vnpHost: string;
   private readonly tmnCode: string;
   private readonly hashSecret: string;
   private readonly returnUrl: string;
+  private readonly vnpay: VNPay;
 
   constructor(
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     private readonly configService: ConfigService,
     private readonly listingsService: ListingsService,
     private readonly transactionsService: TransactionsService,
-    private readonly contactsService: ContactsService,
+    private readonly contractsService: ContractsService,
+    private readonly commissionsService: CommissionsService,
+    private readonly signnowService: SignnowService,
   ) {
     // Initialize VNPay config values
-    this.vnpUrl = this.configService.get<string>('VNPAY_URL') || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
+    const vnpUrlRaw =
+      this.configService.get<string>('VNPAY_URL') ||
+      'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
     this.tmnCode = this.configService.get<string>('VNPAY_TMN_CODE') || '';
     this.hashSecret = this.configService.get<string>('VNPAY_HASH_SECRET') || '';
     this.returnUrl = this.configService.get<string>('VNPAY_RETURN_URL') || '';
@@ -36,32 +53,44 @@ export class PaymentService {
     if (!this.tmnCode || !this.hashSecret || !this.returnUrl) {
       throw new Error('Missing required VNPAY configuration');
     }
+
+    try {
+      const parsed = new URL(vnpUrlRaw);
+      this.vnpHost = `${parsed.protocol}//${parsed.host}`;
+      this.vnpPaymentEndpoint =
+        parsed.pathname.replace(/^\//, '') || 'paymentv2/vpcpay.html';
+
+      this.vnpay = new VNPay({
+        tmnCode: this.tmnCode,
+        secureSecret: this.hashSecret,
+        vnpayHost: this.vnpHost,
+        testMode: parsed.hostname.includes('sandbox'),
+        endpoints: {
+          paymentEndpoint: this.vnpPaymentEndpoint,
+        },
+      });
+    } catch (error) {
+      throw new Error(`Invalid VNPAY_URL provided: ${error}`);
+    }
   }
 
   /**
    * Create payment URL for VNPay
    */
   async createVNPayUrl(
-    createPaymentDto: CreatePaymentDto, 
-    userId: string, 
-    ipAddress: string
+    createPaymentDto: CreatePaymentDto,
+    userId: string,
+    ipAddress: string,
   ) {
     // First create payment record
     const payment = await this.createPayment(createPaymentDto, userId);
-    
-    const vnpay = new VNPay({
-      tmnCode: this.tmnCode, // Use the value initialized in constructor
-      secureSecret: this.hashSecret, // Use the value initialized in constructor
-      vnpayHost: this.vnpUrl, // Use the value initialized in constructor
-      testMode: true,
-    });
 
-  const orderId = (payment._id as Types.ObjectId).toString();
-  // Use the server-authoritative payment amount (in case client omitted or sent different value)
-  const amount = payment.amount;
+    const orderId = (payment._id as Types.ObjectId).toString();
+    // Use the server-authoritative payment amount (in case client omitted or sent different value)
+    const amount = payment.amount;
 
-    const vnpayResponse = await vnpay.buildPaymentUrl({
-  vnp_Amount: Math.round(amount * 100), // Amount in smallest currency unit (integer)
+    const vnpayResponse = this.vnpay.buildPaymentUrl({
+      vnp_Amount: Math.round(amount * 100), // Amount in smallest currency unit (integer)
       vnp_IpAddr: ipAddress,
       vnp_OrderInfo: `Thanh toan cho đơn hàng #${createPaymentDto.listing_id}`,
       vnp_TxnRef: orderId, // Use payment._id as transaction reference
@@ -74,8 +103,9 @@ export class PaymentService {
 
     return {
       payment,
-      paymentUrl: vnpayResponse
-    }; }
+      paymentUrl: vnpayResponse,
+    };
+  }
 
   /**
    * Create new payment record
@@ -88,9 +118,11 @@ export class PaymentService {
     }
 
     // Prevent buyer being the seller
-    const listingSellerId = listing.seller_id instanceof Types.ObjectId
-      ? listing.seller_id.toString()
-      : (listing.seller_id as any)?._id?.toString() || String(listing.seller_id);
+    const listingSellerId =
+      listing.seller_id instanceof Types.ObjectId
+        ? listing.seller_id.toString()
+        : (listing.seller_id as any)?._id?.toString() ||
+          String(listing.seller_id);
 
     if (listingSellerId === buyerId) {
       throw new BadRequestException('Buyer cannot be the seller');
@@ -123,26 +155,9 @@ export class PaymentService {
    * Handle VNPay IPN (Instant Payment Notification)
    */
   async handleVNPayIPN(vnpayData: VNPayIPNDto) {
-    // Validate secure hash
-    const secureHash = vnpayData.vnp_SecureHash;
-    const dataWithoutHash = { ...vnpayData };
-    delete (dataWithoutHash as any).vnp_SecureHash;
-    delete (dataWithoutHash as any).vnp_SecureHashType;
-
-    const signData = this.sortObject(dataWithoutHash);
-    // Build signature string using encodeURIComponent for values (VNPay requires URL encoded values)
-  const signDataQueryString = this.buildVnPaySignString(signData);
-
-  // Debug: log incoming and computed signature (temporary for troubleshooting)
-  console.log('[VNPay IPN] sign string:', signDataQueryString);
-  console.log('[VNPay IPN] incoming secureHash:', secureHash);
-
-  const hmac = crypto.createHmac('sha512', this.hashSecret);
-  const signed = hmac.update(Buffer.from(signDataQueryString, 'utf-8')).digest('hex');
-  console.log('[VNPay IPN] computed secureHash:', signed);
-
-    if (secureHash !== signed) {
-      throw new BadRequestException('Invalid signature');
+    const verify = this.vnpay.verifyReturnUrl(vnpayData as any) as any;
+    if (!verify.isSuccess) {
+      throw new BadRequestException(verify.message || 'Invalid signature');
     }
 
     // Get payment by transaction reference
@@ -170,45 +185,10 @@ export class PaymentService {
     await payment.save();
 
     if (status === PaymentStatus.COMPLETED) {
-      // Trigger business logic for successful payment
       try {
-        // Avoid duplicate transaction/contract if already created
-        if (!(payment as any).transaction_id) {
-          // Create a transaction record
-          const createTransactionDto = {
-            listing_id: payment.listing_id.toString(),
-            buyer_id: payment.buyer_id.toString(),
-            seller_id: payment.seller_id.toString(),
-            price: payment.amount,
-            payment_method: undefined,
-            payment_reference: (payment._id as Types.ObjectId).toString(),
-            notes: 'Auto-created from VNPay IPN',
-          } as any;
-
-          const transaction = await this.transactionsService.create(createTransactionDto);
-
-          // Save transaction id to payment to mark it handled
-          (payment as any).transaction_id = transaction._id;
-          await payment.save();
-
-          // Create a simple contract record referencing this transaction
-          const contractNo = `CONTRACT-${new Date().toISOString().replace(/[:.]/g, '-')}-${transaction._id.toString().slice(-6)}`;
-          const documentUrl = `${this.returnUrl.replace(/\/api\/payment\/vnpay-return$/, '')}/contracts/${contractNo}.pdf`;
-
-          const createContractDto = {
-            transaction_id: transaction._id.toString(),
-            payment_id: (payment._id as Types.ObjectId).toString(),
-            contract_no: contractNo,
-            document_url: documentUrl,
-            terms_and_conditions: 'Standard sale contract',
-            notes: 'Auto-generated on successful payment',
-          } as any;
-
-          await this.contactsService.create(createContractDto);
-        }
+        await this.finalizeSuccessfulPayment(payment, 'IPN');
       } catch (err) {
-        // Log error but don't fail IPN processing
-        console.error('Error creating transaction/contract after payment:', err);
+        console.error('Error finalizing payment via IPN:', err);
       }
     }
 
@@ -219,28 +199,13 @@ export class PaymentService {
    * Verify VNPay Return
    */
   async verifyReturnUrl(vnpayData: Record<string, any>) {
-    const secureHash = vnpayData.vnp_SecureHash;
-    const dataWithoutHash = { ...vnpayData };
-    delete (dataWithoutHash as any).vnp_SecureHash;
-    delete (dataWithoutHash as any).vnp_SecureHashType;
-
-    const signData = this.sortObject(dataWithoutHash);
-  const signDataQueryString = this.buildVnPaySignString(signData);
-
-  // Debug: log incoming and computed signature (temporary for troubleshooting)
-  console.log('[VNPay Return] sign string:', signDataQueryString);
-  console.log('[VNPay Return] incoming secureHash:', secureHash);
-
-  const hmac = crypto.createHmac('sha512', this.hashSecret);
-  const signed = hmac.update(Buffer.from(signDataQueryString, 'utf-8')).digest('hex');
-  console.log('[VNPay Return] computed secureHash:', signed);
-
-    if (secureHash !== signed) {
-      throw new BadRequestException('Invalid signature');
+    const verify = this.vnpay.verifyReturnUrl(vnpayData as any) as any;
+    if (!verify.isSuccess) {
+      throw new BadRequestException(verify.message || 'Invalid signature');
     }
 
-    const orderId = vnpayData.vnp_TxnRef;
-    const rspCode = vnpayData.vnp_ResponseCode;
+    const orderId = verify.data?.vnp_TxnRef || vnpayData.vnp_TxnRef;
+    const rspCode = verify.data?.vnp_ResponseCode || vnpayData.vnp_ResponseCode;
     // If we can, update the payment record on return (idempotent). IPN is authoritative
     try {
       const payment = await this.paymentModel.findById(orderId);
@@ -262,37 +227,9 @@ export class PaymentService {
         // If completed and no transaction created yet, try to create one (idempotent)
         if (rspCode === '00') {
           try {
-            if (!(payment as any).transaction_id) {
-              const createTransactionDto = {
-                listing_id: payment.listing_id.toString(),
-                buyer_id: payment.buyer_id.toString(),
-                seller_id: payment.seller_id.toString(),
-                price: payment.amount,
-                payment_method: undefined,
-                payment_reference: (payment._id as Types.ObjectId).toString(),
-                notes: 'Auto-created from VNPay Return',
-              } as any;
-
-              const transaction = await this.transactionsService.create(createTransactionDto);
-              (payment as any).transaction_id = transaction._id;
-              await payment.save();
-
-              const contractNo = `CONTRACT-${new Date().toISOString().replace(/[:.]/g, '-')}-${transaction._id.toString().slice(-6)}`;
-              const documentUrl = `${this.returnUrl.replace(/\/api\/payment\/vnpay-return$/, '')}/contracts/${contractNo}.pdf`;
-
-              const createContractDto = {
-                transaction_id: transaction._id.toString(),
-                payment_id: (payment._id as Types.ObjectId).toString(),
-                contract_no: contractNo,
-                document_url: documentUrl,
-                terms_and_conditions: 'Standard sale contract',
-                notes: 'Auto-generated on successful payment (return)',
-              } as any;
-
-              await this.contactsService.create(createContractDto);
-            }
+            await this.finalizeSuccessfulPayment(payment, 'RETURN');
           } catch (err) {
-            console.error('Error creating transaction/contract on return:', err);
+            console.error('Error finalizing payment via return:', err);
           }
         }
       }
@@ -304,54 +241,118 @@ export class PaymentService {
     return {
       orderId,
       rspCode,
-      message: rspCode === '00' ? 'Success' : 'Failed'
+      message:
+        rspCode === '00'
+          ? verify.message || 'Success'
+          : verify.message || 'Failed',
     };
   }
 
-  /**
-   * Sort object by key
-   */
-  private sortObject(obj: Record<string, any>): Record<string, any> {
-    const sorted: Record<string, any> = {};
-    const keys = Object.keys(obj).sort();
-    
-    for (const key of keys) {
-      if (obj[key] !== null && obj[key] !== undefined) {
-        sorted[key] = obj[key];
+  private async finalizeSuccessfulPayment(
+    payment: PaymentDocument,
+    source: 'IPN' | 'RETURN',
+  ) {
+    if ((payment as any).transaction_id) {
+      return;
+    }
+
+    let listing: any = null;
+    try {
+      listing = await this.listingsService.findOne(
+        payment.listing_id.toString(),
+      );
+    } catch (err) {
+      // Listing might have been removed; continue with minimal data
+      console.warn('Listing not found during payment finalization', err);
+    }
+
+    const category = listing?.category ?? undefined;
+    const { rate, platformFee, sellerPayout } =
+      this.commissionsService.calculate({
+        amount: payment.amount,
+        category,
+      });
+
+    const createTransactionDto = {
+      listing_id: payment.listing_id.toString(),
+      buyer_id: payment.buyer_id.toString(),
+      seller_id: payment.seller_id.toString(),
+      price: payment.amount,
+      payment_method: PaymentMethod.VNPAY,
+      payment_reference: (payment._id as Types.ObjectId).toString(),
+      notes: `Auto-created from VNPay ${source}`,
+      commission_rate: rate,
+      platform_fee: platformFee,
+      seller_payout: sellerPayout,
+    } as any;
+
+    const transaction =
+      await this.transactionsService.create(createTransactionDto);
+
+    (payment as any).transaction_id = transaction._id;
+    payment.commission_rate = rate;
+    payment.platform_fee = platformFee;
+    payment.seller_payout = sellerPayout;
+    await payment.save();
+
+    const contract = await this.contractsService.createFromPayment({
+      transactionId: transaction._id.toString(),
+      paymentId: (payment._id as Types.ObjectId).toString(),
+      amount: payment.amount,
+      listingTitle: listing?.title,
+      sellerName: listing?.seller_id?.name,
+    });
+
+    if (contract) {
+      const contractId = (
+        (contract as any)?._id as Types.ObjectId | undefined
+      )?.toString();
+      const contractNo = (contract as any)?.contract_no as string | undefined;
+
+      if (contractId) {
+        transaction.contract_id = new Types.ObjectId(contractId);
+        payment.contract_id = new Types.ObjectId(contractId);
+      }
+      await transaction.save();
+      await payment.save();
+
+      try {
+        const populatedTransaction = await this.transactionsService.findOne(
+          transaction._id.toString(),
+        );
+        const buyer = (populatedTransaction as any)?.buyer_id;
+        const seller = (populatedTransaction as any)?.seller_id;
+
+        if (buyer?.email && seller?.email) {
+          if (!contractId) {
+            throw new Error('Missing contract identifier for SignNow');
+          }
+          await this.signnowService.createContractAndInvite({
+            contract_id: contractId,
+            buyer_name: buyer?.name || 'Buyer',
+            buyer_email: buyer.email,
+            seller_name: seller?.name || 'Seller',
+            seller_email: seller.email,
+            amount: payment.amount,
+            subject: contractNo
+              ? `Ký hợp đồng ${contractNo}`
+              : 'Ký hợp đồng giao dịch',
+          });
+        } else {
+          console.warn('Missing buyer/seller email for SignNow invitation', {
+            buyer,
+            seller,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to trigger SignNow contract invite', error);
       }
     }
-    
-    return sorted;
-  }
 
-  /**
-   * Build VNPay signature string: key1=value1&key2=value2... with values encoded
-   * VNPay expects URL encoded values (encodeURIComponent) when computing HMAC
-   */
-  private buildVnPaySignString(obj: Record<string, any>): string {
-    const keys = Object.keys(obj).sort();
-    const parts: string[] = [];
-    for (const key of keys) {
-      const value = obj[key];
-      // VNPay expects values to be URL encoded
-      // VNPay historically uses + for spaces in their canonical string. Encode then replace %20 with +
-      const encoded = encodeURIComponent(value ?? '').replace(/%20/g, '+');
-      parts.push(`${key}=${encoded}`);
-    }
-    return parts.join('&');
-  }
-
-  /**
-   * Format date for VNPay
-   */
-  private formatDate(date: Date): string {
-    const yyyy = date.getFullYear();
-    const MM = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    const HH = String(date.getHours()).padStart(2, '0');
-    const mm = String(date.getMinutes()).padStart(2, '0');
-    const ss = String(date.getSeconds()).padStart(2, '0');
-    
-    return `${yyyy}${MM}${dd}${HH}${mm}${ss}`;
+    return {
+      transaction,
+      contract,
+      commission: { rate, platformFee, sellerPayout },
+    };
   }
 }

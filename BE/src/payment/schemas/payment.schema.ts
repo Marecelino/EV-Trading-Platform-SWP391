@@ -49,6 +49,18 @@ export class Payment {
 
   @Prop({ type: Types.ObjectId })
   transaction_id?: Types.ObjectId;
+
+  @Prop({ default: 0 })
+  commission_rate?: number;
+
+  @Prop({ default: 0 })
+  platform_fee?: number;
+
+  @Prop({ default: 0 })
+  seller_payout?: number;
+
+  @Prop({ type: Types.ObjectId, ref: 'Contract' })
+  contract_id?: Types.ObjectId;
 }
 
 export type PaymentDocument = Payment & Document;

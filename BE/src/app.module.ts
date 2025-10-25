@@ -6,24 +6,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-
-import { AuthModule } from './auth/auth.module';
-import { AuctionsModule } from './auctions/auctions.module';
 import { ListingsModule } from './listings/listings.module';
-import { TransactionsModule } from './transactions/transactions.module';
-import { FavoritesModule } from './favorites/favorites.module';
-import { ReviewsModule } from './reviews/reviews.module';
-import { NotificationsModule } from './notifications/notifications.module';
-import { ContactsModule } from './contacts/contacts.module';
-import { EvdetailsModule } from './evdetails/evdetails.module';
-import { PriceSuggestionsModule } from './pricesuggestions/pricesuggestions.module';
-import { BatteryDetailsModule } from './battery-details/battery-details.module';
-import { BrandsModule } from './brands/brands.module';
-import { CommissionConfigsModule } from './commission-configs/commission-configs.module';
-import { CommissionsModule } from './commissions/commissions.module';
+import { ContractsModule } from './contracts/contracts.module';
 import { PaymentModule } from './payment/payment.module';
+import { SignnowModule } from './signnow/signnow.module';
 
 @Module({
   imports: [
@@ -70,25 +56,13 @@ import { PaymentModule } from './payment/payment.module';
         limit: 100,
       },
     ]),
-    AuthModule,
-    AuctionsModule,
     ListingsModule,
-    TransactionsModule,
-    FavoritesModule,
-    ReviewsModule,
-    NotificationsModule,
-    BatteryDetailsModule,
-    BrandsModule,
-    CommissionConfigsModule,
-    CommissionsModule,
-    ContactsModule,
-    EvdetailsModule,
-    PriceSuggestionsModule,
+    ContractsModule,
     PaymentModule,
+    SignnowModule,
   ],
-  controllers: [AppController],
+  controllers: [],
   providers: [
-    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
