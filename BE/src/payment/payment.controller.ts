@@ -4,7 +4,6 @@ import {
   Body,
   Req,
   UseGuards,
-  BadRequestException,
   Get,
   Query,
 } from '@nestjs/common';
@@ -39,15 +38,21 @@ export class PaymentController {
   async handleVNPayIPN(@Body() vnpayData: VNPayIPNDto) {
     return this.paymentService.handleVNPayIPN(vnpayData);
   }
-  
+
   // VNPay redirects the browser to this URL using GET with query params.
   // Support GET so browser redirects (and manual testing via browser) work.
   @Get('vnpay-return')
   @ApiOperation({ summary: 'Handle VNPay return (GET)' })
-  async handleVNPayReturnGet(@Query() vnpayData: Record<string, any>, @Req() req: Request) {
+  async handleVNPayReturnGet(
+    @Query() vnpayData: Record<string, any>,
+    @Req() req: Request,
+  ) {
     // Log raw URL for debugging (includes original query string encoding)
     try {
-      console.log('[VNPay Return GET] originalUrl:', (req as any).originalUrl || req.url);
+      console.log(
+        '[VNPay Return GET] originalUrl:',
+        (req as any).originalUrl || req.url,
+      );
     } catch (e) {
       // ignore
     }

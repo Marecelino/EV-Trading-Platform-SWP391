@@ -38,7 +38,7 @@ async function bootstrap() {
         .addTag('reviews')
         .addTag('contacts')
         .addTag('evdetails')
-        .addTag('models')
+
         .addTag('pricesuggestions')
         .addTag('favorites')
         .build();
@@ -52,8 +52,8 @@ async function bootstrap() {
     console.log(`Application is running on: http://localhost:${port}`);
     console.log(`Swagger UI available at: http://localhost:${port}/docs`);
 }
-bootstrap();
 
+bootstrap();
 interface SeedUserConfig {
     fallbackEmail: string;
     fallbackPassword: string;
@@ -127,3 +127,5 @@ async function seedDefaultUsers(app: INestApplication) {
         console.error('Failed to seed default users:', error);
     }
 }
+
+

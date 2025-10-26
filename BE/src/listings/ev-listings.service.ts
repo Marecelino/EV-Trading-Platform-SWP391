@@ -25,6 +25,23 @@ export class EVListingsService {
 
         const payload: Record<string, unknown> = { ...rest };
 
+        // Prevent accidental duplicate creates: if the same seller created a listing with the same
+        // title very recently (within 10s), return the existing one instead of creating a new doc.
+        if (payload['seller_id'] && payload['title']) {
+            const recent = (await this.listingModel
+                .findOne({ seller_id: payload['seller_id'], title: payload['title'] })
+                .sort({ createdAt: -1 })
+                .lean()) as any;
+            if (recent) {
+                const age = Date.now() - new Date((recent as any).createdAt).getTime();
+                if (age < 10000) {
+                    // fetch ev detail
+                    const evDetail = await this.evDetailModel.findOne({ listing_id: recent._id }).lean();
+                    return { listing: recent, evDetail };
+                }
+            }
+        }
+
         // resolve brand
         if (brand_name) {
             const brand = await this.brandModel.findOne({

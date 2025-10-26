@@ -6,24 +6,19 @@ import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-
-import { AuthModule } from './auth/auth.module';
-import { AuctionsModule } from './auctions/auctions.module';
 import { ListingsModule } from './listings/listings.module';
+import { AuthModule } from './auth/auth.module';
+import { ContractsModule } from './contracts/contracts.module';
+import { PaymentModule } from './payment/payment.module';
+import { SignnowModule } from './signnow/signnow.module';
+import { Transaction } from './model/transactions';
 import { TransactionsModule } from './transactions/transactions.module';
-import { FavoritesModule } from './favorites/favorites.module';
 import { ReviewsModule } from './reviews/reviews.module';
-import { NotificationsModule } from './notifications/notifications.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { EvdetailsModule } from './evdetails/evdetails.module';
+import { PriceSuggestion } from './model/pricesuggestions';
 import { PriceSuggestionsModule } from './pricesuggestions/pricesuggestions.module';
-import { BatteryDetailsModule } from './battery-details/battery-details.module';
-import { BrandsModule } from './brands/brands.module';
-import { CommissionConfigsModule } from './commission-configs/commission-configs.module';
-import { CommissionsModule } from './commissions/commissions.module';
-import { PaymentModule } from './payment/payment.module';
+import { FavoritesModule } from './favorites/favorites.module';
 
 @Module({
   imports: [
@@ -70,29 +65,26 @@ import { PaymentModule } from './payment/payment.module';
         limit: 100,
       },
     ]),
-    AuthModule,
-    AuctionsModule,
     ListingsModule,
+    AuthModule,
+    ContractsModule,
+    PaymentModule,
+    SignnowModule,
     TransactionsModule,
-    FavoritesModule,
     ReviewsModule,
-    NotificationsModule,
-    BatteryDetailsModule,
-    BrandsModule,
-    CommissionConfigsModule,
-    CommissionsModule,
     ContactsModule,
     EvdetailsModule,
     PriceSuggestionsModule,
-    PaymentModule,
+    FavoritesModule,
+
+
   ],
-  controllers: [AppController],
+  controllers: [],
   providers: [
-    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

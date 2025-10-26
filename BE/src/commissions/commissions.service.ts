@@ -1,15 +1,80 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Commission, CommissionStatus } from '../model/commissions';
 import { CreateCommissionDto, UpdateCommissionDto } from './dto';
+import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Commission, CommissionStatus } from 'src/model/commissions';
 
 @Injectable()
 export class CommissionsService {
-  constructor(
-    @InjectModel(Commission.name) private commissionModel: Model<Commission>,
-  ) {}
+  private readonly logger = new Logger(CommissionsService.name);
+  private readonly defaultRate: number;
+  private readonly rules: CommissionRule[];
 
+  constructor(
+    private readonly configService: ConfigService,
+    @InjectModel(Commission.name)
+    private readonly commissionModel: Model<Commission>,
+  ) {
+    this.defaultRate = this.parseNumberConfig('COMMISSION_DEFAULT_RATE', 0.05);
+    this.rules = this.parseRules();
+  }
+
+  calculate(context: CommissionContext) {
+    const rate = this.resolveRate(context);
+    const platformFee = Math.round(context.amount * rate);
+    const sellerPayout = Math.max(context.amount - platformFee, 0);
+
+    return { rate, platformFee, sellerPayout };
+  }
+
+  private resolveRate(context: CommissionContext) {
+    const matchingRule = this.rules.find((rule) => {
+      if (rule.category && rule.category !== context.category) {
+        return false;
+      }
+      if (rule.min !== undefined && context.amount < rule.min) {
+        return false;
+      }
+      if (rule.max !== undefined && context.amount > rule.max) {
+        return false;
+      }
+      return true;
+    });
+
+    return matchingRule?.rate ?? this.defaultRate;
+  }
+
+  private parseRules() {
+    const raw = this.configService.get<string>('COMMISSION_RULES_JSON');
+    if (!raw) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as CommissionRule[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      this.logger.warn(`COMMISSION_RULES_JSON could not be parsed: ${error}`);
+      return [];
+    }
+  }
+
+  private parseNumberConfig(key: string, fallback: number) {
+    const raw = this.configService.get<string>(key);
+    if (!raw) {
+      return fallback;
+    }
+
+    const value = Number(raw);
+    if (Number.isNaN(value) || value < 0) {
+      this.logger.warn(`${key} is invalid, using fallback ${fallback}`);
+      return fallback;
+    }
+
+    return value;
+  }
   async create(createCommissionDto: CreateCommissionDto): Promise<Commission> {
     try {
       const commission = new this.commissionModel(createCommissionDto);
@@ -80,7 +145,7 @@ export class CommissionsService {
         .populate('transaction_id')
         .populate('config_id')
         .exec();
-      
+
       if (!commission) {
         throw new NotFoundException(`Commission with ID ${id} not found`);
       }
@@ -109,7 +174,7 @@ export class CommissionsService {
       .populate('transaction_id')
       .populate('config_id')
       .exec();
-    
+
     if (!commission) {
       throw new NotFoundException(`Commission with ID ${id} not found`);
     }
@@ -125,7 +190,7 @@ export class CommissionsService {
       .populate('transaction_id')
       .populate('config_id')
       .exec();
-    
+
     if (!commission) {
       throw new NotFoundException(`Commission with ID ${id} not found`);
     }
@@ -137,7 +202,7 @@ export class CommissionsService {
       { $match: { status } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]).exec();
-    
+
     return result.length > 0 ? result[0].total : 0;
   }
 
@@ -177,3 +242,18 @@ export class CommissionsService {
     return result;
   }
 }
+
+
+type CommissionRule = {
+  min?: number;
+  max?: number;
+  rate: number;
+  category?: string;
+};
+
+type CommissionContext = {
+  amount: number;
+  category?: string;
+};
+
+

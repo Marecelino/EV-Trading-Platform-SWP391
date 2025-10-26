@@ -22,7 +22,7 @@ export class TransactionsService {
     @InjectModel(Transaction.name)
     private readonly transactionModel: Model<TransactionDocument>,
     private readonly listingsService: ListingsService,
-  ) {}
+  ) { }
 
   async create(createTransactionDto: CreateTransactionDto) {
     const transaction = new this.transactionModel({
@@ -162,7 +162,7 @@ export class TransactionsService {
       const listingId =
         transaction.listing_id instanceof Types.ObjectId
           ? transaction.listing_id.toString()
-          : transaction.listing_id['_id']?.toString();
+          : (transaction.listing_id as any)?._id?.toString();
       // if (listingId) {
       //   await this.listingsService.updateStatus(listingId, ListingStatus.SOLD);
       // }
@@ -175,7 +175,7 @@ export class TransactionsService {
       const listingId =
         transaction.listing_id instanceof Types.ObjectId
           ? transaction.listing_id.toString()
-          : transaction.listing_id['_id']?.toString();
+          : (transaction.listing_id as any)?._id?.toString();
       // if (listingId) {
       //   await this.listingsService.updateStatus(
       //     listingId,
