@@ -60,11 +60,17 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
     // Lấy object an toàn (mongoose document -> plain object)
-    const u: any = (typeof (user as any).toObject === 'function') ? (user as any).toObject() : user;
+    const u: any =
+      typeof (user as any).toObject === 'function'
+        ? (user as any).toObject()
+        : user;
 
     // Trả về object đã được sanitized (chỉ trường cần thiết)
     const validated: JwtValidatedUser = {
-      id: (u._id?.toString && u._id.toString()) || (u.id?.toString && u.id.toString()) || undefined,
+      id:
+        (u._id?.toString && u._id.toString()) ||
+        (u.id?.toString && u.id.toString()) ||
+        undefined,
       userId: payload.sub,
       email: u.email,
       name: u.name,

@@ -8,7 +8,13 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { ListingsService } from './listings.service';
 import { EVListingsService } from './ev-listings.service';
 import { BatteryListingsService } from './battery-listings.service';
@@ -18,7 +24,6 @@ import { FilterListingsDto } from './dto/filter-listings.dto';
 import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { ListingStatus } from '../model/listings';
 
-
 @ApiTags('listings')
 @Controller('listings')
 export class ListingsController {
@@ -26,7 +31,7 @@ export class ListingsController {
     private readonly listingsService: ListingsService,
     private readonly evListingsService: EVListingsService,
     private readonly batteryListingsService: BatteryListingsService,
-  ) { }
+  ) {}
 
   // @Post()
   // create(@Body() createListingDto: CreateListingDto) {
@@ -83,30 +88,31 @@ export class ListingsController {
   @Get('seller/:sellerId')
   @ApiOperation({
     summary: 'Get listings by seller (user)',
-    description: 'Retrieve all listings created by a specific user (seller) with pagination and optional status filter'
+    description:
+      'Retrieve all listings created by a specific user (seller) with pagination and optional status filter',
   })
   @ApiParam({
     name: 'sellerId',
     description: 'User ID of the seller',
-    example: '671234567890abcdef123456'
+    example: '671234567890abcdef123456',
   })
   @ApiQuery({
     name: 'page',
     required: false,
     description: 'Page number (starts from 1)',
-    example: 1
+    example: 1,
   })
   @ApiQuery({
     name: 'limit',
     required: false,
     description: 'Number of items per page',
-    example: 10
+    example: 10,
   })
   @ApiQuery({
     name: 'status',
     required: false,
     description: 'Filter by listing status',
-    enum: ListingStatus
+    enum: ListingStatus,
   })
   @ApiResponse({
     status: 200,
@@ -128,11 +134,11 @@ export class ListingsController {
                 properties: {
                   name: { type: 'string' },
                   email: { type: 'string' },
-                  phone: { type: 'string' }
-                }
-              }
-            }
-          }
+                  phone: { type: 'string' },
+                },
+              },
+            },
+          },
         },
         meta: {
           type: 'object',
@@ -140,25 +146,30 @@ export class ListingsController {
             page: { type: 'number' },
             limit: { type: 'number' },
             total: { type: 'number' },
-            totalPages: { type: 'number' }
-          }
-        }
-      }
-    }
+            totalPages: { type: 'number' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 404,
-    description: 'Invalid seller ID'
+    description: 'Invalid seller ID',
   })
   findBySeller(
     @Param('sellerId') sellerId: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-    @Query('status') status?: ListingStatus
+    @Query('status') status?: ListingStatus,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
-    return this.listingsService.findBySeller(sellerId, pageNum, limitNum, status);
+    return this.listingsService.findBySeller(
+      sellerId,
+      pageNum,
+      limitNum,
+      status,
+    );
   }
 
   @Post('price-suggestion')

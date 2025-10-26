@@ -6,6 +6,7 @@ import {
   UseGuards,
   Get,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -26,9 +27,16 @@ export class PaymentController {
     @Body() createPaymentDto: CreatePaymentDto,
     @Req() req: Request,
   ) {
+    const authReq = req as Request & { user?: { userId?: string } };
+    const buyerId = authReq.user?.userId;
+
+    if (!buyerId) {
+      throw new BadRequestException('Missing authenticated user context');
+    }
+
     return this.paymentService.createVNPayUrl(
       createPaymentDto,
-      createPaymentDto.user_id,
+      buyerId,
       req.ip || '127.0.0.1',
     );
   }
@@ -53,7 +61,7 @@ export class PaymentController {
         '[VNPay Return GET] originalUrl:',
         (req as any).originalUrl || req.url,
       );
-    } catch (e) {
+    } catch {
       // ignore
     }
     return this.paymentService.verifyReturnUrl(vnpayData);

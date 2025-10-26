@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class LoginDto {
   @ApiProperty({
     description: 'Email đăng nhập',
-    example: 'nguyenvana@example.com'
+    example: 'nguyenvana@example.com',
   })
   @IsEmail()
   email: string;
@@ -12,7 +12,7 @@ export class LoginDto {
   @ApiProperty({
     description: 'Mật khẩu',
     example: 'Password123!',
-    minLength: 6
+    minLength: 6,
   })
   @IsString()
   @MinLength(6)

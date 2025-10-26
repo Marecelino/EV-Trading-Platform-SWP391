@@ -62,9 +62,15 @@ export class ContactsService {
     return contract;
   }
 
-  async update(id: string, updateContactDto: UpdateContactDto): Promise<ContractDocument> {
+  async update(
+    id: string,
+    updateContactDto: UpdateContactDto,
+  ): Promise<ContractDocument> {
     const contract = await this.contractModel
-      .findByIdAndUpdate(id, updateContactDto, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, updateContactDto, {
+        new: true,
+        runValidators: true,
+      })
       .populate('transaction_id')
       .exec();
 
@@ -85,7 +91,9 @@ export class ContactsService {
     return contract;
   }
 
-  async findByTransaction(transactionId: string): Promise<ContractDocument | null> {
+  async findByTransaction(
+    transactionId: string,
+  ): Promise<ContractDocument | null> {
     return this.contractModel
       .findOne({ transaction_id: transactionId })
       .populate('transaction_id')

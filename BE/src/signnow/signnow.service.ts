@@ -47,11 +47,15 @@ export class SignnowService {
     // app can start even when SignNow is not configured. Strict validation is
     // performed lazily when SignNow actions are invoked (see getAccessToken()).
     this.clientId = this.configService.get<string>('SIGNNOW_CLIENT_ID') || '';
-    this.clientSecret = this.configService.get<string>('SIGNNOW_CLIENT_SECRET') || '';
+    this.clientSecret =
+      this.configService.get<string>('SIGNNOW_CLIENT_SECRET') || '';
     this.username = this.configService.get<string>('SIGNNOW_USERNAME') || '';
     this.password = this.configService.get<string>('SIGNNOW_PASSWORD') || '';
-    this.fromEmail = this.configService.get<string>('SIGNNOW_FROM_EMAIL') || this.username;
-    this.webhookSecret = this.configService.get<string>('SIGNNOW_WEBHOOK_SECRET');
+    this.fromEmail =
+      this.configService.get<string>('SIGNNOW_FROM_EMAIL') || this.username;
+    this.webhookSecret = this.configService.get<string>(
+      'SIGNNOW_WEBHOOK_SECRET',
+    );
   }
 
   async createContractAndInvite(dto: CreateSignnowContractDto) {
@@ -70,7 +74,7 @@ export class SignnowService {
       contractNo: contract.contract_no,
     });
 
-    const contractNo = contract.contract_no!;
+    const contractNo = contract.contract_no;
     const uploadResult = await this.uploadDocument(
       token,
       pdfBuffer,
@@ -320,9 +324,9 @@ export class SignnowService {
 
       doc.text(
         'Terms and Conditions:\n' +
-        '- The buyer agrees to purchase the listed EV/battery from the seller.\n' +
-        '- The seller guarantees the accuracy of the information provided.\n' +
-        '- Both parties agree to finalize the transaction upon successful payment.',
+          '- The buyer agrees to purchase the listed EV/battery from the seller.\n' +
+          '- The seller guarantees the accuracy of the information provided.\n' +
+          '- Both parties agree to finalize the transaction upon successful payment.',
       );
 
       doc.moveDown();

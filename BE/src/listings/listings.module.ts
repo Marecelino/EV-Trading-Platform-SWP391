@@ -23,11 +23,10 @@ import { BatteryDetail, BatteryDetailSchema } from 'src/model/batterydetails';
       { name: Brand.name, schema: BrandSchema },
       { name: EVDetail.name, schema: EVDetailSchema },
       { name: BatteryDetail.name, schema: BatteryDetailSchema },
-
     ]),
   ],
   controllers: [ListingsController],
   providers: [ListingsService, EVListingsService, BatteryListingsService],
   exports: [ListingsService, EVListingsService, BatteryListingsService],
 })
-export class ListingsModule { }
+export class ListingsModule {}

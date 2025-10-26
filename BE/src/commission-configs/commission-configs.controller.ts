@@ -9,14 +9,23 @@ import {
   Query,
   ParseFloatPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+  ApiBody,
+} from '@nestjs/swagger';
 import { CommissionConfigsService } from './commission-configs.service';
 import { CreateCommissionConfigDto, UpdateCommissionConfigDto } from './dto';
 
 @ApiTags('Commission Configs')
 @Controller('commission-configs')
 export class CommissionConfigsController {
-  constructor(private readonly commissionConfigsService: CommissionConfigsService) {}
+  constructor(
+    private readonly commissionConfigsService: CommissionConfigsService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Tạo cấu hình hoa hồng mới' })
@@ -43,7 +52,10 @@ export class CommissionConfigsController {
   @Get('current')
   @ApiOperation({ summary: 'Lấy cấu hình hoa hồng hiện tại đang áp dụng' })
   @ApiResponse({ status: 200, description: 'Lấy thông tin thành công' })
-  @ApiResponse({ status: 404, description: 'Không có cấu hình nào đang hoạt động' })
+  @ApiResponse({
+    status: 404,
+    description: 'Không có cấu hình nào đang hoạt động',
+  })
   findCurrent() {
     return this.commissionConfigsService.findCurrent();
   }
@@ -56,9 +68,19 @@ export class CommissionConfigsController {
   }
 
   @Get('by-date-range')
-  @ApiOperation({ summary: 'Lấy danh sách cấu hình hoa hồng theo khoảng thời gian' })
-  @ApiQuery({ name: 'startDate', description: 'Ngày bắt đầu', example: '2024-01-01' })
-  @ApiQuery({ name: 'endDate', description: 'Ngày kết thúc', example: '2024-12-31' })
+  @ApiOperation({
+    summary: 'Lấy danh sách cấu hình hoa hồng theo khoảng thời gian',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    description: 'Ngày bắt đầu',
+    example: '2024-01-01',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    description: 'Ngày kết thúc',
+    example: '2024-12-31',
+  })
   @ApiResponse({ status: 200, description: 'Lấy danh sách thành công' })
   findByDateRange(
     @Query('startDate') startDate: string,
@@ -76,20 +98,29 @@ export class CommissionConfigsController {
       properties: {
         transactionAmount: {
           type: 'number',
-          example: 10000000
-        }
-      }
-    }
+          example: 10000000,
+        },
+      },
+    },
   })
   @ApiResponse({ status: 200, description: 'Tính toán thành công' })
-  @ApiResponse({ status: 404, description: 'Không có cấu hình nào đang hoạt động' })
-  calculateCommission(@Body('transactionAmount', ParseFloatPipe) transactionAmount: number) {
+  @ApiResponse({
+    status: 404,
+    description: 'Không có cấu hình nào đang hoạt động',
+  })
+  calculateCommission(
+    @Body('transactionAmount', ParseFloatPipe) transactionAmount: number,
+  ) {
     return this.commissionConfigsService.calculateCommission(transactionAmount);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Lấy thông tin cấu hình hoa hồng theo ID' })
-  @ApiParam({ name: 'id', description: 'ID của cấu hình hoa hồng', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của cấu hình hoa hồng',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Lấy thông tin thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   findOne(@Param('id') id: string) {
@@ -98,17 +129,30 @@ export class CommissionConfigsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Cập nhật cấu hình hoa hồng' })
-  @ApiParam({ name: 'id', description: 'ID của cấu hình hoa hồng', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của cấu hình hoa hồng',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
-  update(@Param('id') id: string, @Body() updateCommissionConfigDto: UpdateCommissionConfigDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateCommissionConfigDto: UpdateCommissionConfigDto,
+  ) {
     return this.commissionConfigsService.update(id, updateCommissionConfigDto);
   }
 
   @Patch(':id/toggle-active')
-  @ApiOperation({ summary: 'Bật/tắt trạng thái hoạt động của cấu hình hoa hồng' })
-  @ApiParam({ name: 'id', description: 'ID của cấu hình hoa hồng', example: '507f1f77bcf86cd799439011' })
+  @ApiOperation({
+    summary: 'Bật/tắt trạng thái hoạt động của cấu hình hoa hồng',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của cấu hình hoa hồng',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   toggleActive(@Param('id') id: string) {
@@ -117,7 +161,11 @@ export class CommissionConfigsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Xóa cấu hình hoa hồng' })
-  @ApiParam({ name: 'id', description: 'ID của cấu hình hoa hồng', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của cấu hình hoa hồng',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Xóa thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   remove(@Param('id') id: string) {

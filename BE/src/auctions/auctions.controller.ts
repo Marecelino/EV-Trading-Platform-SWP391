@@ -36,34 +36,35 @@ export class AuctionsController {
     private readonly auctionsService: AuctionsService,
     private readonly evAuctionService: EVAuctionService,
     private readonly batteryAuctionService: BatteryAuctionService,
-  ) { }
+  ) {}
 
   @Get()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get all auctions with pagination',
-    description: 'Retrieves all auctions with pagination and optional filtering. Results include populated listing and seller information.'
+    description:
+      'Retrieves all auctions with pagination and optional filtering. Results include populated listing and seller information.',
   })
-  @ApiQuery({ 
-    name: 'page', 
-    required: false, 
-    type: Number, 
-    description: 'Page number (starts from 1)', 
-    example: 1 
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (starts from 1)',
+    example: 1,
   })
-  @ApiQuery({ 
-    name: 'limit', 
-    required: false, 
-    type: Number, 
-    description: 'Number of items per page (max 50)', 
-    example: 10 
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (max 50)',
+    example: 10,
   })
-  @ApiQuery({ 
-    name: 'status', 
-    required: false, 
-    type: String, 
-    description: 'Filter by auction status', 
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: String,
+    description: 'Filter by auction status',
     enum: ['scheduled', 'live', 'ended', 'cancelled'],
-    example: 'live'
+    example: 'live',
   })
   async findAll(
     @Query('page') page?: string,
@@ -74,8 +75,12 @@ export class AuctionsController {
     const limitNum = limit ? parseInt(limit, 10) : 10;
     const filter = status ? { status } : {};
 
-    const result = await this.auctionsService.findAll(pageNum, limitNum, filter);
-    
+    const result = await this.auctionsService.findAll(
+      pageNum,
+      limitNum,
+      filter,
+    );
+
     return {
       statusCode: HttpStatus.OK,
       message: 'Auctions retrieved successfully',
@@ -115,9 +120,10 @@ export class AuctionsController {
   }
 
   @Get('live')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get live auctions',
-    description: 'Retrieves only auctions with "live" status - currently active and accepting bids.'
+    description:
+      'Retrieves only auctions with "live" status - currently active and accepting bids.',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -128,8 +134,11 @@ export class AuctionsController {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
 
-    const result = await this.auctionsService.findLiveAuctions(pageNum, limitNum);
-    
+    const result = await this.auctionsService.findLiveAuctions(
+      pageNum,
+      limitNum,
+    );
+
     return {
       statusCode: HttpStatus.OK,
       message: 'Live auctions retrieved successfully',
@@ -145,20 +154,20 @@ export class AuctionsController {
   }
 
   @Get('seller/:sellerId')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get auctions by seller',
-    description: 'Retrieves all auctions created by a specific seller.'
+    description: 'Retrieves all auctions created by a specific seller.',
   })
-  @ApiParam({ 
-    name: 'sellerId', 
+  @ApiParam({
+    name: 'sellerId',
     description: 'Seller MongoDB ObjectId',
-    example: '507f1f77bcf86cd799439011'
+    example: '507f1f77bcf86cd799439011',
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiResponse({
     status: 200,
-    description: 'Seller auctions retrieved successfully'
+    description: 'Seller auctions retrieved successfully',
   })
   async findBySeller(
     @Param('sellerId') sellerId: string,
@@ -168,8 +177,12 @@ export class AuctionsController {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
 
-    const result = await this.auctionsService.findBySeller(sellerId, pageNum, limitNum);
-    
+    const result = await this.auctionsService.findBySeller(
+      sellerId,
+      pageNum,
+      limitNum,
+    );
+
     return {
       statusCode: HttpStatus.OK,
       message: 'Seller auctions retrieved successfully',
@@ -185,14 +198,15 @@ export class AuctionsController {
   }
 
   @Get(':id')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get auction by ID',
-    description: 'Retrieves detailed information about a specific auction including all bids and populated references.'
+    description:
+      'Retrieves detailed information about a specific auction including all bids and populated references.',
   })
-  @ApiParam({ 
-    name: 'id', 
+  @ApiParam({
+    name: 'id',
     description: 'Auction MongoDB ObjectId',
-    example: '672f8b5e7c8a5b8e4e6b1c2a'
+    example: '672f8b5e7c8a5b8e4e6b1c2a',
   })
   async findOne(@Param('id') id: string) {
     return {
@@ -203,14 +217,15 @@ export class AuctionsController {
   }
 
   @Patch(':id')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update auction',
-    description: 'Updates auction information. Cannot update ended or cancelled auctions.'
+    description:
+      'Updates auction information. Cannot update ended or cancelled auctions.',
   })
-  @ApiParam({ 
-    name: 'id', 
+  @ApiParam({
+    name: 'id',
     description: 'Auction MongoDB ObjectId',
-    example: '672f8b5e7c8a5b8e4e6b1c2a'
+    example: '672f8b5e7c8a5b8e4e6b1c2a',
   })
   @ApiBody({
     type: UpdateAuctionDto,
@@ -218,36 +233,36 @@ export class AuctionsController {
       'Extend End Time': {
         summary: 'Extend auction duration',
         value: {
-          end_time: '2025-10-28T20:00:00Z'
-        }
+          end_time: '2025-10-28T20:00:00Z',
+        },
       },
       'Update Buy Now Price': {
         summary: 'Change buy now price',
         value: {
-          buy_now_price: 1500000000
-        }
+          buy_now_price: 1500000000,
+        },
       },
       'Multiple Updates': {
         summary: 'Update multiple fields',
         value: {
           end_time: '2025-10-28T18:00:00Z',
           min_increment: 10000000,
-          buy_now_price: 1800000000
-        }
-      }
-    }
+          buy_now_price: 1800000000,
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
-    description: 'Auction updated successfully'
+    description: 'Auction updated successfully',
   })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Auction not found' 
+  @ApiResponse({
+    status: 404,
+    description: 'Auction not found',
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Bad Request - Cannot update ended/cancelled auctions'
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Cannot update ended/cancelled auctions',
   })
   @ApiBearerAuth()
   async update(
@@ -262,14 +277,15 @@ export class AuctionsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Delete auction',
-    description: 'Deletes an auction. Cannot delete auctions with bids or live auctions.'
+    description:
+      'Deletes an auction. Cannot delete auctions with bids or live auctions.',
   })
-  @ApiParam({ 
-    name: 'id', 
+  @ApiParam({
+    name: 'id',
     description: 'Auction MongoDB ObjectId',
-    example: '672f8b5e7c8a5b8e4e6b1c2a'
+    example: '672f8b5e7c8a5b8e4e6b1c2a',
   })
   @ApiResponse({
     status: 200,
@@ -279,14 +295,14 @@ export class AuctionsController {
       properties: {
         statusCode: { type: 'number', example: 200 },
         message: { type: 'string', example: 'Auction deleted successfully' },
-        deletedId: { type: 'string', example: '672f8b5e7c8a5b8e4e6b1c2a' }
-      }
-    }
+        deletedId: { type: 'string', example: '672f8b5e7c8a5b8e4e6b1c2a' },
+      },
+    },
   })
   @ApiResponse({ status: 404, description: 'Auction not found' })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Cannot delete auction with bids or live auctions'
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot delete auction with bids or live auctions',
   })
   @ApiBearerAuth()
   async remove(@Param('id') id: string) {
@@ -299,14 +315,15 @@ export class AuctionsController {
   }
 
   @Post(':id/bids')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Place bid on auction',
-    description: 'Places a bid on a live auction. Bid amount must meet minimum requirements and auction must be active.'
+    description:
+      'Places a bid on a live auction. Bid amount must meet minimum requirements and auction must be active.',
   })
-  @ApiParam({ 
-    name: 'id', 
+  @ApiParam({
+    name: 'id',
     description: 'Auction MongoDB ObjectId',
-    example: '672f8b5e7c8a5b8e4e6b1c2a'
+    example: '672f8b5e7c8a5b8e4e6b1c2a',
   })
   @ApiBody({
     type: CreateBidDto,
@@ -315,17 +332,17 @@ export class AuctionsController {
         summary: 'Normal bid increment',
         value: {
           user_id: '507f1f77bcf86cd799439013',
-          amount: 925000000
-        }
+          amount: 925000000,
+        },
       },
       'Buy Now Bid': {
         summary: 'Bid matching buy now price',
         value: {
           user_id: '507f1f77bcf86cd799439014',
-          amount: 1200000000
-        }
-      }
-    }
+          amount: 1200000000,
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 201,
@@ -348,19 +365,20 @@ export class AuctionsController {
                 properties: {
                   user_id: { type: 'object' },
                   amount: { type: 'number', example: 925000000 },
-                  created_at: { type: 'string' }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                  created_at: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({ status: 404, description: 'Auction not found' })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Invalid bid - auction not live, amount too low, or seller bidding on own auction'
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid bid - auction not live, amount too low, or seller bidding on own auction',
   })
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
@@ -371,23 +389,28 @@ export class AuctionsController {
   ) {
     // Note: In production, get userId from JWT token in request
     const userId = req.user?.id || createBidDto.user_id; // Fallback for demo
-    
+
     return {
       statusCode: HttpStatus.CREATED,
       message: 'Bid placed successfully',
-      data: await this.auctionsService.placeBid(auctionId, userId, createBidDto),
+      data: await this.auctionsService.placeBid(
+        auctionId,
+        userId,
+        createBidDto,
+      ),
     };
   }
 
   @Patch(':id/end')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'End auction manually',
-    description: 'Manually ends a live or scheduled auction. Admin function to force-end auctions.'
+    description:
+      'Manually ends a live or scheduled auction. Admin function to force-end auctions.',
   })
-  @ApiParam({ 
-    name: 'id', 
+  @ApiParam({
+    name: 'id',
     description: 'Auction MongoDB ObjectId',
-    example: '672f8b5e7c8a5b8e4e6b1c2a'
+    example: '672f8b5e7c8a5b8e4e6b1c2a',
   })
   @ApiResponse({
     status: 200,
@@ -402,16 +425,16 @@ export class AuctionsController {
           properties: {
             _id: { type: 'string' },
             status: { type: 'string', example: 'ended' },
-            end_time: { type: 'string', example: '2025-10-24T15:45:00.000Z' }
-          }
-        }
-      }
-    }
+            end_time: { type: 'string', example: '2025-10-24T15:45:00.000Z' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({ status: 404, description: 'Auction not found' })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Only live or scheduled auctions can be ended'
+  @ApiResponse({
+    status: 400,
+    description: 'Only live or scheduled auctions can be ended',
   })
   @ApiBearerAuth()
   async endAuction(@Param('id') id: string) {

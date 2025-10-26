@@ -24,4 +24,4 @@ import { BatteryDetail, BatteryDetailSchema } from '../model/batterydetails';
   providers: [AuctionsService, EVAuctionService, BatteryAuctionService],
   exports: [AuctionsService, EVAuctionService, BatteryAuctionService],
 })
-export class AuctionsModule { }
+export class AuctionsModule {}

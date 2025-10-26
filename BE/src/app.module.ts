@@ -76,8 +76,6 @@ import { FavoritesModule } from './favorites/favorites.module';
     EvdetailsModule,
     PriceSuggestionsModule,
     FavoritesModule,
-
-
   ],
   controllers: [],
   providers: [
@@ -87,4 +85,4 @@ import { FavoritesModule } from './favorites/favorites.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

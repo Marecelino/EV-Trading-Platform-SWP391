@@ -1,27 +1,34 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { PaymentMethod } from '../schemas/payment.schema';
 
 export class CreatePaymentDto {
   @ApiProperty({
     example: '6523f5c30fde90429138cc5a',
-    description: 'ID of the listing to pay for'
+    description: 'ID of the listing to pay for',
   })
   @IsNotEmpty()
   @IsString()
   listing_id: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: '6523f5c30fde90429138cc5b',
-    description: 'ID of the user making the payment'
+    description:
+      'Deprecated: buyer id is resolved from the authenticated request context',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  user_id: string;
+  user_id?: string;
 
   @ApiProperty({
     example: 1000000,
-    description: 'Payment amount in VND'
+    description: 'Payment amount in VND',
   })
   @IsNotEmpty()
   @IsNumber()
@@ -30,7 +37,7 @@ export class CreatePaymentDto {
   @ApiProperty({
     example: 'VNPAY',
     description: 'Payment method',
-    enum: PaymentMethod
+    enum: PaymentMethod,
   })
   @IsNotEmpty()
   @IsEnum(PaymentMethod)
@@ -39,7 +46,7 @@ export class CreatePaymentDto {
   @ApiProperty({
     example: 'NCB',
     description: 'Bank code for VNPAY',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()

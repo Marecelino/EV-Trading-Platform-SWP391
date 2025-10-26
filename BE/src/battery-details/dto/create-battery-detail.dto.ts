@@ -1,19 +1,26 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNumber, IsString, IsOptional, IsDateString, Min, Max } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsString,
+  IsOptional,
+  IsDateString,
+  Min,
+  Max,
+} from 'class-validator';
 
 export class CreateBatteryDetailDto {
   @ApiProperty({
     description: 'ID của listing',
-    example: '507f1f77bcf86cd799439011'
+    example: '507f1f77bcf86cd799439011',
   })
   @IsString()
   listing_id: string;
 
-
   @ApiProperty({
     description: 'Dung lượng pin (kWh)',
     example: 75.5,
-    minimum: 0
+    minimum: 0,
   })
   @IsNumber()
   @Min(0)
@@ -23,7 +30,7 @@ export class CreateBatteryDetailDto {
     description: 'Tình trạng sức khỏe pin (%)',
     example: 85,
     minimum: 0,
-    maximum: 100
+    maximum: 100,
   })
   @IsNumber()
   @Min(0)
@@ -33,7 +40,7 @@ export class CreateBatteryDetailDto {
   @ApiProperty({
     description: 'Số chu kỳ sạc',
     example: 450,
-    minimum: 0
+    minimum: 0,
   })
   @IsNumber()
   @Min(0)
@@ -42,7 +49,7 @@ export class CreateBatteryDetailDto {
   @ApiProperty({
     description: 'Điện áp (V)',
     example: 400,
-    minimum: 0
+    minimum: 0,
   })
   @IsNumber()
   @Min(0)
@@ -51,7 +58,7 @@ export class CreateBatteryDetailDto {
   @ApiProperty({
     description: 'Trọng lượng (kg)',
     example: 450.5,
-    minimum: 0
+    minimum: 0,
   })
   @IsNumber()
   @Min(0)
@@ -59,7 +66,7 @@ export class CreateBatteryDetailDto {
 
   @ApiProperty({
     description: 'Xuất xứ',
-    example: 'China'
+    example: 'China',
   })
   @IsString()
   origin: string;
@@ -67,7 +74,7 @@ export class CreateBatteryDetailDto {
   @ApiProperty({
     description: 'Số tháng bảo hành còn lại',
     example: 24,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber()
@@ -76,7 +83,7 @@ export class CreateBatteryDetailDto {
   @ApiProperty({
     description: 'Ngày kiểm tra sức khỏe cuối cùng',
     example: '2024-10-15T00:00:00.000Z',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsDateString()
@@ -85,7 +92,7 @@ export class CreateBatteryDetailDto {
   @ApiProperty({
     description: 'Nhiệt độ tối thiểu (°C)',
     example: -20,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber()
@@ -94,7 +101,7 @@ export class CreateBatteryDetailDto {
   @ApiProperty({
     description: 'Nhiệt độ tối đa (°C)',
     example: 60,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber()
@@ -103,7 +110,7 @@ export class CreateBatteryDetailDto {
   @ApiProperty({
     description: 'Chu kỳ sạc bảo hành',
     example: 3000,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber()
@@ -112,7 +119,7 @@ export class CreateBatteryDetailDto {
   @ApiProperty({
     description: 'Tỷ lệ suy giảm hàng năm (%)',
     example: 2.5,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber()

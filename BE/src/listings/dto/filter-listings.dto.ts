@@ -8,13 +8,16 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { ListingStatus, VehicleCondition, CategoryEnum } from '../../model/listings';
+import {
+  ListingStatus,
+  VehicleCondition,
+  CategoryEnum,
+} from '../../model/listings';
 
 export class FilterListingsDto {
   @IsOptional()
   @IsMongoId()
   brand_id?: string;
-
 
   @IsOptional()
   @IsEnum(CategoryEnum)

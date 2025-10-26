@@ -30,7 +30,7 @@ export class CreateBatteryAuctionDto {
     description: 'Start time of the auction in ISO 8601 format',
     example: '2025-10-25T10:00:00Z',
     type: 'string',
-    format: 'date-time'
+    format: 'date-time',
   })
   @IsDateString()
   @IsNotEmpty()
@@ -40,7 +40,7 @@ export class CreateBatteryAuctionDto {
     description: 'End time of the auction in ISO 8601 format',
     example: '2025-10-27T18:00:00Z',
     type: 'string',
-    format: 'date-time'
+    format: 'date-time',
   })
   @IsDateString()
   @IsNotEmpty()
@@ -50,7 +50,7 @@ export class CreateBatteryAuctionDto {
     description: 'Starting price for the auction in VND',
     example: 800000000,
     type: 'number',
-    minimum: 0
+    minimum: 0,
   })
   @Type(() => Number)
   @IsNumber()
@@ -61,7 +61,7 @@ export class CreateBatteryAuctionDto {
     description: 'Minimum increment for each bid in VND',
     example: 5000000,
     type: 'number',
-    minimum: 0
+    minimum: 0,
   })
   @Type(() => Number)
   @IsNumber()
@@ -73,7 +73,7 @@ export class CreateBatteryAuctionDto {
     example: 1200000000,
     type: 'number',
     minimum: 0,
-    required: false
+    required: false,
   })
   @IsOptional()
   @Type(() => Number)
@@ -87,7 +87,11 @@ export class CreateBatteryAuctionDto {
   @MaxLength(100)
   title: string;
 
-  @ApiProperty({ example: 'Detailed Description', minLength: 20, maxLength: 2000 })
+  @ApiProperty({
+    example: 'Detailed Description',
+    minLength: 20,
+    maxLength: 2000,
+  })
   @IsString()
   @MinLength(20)
   @MaxLength(2000)

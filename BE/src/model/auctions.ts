@@ -40,7 +40,6 @@ const BidSchema = SchemaFactory.createForClass(Bid);
   timestamps: true,
 })
 export class Auction extends Document {
-
   @Prop({
     type: Types.ObjectId,
     ref: 'User',
@@ -94,57 +93,57 @@ export class Auction extends Document {
   })
   status: AuctionStatus;
   @Prop({
-      type: Types.ObjectId,
-      ref: 'Brand',
-      required: true,
-    })
-    brand_id: Types.ObjectId;
-    @Prop({
-      required: true,
-      trim: true,
-      minlength: 5,
-      maxlength: 100,
-    })
-    title: string;
-  
-    @Prop({
-      required: true,
-      trim: true,
-      minlength: 20,
-      maxlength: 2000,
-    })
-    description: string;
-    @Prop({
-      default: false,
-    })
-    is_verified: boolean;
-  
-    @Prop({
-      default: false,
-    })
-    is_featured: boolean;
-  
-    @Prop({
-      type: String,
-      enum: CategoryEnum,
-      required: true,
-    })
-    category: CategoryEnum;
+    type: Types.ObjectId,
+    ref: 'Brand',
+    required: true,
+  })
+  brand_id: Types.ObjectId;
+  @Prop({
+    required: true,
+    trim: true,
+    minlength: 5,
+    maxlength: 100,
+  })
+  title: string;
+
+  @Prop({
+    required: true,
+    trim: true,
+    minlength: 20,
+    maxlength: 2000,
+  })
+  description: string;
+  @Prop({
+    default: false,
+  })
+  is_verified: boolean;
+
+  @Prop({
+    default: false,
+  })
+  is_featured: boolean;
+
+  @Prop({
+    type: String,
+    enum: CategoryEnum,
+    required: true,
+  })
+  category: CategoryEnum;
   @Prop({
     type: String,
     enum: VehicleCondition,
     required: true,
   })
   condition: VehicleCondition;
-    @Prop({
-      type: [String],
-      validate: {
-        validator: function (v: string[]) {
-          return v.length > 0 && v.length <= 10;
-        },
-        message: 'Must have between 1 and 10 images',
+  @Prop({
+    type: [String],
+    validate: {
+      validator: function (v: string[]) {
+        return v.length > 0 && v.length <= 10;
       },
-    })
+      message: 'Must have between 1 and 10 images',
+    },
+  })
   images: string[];
   @Prop({
     type: String,

@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, PipelineStage, Types } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import {
   Contract,
@@ -10,6 +14,7 @@ import {
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractStatusDto } from './dto/update-contract-status.dto';
 import { ContractWebhookDto } from './dto/contract-webhook.dto';
+import { FilterContractsDto } from './dto/filter-contracts.dto';
 
 interface CreateFromPaymentOptions {
   transactionId: string;
@@ -29,6 +34,14 @@ interface ProviderMetadata {
   notes?: string;
   performed_by?: string;
   payload?: Record<string, unknown>;
+}
+
+interface ContractAggregationOptions {
+  page?: number;
+  limit?: number;
+  status?: ContractStatus;
+  search?: string;
+  userObjectId?: Types.ObjectId;
 }
 
 @Injectable()
@@ -79,6 +92,29 @@ export class ContractsService {
     };
 
     return this.create(createContractDto);
+  }
+
+  async findAllDetailed(filters: FilterContractsDto = {}) {
+    return this.aggregateContracts({
+      status: filters.status,
+      search: filters.search,
+      page: filters.page,
+      limit: filters.limit,
+    });
+  }
+
+  async findForUser(userId: string, filters: FilterContractsDto = {}) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid user identifier');
+    }
+
+    return this.aggregateContracts({
+      status: filters.status,
+      search: filters.search,
+      page: filters.page,
+      limit: filters.limit,
+      userObjectId: new Types.ObjectId(userId),
+    });
   }
 
   async findById(id: string) {
@@ -192,6 +228,194 @@ export class ContractsService {
 
     await contract.save();
     return contract.toObject();
+  }
+
+  private async aggregateContracts(options: ContractAggregationOptions) {
+    const { pipeline, page, limit } = this.buildAggregationPipeline(options);
+    const [result] = await this.contractModel.aggregate<{
+      data: any[];
+      totalCount: Array<{ count: number }>;
+    }>(pipeline);
+
+    const data = result?.data ?? [];
+    const total = result?.totalCount?.[0]?.count ?? 0;
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: total > 0 ? Math.ceil(total / limit) : 0,
+      },
+    };
+  }
+
+  private buildAggregationPipeline(options: ContractAggregationOptions) {
+    const page = Math.max(options.page ?? 1, 1);
+    const rawLimit = options.limit ?? 20;
+    const limit = Math.min(Math.max(rawLimit, 1), 100);
+    const skip = (page - 1) * limit;
+
+    const pipeline: PipelineStage[] = [];
+
+    if (options.status) {
+      pipeline.push({ $match: { status: options.status } });
+    }
+
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'transactions',
+          localField: 'transaction_id',
+          foreignField: '_id',
+          as: 'transaction',
+        },
+      },
+      { $unwind: '$transaction' },
+      {
+        $lookup: {
+          from: 'payments',
+          localField: 'payment_id',
+          foreignField: '_id',
+          as: 'payment',
+        },
+      },
+      {
+        $unwind: { path: '$payment', preserveNullAndEmptyArrays: true },
+      },
+      {
+        $lookup: {
+          from: 'listings',
+          localField: 'transaction.listing_id',
+          foreignField: '_id',
+          as: 'listing',
+        },
+      },
+      {
+        $unwind: { path: '$listing', preserveNullAndEmptyArrays: true },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'transaction.buyer_id',
+          foreignField: '_id',
+          as: 'buyer',
+        },
+      },
+      {
+        $unwind: { path: '$buyer', preserveNullAndEmptyArrays: true },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'transaction.seller_id',
+          foreignField: '_id',
+          as: 'seller',
+        },
+      },
+      {
+        $unwind: { path: '$seller', preserveNullAndEmptyArrays: true },
+      },
+    );
+
+    const matchConditions: Record<string, unknown>[] = [];
+
+    if (options.userObjectId) {
+      matchConditions.push({
+        $or: [
+          { 'transaction.buyer_id': options.userObjectId },
+          { 'transaction.seller_id': options.userObjectId },
+        ],
+      });
+    }
+
+    const trimmedSearch = options.search?.trim();
+    if (trimmedSearch) {
+      const regex = new RegExp(this.escapeRegex(trimmedSearch), 'i');
+      matchConditions.push({
+        $or: [
+          { contract_no: regex },
+          { 'listing.title': regex },
+          { 'buyer.name': regex },
+          { 'buyer.email': regex },
+          { 'seller.name': regex },
+          { 'seller.email': regex },
+        ],
+      });
+    }
+
+    if (matchConditions.length > 0) {
+      pipeline.push({ $match: { $and: matchConditions } });
+    }
+
+    pipeline.push({ $sort: { createdAt: -1 } });
+
+    pipeline.push({
+      $facet: {
+        data: [
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              _id: 1,
+              contract_no: 1,
+              status: 1,
+              document_url: 1,
+              provider: 1,
+              provider_document_id: 1,
+              provider_invite_id: 1,
+              terms_and_conditions: 1,
+              notes: 1,
+              signed_at: 1,
+              created_at: '$createdAt',
+              updated_at: '$updatedAt',
+              transaction: {
+                _id: '$transaction._id',
+                status: '$transaction.status',
+                price: '$transaction.price',
+                payment_method: '$transaction.payment_method',
+                meeting_date: '$transaction.meeting_date',
+                notes: '$transaction.notes',
+                listing: {
+                  _id: '$listing._id',
+                  title: '$listing.title',
+                  price: '$listing.price',
+                  status: '$listing.status',
+                },
+                buyer: {
+                  _id: '$buyer._id',
+                  name: '$buyer.name',
+                  email: '$buyer.email',
+                  phone: '$buyer.phone',
+                },
+                seller: {
+                  _id: '$seller._id',
+                  name: '$seller.name',
+                  email: '$seller.email',
+                  phone: '$seller.phone',
+                },
+              },
+              payment: {
+                _id: '$payment._id',
+                status: '$payment.status',
+                amount: '$payment.amount',
+                payment_method: '$payment.payment_method',
+                seller_payout: '$payment.seller_payout',
+                platform_fee: '$payment.platform_fee',
+              },
+            },
+          },
+        ],
+        totalCount: [{ $count: 'count' }],
+      },
+    });
+
+    return { pipeline, page, limit };
+  }
+
+  private escapeRegex(input: string) {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   private buildDefaultTerms(options: CreateFromPaymentOptions) {

@@ -8,7 +8,13 @@ import {
   Delete,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { CommissionsService } from './commissions.service';
 import { CreateCommissionDto, UpdateCommissionDto } from './dto';
 import { CommissionStatus } from '../model/commissions';
@@ -22,7 +28,10 @@ export class CommissionsController {
   @ApiOperation({ summary: 'Tạo hoa hồng mới' })
   @ApiResponse({ status: 201, description: 'Tạo thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
-  @ApiResponse({ status: 409, description: 'Hoa hồng cho giao dịch này đã tồn tại' })
+  @ApiResponse({
+    status: 409,
+    description: 'Hoa hồng cho giao dịch này đã tồn tại',
+  })
   create(@Body() createCommissionDto: CreateCommissionDto) {
     return this.commissionsService.create(createCommissionDto);
   }
@@ -64,11 +73,11 @@ export class CommissionsController {
 
   @Get('by-status')
   @ApiOperation({ summary: 'Lấy danh sách hoa hồng theo trạng thái' })
-  @ApiQuery({ 
-    name: 'status', 
-    description: 'Trạng thái hoa hồng', 
+  @ApiQuery({
+    name: 'status',
+    description: 'Trạng thái hoa hồng',
     enum: CommissionStatus,
-    example: CommissionStatus.PENDING 
+    example: CommissionStatus.PENDING,
   })
   @ApiResponse({ status: 200, description: 'Lấy danh sách thành công' })
   findByStatus(@Query('status') status: CommissionStatus) {
@@ -91,7 +100,11 @@ export class CommissionsController {
 
   @Get('by-transaction/:transactionId')
   @ApiOperation({ summary: 'Lấy hoa hồng theo ID giao dịch' })
-  @ApiParam({ name: 'transactionId', description: 'ID của giao dịch', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'transactionId',
+    description: 'ID của giao dịch',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Lấy thông tin thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   findByTransactionId(@Param('transactionId') transactionId: string) {
@@ -100,7 +113,11 @@ export class CommissionsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Lấy thông tin hoa hồng theo ID' })
-  @ApiParam({ name: 'id', description: 'ID của hoa hồng', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của hoa hồng',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Lấy thông tin thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   findOne(@Param('id') id: string) {
@@ -109,18 +126,32 @@ export class CommissionsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Cập nhật thông tin hoa hồng' })
-  @ApiParam({ name: 'id', description: 'ID của hoa hồng', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của hoa hồng',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
-  @ApiResponse({ status: 409, description: 'Hoa hồng cho giao dịch này đã tồn tại' })
-  update(@Param('id') id: string, @Body() updateCommissionDto: UpdateCommissionDto) {
+  @ApiResponse({
+    status: 409,
+    description: 'Hoa hồng cho giao dịch này đã tồn tại',
+  })
+  update(
+    @Param('id') id: string,
+    @Body() updateCommissionDto: UpdateCommissionDto,
+  ) {
     return this.commissionsService.update(id, updateCommissionDto);
   }
 
   @Patch(':id/mark-paid')
   @ApiOperation({ summary: 'Đánh dấu hoa hồng đã thanh toán' })
-  @ApiParam({ name: 'id', description: 'ID của hoa hồng', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của hoa hồng',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   markAsPaid(@Param('id') id: string) {
@@ -129,7 +160,11 @@ export class CommissionsController {
 
   @Patch(':id/mark-cancelled')
   @ApiOperation({ summary: 'Đánh dấu hoa hồng đã hủy' })
-  @ApiParam({ name: 'id', description: 'ID của hoa hồng', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của hoa hồng',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   markAsCancelled(@Param('id') id: string) {
@@ -138,7 +173,11 @@ export class CommissionsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Xóa hoa hồng' })
-  @ApiParam({ name: 'id', description: 'ID của hoa hồng', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của hoa hồng',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Xóa thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   remove(@Param('id') id: string) {

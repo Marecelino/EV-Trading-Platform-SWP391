@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as mongoose from 'mongoose';
@@ -12,7 +16,7 @@ export class AuctionsService {
     @InjectModel(Auction.name) private auctionModel: Model<Auction>,
     @InjectModel('EVDetail') private evDetailModel: Model<any>,
     @InjectModel('BatteryDetail') private batteryDetailModel: Model<any>,
-  ) { }
+  ) {}
 
   /**
    * CREATE - Create new auction
@@ -41,20 +45,26 @@ export class AuctionsService {
 
       const dataWithDetail = await Promise.all(
         auctions.map(async (auction) => {
-          const category = String((auction as any).category || '').toLowerCase();
+          const category = String(
+            (auction as any).category || '',
+          ).toLowerCase();
           const auctionId = (auction as any)._id;
 
           if (category === 'ev') {
-            const evDetail = await this.evDetailModel.findOne({ auction_id: auctionId }).lean();
+            const evDetail = await this.evDetailModel
+              .findOne({ auction_id: auctionId })
+              .lean();
             return { ...auction, auction_id: auctionId, evDetail };
           }
           if (category === 'battery') {
-            const batteryDetail = await this.batteryDetailModel.findOne({ auction_id: auctionId }).lean();
+            const batteryDetail = await this.batteryDetailModel
+              .findOne({ auction_id: auctionId })
+              .lean();
             return { ...auction, auction_id: auctionId, batteryDetail };
           }
 
           return { ...auction, auction_id: auctionId };
-        })
+        }),
       );
 
       return {
@@ -66,7 +76,9 @@ export class AuctionsService {
         hasPrevPage: page > 1,
       };
     } catch (error) {
-      throw new BadRequestException('Failed to fetch auctions: ' + error.message);
+      throw new BadRequestException(
+        'Failed to fetch auctions: ' + error.message,
+      );
     }
   }
   /**
@@ -91,10 +103,15 @@ export class AuctionsService {
 
       return auction;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      throw new BadRequestException('Failed to fetch auction: ' + error.message);
+      throw new BadRequestException(
+        'Failed to fetch auction: ' + error.message,
+      );
     }
   }
 
@@ -131,8 +148,12 @@ export class AuctionsService {
       }
 
       // Prevent updates to ended or cancelled auctions
-      if ([AuctionStatus.ENDED, AuctionStatus.CANCELLED].includes(auction.status)) {
-        throw new BadRequestException('Cannot update ended or cancelled auctions');
+      if (
+        [AuctionStatus.ENDED, AuctionStatus.CANCELLED].includes(auction.status)
+      ) {
+        throw new BadRequestException(
+          'Cannot update ended or cancelled auctions',
+        );
       }
 
       // Prepare update data
@@ -156,10 +177,15 @@ export class AuctionsService {
 
       return updatedAuction;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      throw new BadRequestException('Failed to update auction: ' + error.message);
+      throw new BadRequestException(
+        'Failed to update auction: ' + error.message,
+      );
     }
   }
 
@@ -179,7 +205,9 @@ export class AuctionsService {
 
       // Business rules for deletion
       if (auction.bids && auction.bids.length > 0) {
-        throw new BadRequestException('Cannot delete auction with existing bids');
+        throw new BadRequestException(
+          'Cannot delete auction with existing bids',
+        );
       }
 
       if (auction.status === AuctionStatus.LIVE) {
@@ -188,13 +216,19 @@ export class AuctionsService {
 
       // Remove related details robustly (match auction_id and listing_id if present)
       const category = String((auction as any).category || '').toLowerCase();
-      const listingId = (auction as any).listing_id ? (auction as any).listing_id.toString() : null;
+      const listingId = (auction as any).listing_id
+        ? (auction as any).listing_id.toString()
+        : null;
 
       const selectors: any[] = [];
-      if (mongoose.Types.ObjectId.isValid(id)) selectors.push({ auction_id: new mongoose.Types.ObjectId(id) });
+      if (mongoose.Types.ObjectId.isValid(id))
+        selectors.push({ auction_id: new mongoose.Types.ObjectId(id) });
       selectors.push({ auction_id: id });
       if (listingId) {
-        if (mongoose.Types.ObjectId.isValid(listingId)) selectors.push({ listing_id: new mongoose.Types.ObjectId(listingId) });
+        if (mongoose.Types.ObjectId.isValid(listingId))
+          selectors.push({
+            listing_id: new mongoose.Types.ObjectId(listingId),
+          });
         selectors.push({ listing_id: listingId });
       }
 
@@ -202,17 +236,29 @@ export class AuctionsService {
         const found = await this.evDetailModel.find({ $or: selectors }).lean();
         if (found.length > 0) {
           const ids = found.map((d) => d._id).filter(Boolean);
-          const del = await this.evDetailModel.deleteMany({ _id: { $in: ids } });
-          // eslint-disable-next-line no-console
-          console.log('Deleted evdetails', { foundCount: found.length, deletedCount: del.deletedCount });
+          const del = await this.evDetailModel.deleteMany({
+            _id: { $in: ids },
+          });
+
+          console.log('Deleted evdetails', {
+            foundCount: found.length,
+            deletedCount: del.deletedCount,
+          });
         }
       } else if (category === 'battery') {
-        const found = await this.batteryDetailModel.find({ $or: selectors }).lean();
+        const found = await this.batteryDetailModel
+          .find({ $or: selectors })
+          .lean();
         if (found.length > 0) {
           const ids = found.map((d) => d._id).filter(Boolean);
-          const del = await this.batteryDetailModel.deleteMany({ _id: { $in: ids } });
-          // eslint-disable-next-line no-console
-          console.log('Deleted batterydetails', { foundCount: found.length, deletedCount: del.deletedCount });
+          const del = await this.batteryDetailModel.deleteMany({
+            _id: { $in: ids },
+          });
+
+          console.log('Deleted batterydetails', {
+            foundCount: found.length,
+            deletedCount: del.deletedCount,
+          });
         }
       }
 
@@ -223,10 +269,15 @@ export class AuctionsService {
         deletedId: id,
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      throw new BadRequestException('Failed to delete auction: ' + error.message);
+      throw new BadRequestException(
+        'Failed to delete auction: ' + error.message,
+      );
     }
   }
 
@@ -291,10 +342,12 @@ export class AuctionsService {
         .populate('seller_id', 'name email phone')
         .populate('bids.user_id', 'name email phone')
         .exec();
-
     } catch (error) {
       console.error('Place bid error:', error);
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new BadRequestException('Failed to place bid: ' + error.message);
@@ -319,8 +372,12 @@ export class AuctionsService {
         return auction;
       }
 
-      if (![AuctionStatus.LIVE, AuctionStatus.SCHEDULED].includes(auction.status)) {
-        throw new BadRequestException('Only live or scheduled auctions can be ended');
+      if (
+        ![AuctionStatus.LIVE, AuctionStatus.SCHEDULED].includes(auction.status)
+      ) {
+        throw new BadRequestException(
+          'Only live or scheduled auctions can be ended',
+        );
       }
 
       auction.status = AuctionStatus.ENDED;
@@ -328,7 +385,10 @@ export class AuctionsService {
 
       return await auction.save();
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new BadRequestException('Failed to end auction: ' + error.message);
@@ -344,10 +404,12 @@ export class AuctionsService {
       return {
         status: 'connected',
         message: `Database connection successful. Found ${count} auctions.`,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
     } catch (error) {
-      throw new BadRequestException('Database connection failed: ' + error.message);
+      throw new BadRequestException(
+        'Database connection failed: ' + error.message,
+      );
     }
   }
 }

@@ -29,7 +29,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       email: profile.emails?.[0]?.value?.toLowerCase() ?? null,
       name:
         profile.displayName ||
-        [profile.name?.givenName, profile.name?.familyName].filter(Boolean).join(' '),
+        [profile.name?.givenName, profile.name?.familyName]
+          .filter(Boolean)
+          .join(' '),
       avatarUrl: profile.photos?.[0]?.value ?? null,
       accessToken,
     };

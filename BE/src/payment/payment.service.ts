@@ -122,7 +122,7 @@ export class PaymentService {
       listing.seller_id instanceof Types.ObjectId
         ? listing.seller_id.toString()
         : (listing.seller_id as any)?._id?.toString() ||
-        String(listing.seller_id);
+          String(listing.seller_id);
 
     if (listingSellerId === buyerId) {
       throw new BadRequestException('Buyer cannot be the seller');
@@ -134,7 +134,7 @@ export class PaymentService {
     }
 
     // Use price from listing (server authoritative). If client sent amount and it's different, reject.
-    const listingPrice = listing.price as number;
+    const listingPrice = listing.price;
     if (dto.amount && dto.amount !== listingPrice) {
       throw new BadRequestException('Amount does not match listing price');
     }
@@ -297,6 +297,22 @@ export class PaymentService {
     payment.platform_fee = platformFee;
     payment.seller_payout = sellerPayout;
     await payment.save();
+
+    const listingId =
+      listing?._id?.toString?.() ??
+      listing?.id?.toString?.() ??
+      payment.listing_id?.toString?.();
+
+    if (listingId) {
+      try {
+        await this.listingsService.updateStatus(listingId, ListingStatus.SOLD);
+      } catch (error) {
+        console.warn('Failed to update listing status after payment', {
+          listingId,
+          error,
+        });
+      }
+    }
 
     const contract = await this.contractsService.createFromPayment({
       transactionId: (transaction._id as Types.ObjectId).toString(),

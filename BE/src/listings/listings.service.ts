@@ -1,7 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, Types } from 'mongoose';
-import { CategoryEnum, Listing, ListingDocument, ListingStatus } from '../model/listings';
+import {
+  CategoryEnum,
+  Listing,
+  ListingDocument,
+  ListingStatus,
+} from '../model/listings';
 
 import {
   PriceSuggestion,
@@ -47,11 +52,10 @@ export class ListingsService {
     private readonly evDetailModel: Model<any>,
     @InjectModel(BatteryDetail.name)
     private readonly batteryDetailModel: Model<any>,
-  ) { }
+  ) {}
   private escapeRegex(input: string) {
     return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
-
 
   async findAll(filters: FilterListingsDto) {
     const {
@@ -85,7 +89,8 @@ export class ListingsService {
 
     const [data, total] = await Promise.all([
       this.listingModel
-        .find(query).populate({ path: 'seller_id', select: 'name email phone' })
+        .find(query)
+        .populate({ path: 'seller_id', select: 'name email phone' })
         .populate({ path: 'brand_id', select: 'name' })
         .sort({ is_featured: -1, createdAt: -1 })
         .skip(skip)
@@ -97,15 +102,22 @@ export class ListingsService {
     const dataWithDetail = await Promise.all(
       (Array.isArray(data) ? data : []).map(async (item) => {
         if (item.category === 'ev' || item.category === CategoryEnum.EV) {
-          const evDetail = await this.evDetailModel.findOne({ listing_id: item._id }).lean();
+          const evDetail = await this.evDetailModel
+            .findOne({ listing_id: item._id })
+            .lean();
           return { ...item, evDetail };
         }
-        if (item.category === 'battery' || item.category === CategoryEnum.BATTERY) {
-          const batteryDetail = await this.batteryDetailModel.findOne({ listing_id: item._id }).lean();
+        if (
+          item.category === 'battery' ||
+          item.category === CategoryEnum.BATTERY
+        ) {
+          const batteryDetail = await this.batteryDetailModel
+            .findOne({ listing_id: item._id })
+            .lean();
           return { ...item, batteryDetail };
         }
         return item;
-      })
+      }),
     );
 
     return {
@@ -132,25 +144,22 @@ export class ListingsService {
     return listing;
   }
 
-  // async updateStatus(id: string, status: ListingStatus) {
-  //   const listing = await this.listingModel
-  //     .findByIdAndUpdate(id, { status }, { new: true })
-  //     .lean<Listing & { _id: string }>();
+  async updateStatus(id: string, status: ListingStatus) {
+    const listing = await this.listingModel
+      .findByIdAndUpdate(id, { status }, { new: true })
+      .lean<Listing & { _id: string }>();
 
-  //   if (!listing) {
-  //     throw new NotFoundException('Listing not found');
-  //   }
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
 
-  //   return listing;
-  // }
-
-
+    return listing;
+  }
 
   // async update(id: string, updateListingDto: UpdateListingDto) {
   //   const updatePayload: Record<string, unknown> = {
   //     ...updateListingDto,
   //   };
-
 
   //   const listing = await this.listingModel
   //     .findByIdAndUpdate(id, updatePayload, { new: true, runValidators: true })
@@ -188,32 +197,53 @@ export class ListingsService {
   // }
 
   async remove(id: string) {
-    const listing = await this.listingModel.findById(id).lean<Listing & { _id: string }>();
+    const listing = await this.listingModel
+      .findById(id)
+      .lean<Listing & { _id: string }>();
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
 
     const listingId = listing._id;
     const selectors: any[] = [];
-    if (Types.ObjectId.isValid(String(listingId))) selectors.push({ listing_id: new Types.ObjectId(String(listingId)) });
+    if (Types.ObjectId.isValid(String(listingId)))
+      selectors.push({ listing_id: new Types.ObjectId(String(listingId)) });
     selectors.push({ listing_id: String(listingId) });
 
     // Delete detail documents for this listing
-    if (listing.category === CategoryEnum.EV || String(listing.category) === 'ev') {
+    if (
+      listing.category === CategoryEnum.EV ||
+      String(listing.category) === 'ev'
+    ) {
       const found = await this.evDetailModel.find({ $or: selectors }).lean();
       if (found.length > 0) {
         const ids = found.map((d) => d._id).filter(Boolean);
         const del = await this.evDetailModel.deleteMany({ _id: { $in: ids } });
-        // eslint-disable-next-line no-console
-        console.log('Deleted evdetails for listing', { listingId, foundCount: found.length, deletedCount: del.deletedCount });
+
+        console.log('Deleted evdetails for listing', {
+          listingId,
+          foundCount: found.length,
+          deletedCount: del.deletedCount,
+        });
       }
-    } else if (listing.category === CategoryEnum.BATTERY || String(listing.category) === 'battery') {
-      const found = await this.batteryDetailModel.find({ $or: selectors }).lean();
+    } else if (
+      listing.category === CategoryEnum.BATTERY ||
+      String(listing.category) === 'battery'
+    ) {
+      const found = await this.batteryDetailModel
+        .find({ $or: selectors })
+        .lean();
       if (found.length > 0) {
         const ids = found.map((d) => d._id).filter(Boolean);
-        const del = await this.batteryDetailModel.deleteMany({ _id: { $in: ids } });
-        // eslint-disable-next-line no-console
-        console.log('Deleted batterydetails for listing', { listingId, foundCount: found.length, deletedCount: del.deletedCount });
+        const del = await this.batteryDetailModel.deleteMany({
+          _id: { $in: ids },
+        });
+
+        console.log('Deleted batterydetails for listing', {
+          listingId,
+          foundCount: found.length,
+          deletedCount: del.deletedCount,
+        });
       }
     }
 
@@ -238,21 +268,17 @@ export class ListingsService {
       status: ListingStatus.SOLD,
     };
 
-
-
     if (condition) {
       query.condition = condition;
     }
-
-
 
     const comparableListings = (await this.listingModel
       .find(query)
       .sort({ createdAt: -1 })
       .limit(20)
       .lean()) as unknown as Array<
-        Listing & { _id: Types.ObjectId; createdAt?: Date }
-      >;
+      Listing & { _id: Types.ObjectId; createdAt?: Date }
+    >;
 
     if (comparableListings.length === 0) {
       return {
@@ -320,8 +346,8 @@ export class ListingsService {
       .sort({ is_featured: -1, createdAt: -1 })
       .limit(limit)
       .lean()) as unknown as Array<
-        Listing & { _id: Types.ObjectId; createdAt?: Date }
-      >;
+      Listing & { _id: Types.ObjectId; createdAt?: Date }
+    >;
   }
 
   /**
@@ -336,7 +362,7 @@ export class ListingsService {
     sellerId: string,
     page: number = 1,
     limit: number = 10,
-    status?: ListingStatus
+    status?: ListingStatus,
   ) {
     // Validate seller ID
     if (!Types.ObjectId.isValid(sellerId)) {
@@ -355,8 +381,8 @@ export class ListingsService {
       const query: FilterQuery<ListingDocument> = {
         $or: [
           { seller_id: sellerId }, // Try matching the string directly
-          { seller_id: new Types.ObjectId(sellerId) } // Try matching as ObjectId
-        ]
+          { seller_id: new Types.ObjectId(sellerId) }, // Try matching as ObjectId
+        ],
       };
 
       // console.log('Query:', JSON.stringify(query));
@@ -386,7 +412,7 @@ export class ListingsService {
             'createdAt',
             'updatedAt',
             'expiry_date',
-            'is_featured'
+            'is_featured',
           ])
           .populate('seller_id', 'name email phone')
           .populate('brand_id', 'name')
@@ -395,7 +421,7 @@ export class ListingsService {
           .skip(skip)
           .limit(limit)
           .lean(),
-        this.listingModel.countDocuments(query)
+        this.listingModel.countDocuments(query),
       ]);
 
       // Return formatted response
@@ -412,15 +438,12 @@ export class ListingsService {
           itemsInPage: data.length,
           startIndex: skip + 1,
           endIndex: skip + data.length,
-          status: status || 'all'
-        }
+          status: status || 'all',
+        },
       };
-
     } catch (error) {
       console.error('Find listings by seller error:', error);
-      throw new Error(
-        `Failed to fetch listings: ${error.message}`
-      );
+      throw new Error(`Failed to fetch listings: ${error.message}`);
     }
   }
 }

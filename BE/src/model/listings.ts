@@ -21,7 +21,7 @@ export enum VehicleCondition {
 
 export enum CategoryEnum {
   EV = 'ev',
-  BATTERY = 'battery'
+  BATTERY = 'battery',
 }
 
 export type ListingDocument = HydratedDocument<Listing>;
@@ -43,8 +43,6 @@ export class Listing {
     required: true,
   })
   brand_id: Types.ObjectId;
-
-
 
   @Prop({
     required: true,
@@ -116,7 +114,6 @@ export class Listing {
     required: false,
   })
   location?: string;
-
 }
 
 export const ListingSchema = SchemaFactory.createForClass(Listing);

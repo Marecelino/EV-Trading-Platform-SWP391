@@ -54,10 +54,18 @@ export const EVDetailSchema = SchemaFactory.createForClass(EVDetail);
 
 EVDetailSchema.pre('validate', function (next) {
   if (!this.listing_id && !this.auction_id) {
-    return next(new Error('Either listing_id or auction_id is required for EVDetail'));
+    return next(
+      new Error('Either listing_id or auction_id is required for EVDetail'),
+    );
   }
   next();
 });
 // Ensure uniqueness only when the field exists (allow multiple documents without auction_id/listing_id)
-EVDetailSchema.index({ listing_id: 1 }, { unique: true, partialFilterExpression: { listing_id: { $exists: true } } });
-EVDetailSchema.index({ auction_id: 1 }, { unique: true, partialFilterExpression: { auction_id: { $exists: true } } });
+EVDetailSchema.index(
+  { listing_id: 1 },
+  { unique: true, partialFilterExpression: { listing_id: { $exists: true } } },
+);
+EVDetailSchema.index(
+  { auction_id: 1 },
+  { unique: true, partialFilterExpression: { auction_id: { $exists: true } } },
+);
