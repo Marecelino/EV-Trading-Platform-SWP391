@@ -12,7 +12,7 @@ export class AuctionsService {
     @InjectModel(Auction.name) private auctionModel: Model<Auction>,
     @InjectModel('EVDetail') private evDetailModel: Model<any>,
     @InjectModel('BatteryDetail') private batteryDetailModel: Model<any>,
-  ) {}
+  ) { }
 
   /**
    * CREATE - Create new auction
@@ -186,11 +186,41 @@ export class AuctionsService {
         throw new BadRequestException('Cannot delete live auctions');
       }
 
+      // Remove related details robustly (match auction_id and listing_id if present)
+      const category = String((auction as any).category || '').toLowerCase();
+      const listingId = (auction as any).listing_id ? (auction as any).listing_id.toString() : null;
+
+      const selectors: any[] = [];
+      if (mongoose.Types.ObjectId.isValid(id)) selectors.push({ auction_id: new mongoose.Types.ObjectId(id) });
+      selectors.push({ auction_id: id });
+      if (listingId) {
+        if (mongoose.Types.ObjectId.isValid(listingId)) selectors.push({ listing_id: new mongoose.Types.ObjectId(listingId) });
+        selectors.push({ listing_id: listingId });
+      }
+
+      if (category === 'ev') {
+        const found = await this.evDetailModel.find({ $or: selectors }).lean();
+        if (found.length > 0) {
+          const ids = found.map((d) => d._id).filter(Boolean);
+          const del = await this.evDetailModel.deleteMany({ _id: { $in: ids } });
+          // eslint-disable-next-line no-console
+          console.log('Deleted evdetails', { foundCount: found.length, deletedCount: del.deletedCount });
+        }
+      } else if (category === 'battery') {
+        const found = await this.batteryDetailModel.find({ $or: selectors }).lean();
+        if (found.length > 0) {
+          const ids = found.map((d) => d._id).filter(Boolean);
+          const del = await this.batteryDetailModel.deleteMany({ _id: { $in: ids } });
+          // eslint-disable-next-line no-console
+          console.log('Deleted batterydetails', { foundCount: found.length, deletedCount: del.deletedCount });
+        }
+      }
+
       await this.auctionModel.findByIdAndDelete(id);
-      
-      return { 
-        message: 'Auction deleted successfully',
-        deletedId: id 
+
+      return {
+        message: 'Auction and related details deleted successfully',
+        deletedId: id,
       };
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {

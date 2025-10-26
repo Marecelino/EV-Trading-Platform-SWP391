@@ -10,7 +10,6 @@ import { ListingsController } from './listings.controller';
 import { ListingsService } from './listings.service';
 import { EVListingsService } from './ev-listings.service';
 import { BatteryListingsService } from './battery-listings.service';
-import { Category, CategorySchema } from 'src/model/categories';
 import { Brand, BrandSchema } from 'src/model/brands';
 import { EVDetail, EVDetailSchema } from 'src/model/evdetails';
 import { BatteryDetail, BatteryDetailSchema } from 'src/model/batterydetails';
@@ -20,7 +19,7 @@ import { BatteryDetail, BatteryDetailSchema } from 'src/model/batterydetails';
     MongooseModule.forFeature([
       { name: Listing.name, schema: ListingSchema },
       { name: PriceSuggestion.name, schema: PriceSuggestionSchema },
-      { name: Category.name, schema: CategorySchema },
+
       { name: Brand.name, schema: BrandSchema },
       { name: EVDetail.name, schema: EVDetailSchema },
       { name: BatteryDetail.name, schema: BatteryDetailSchema },

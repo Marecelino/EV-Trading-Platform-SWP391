@@ -13,7 +13,6 @@ export class EVDetail {
     type: Types.ObjectId,
     ref: 'Listing',
     required: false,
-    unique: true,
   })
   listing_id?: Types.ObjectId | Listing;
 
@@ -21,7 +20,6 @@ export class EVDetail {
     type: Types.ObjectId,
     ref: 'Auction',
     required: false,
-    unique: true,
   })
   auction_id?: Types.ObjectId | Auction;
 
@@ -60,3 +58,6 @@ EVDetailSchema.pre('validate', function (next) {
   }
   next();
 });
+// Ensure uniqueness only when the field exists (allow multiple documents without auction_id/listing_id)
+EVDetailSchema.index({ listing_id: 1 }, { unique: true, partialFilterExpression: { listing_id: { $exists: true } } });
+EVDetailSchema.index({ auction_id: 1 }, { unique: true, partialFilterExpression: { auction_id: { $exists: true } } });

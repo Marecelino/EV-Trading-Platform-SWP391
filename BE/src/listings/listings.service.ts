@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, Types } from 'mongoose';
 import { CategoryEnum, Listing, ListingDocument, ListingStatus } from '../model/listings';
+
 import {
   PriceSuggestion,
   PriceSuggestionDocument,
@@ -10,7 +11,6 @@ import {
 import { FilterListingsDto } from './dto/filter-listings.dto';
 import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { Brand, BrandDocument } from 'src/model/brands';
-import { Category, CategoryDocument } from 'src/model/categories';
 import { EVDetail } from 'src/model/evdetails';
 import { BatteryDetail } from 'src/model/batterydetails';
 
@@ -43,9 +43,6 @@ export class ListingsService {
     // injected brand/model/category models
     @InjectModel(Brand.name)
     private readonly brandModel: Model<BrandDocument>,
-
-    @InjectModel(Category.name)
-    private readonly categoryModel: Model<CategoryDocument>,
     @InjectModel(EVDetail.name)
     private readonly evDetailModel: Model<any>,
     @InjectModel(BatteryDetail.name)
@@ -59,7 +56,7 @@ export class ListingsService {
   async findAll(filters: FilterListingsDto) {
     const {
       brand_id,
-      status ,
+      status,
       condition,
       search,
       minPrice,
@@ -191,12 +188,39 @@ export class ListingsService {
   // }
 
   async remove(id: string) {
-    const listing = await this.listingModel
-      .findByIdAndDelete(id)
-      .lean<Listing & { _id: string }>();
+    const listing = await this.listingModel.findById(id).lean<Listing & { _id: string }>();
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
+
+    const listingId = listing._id;
+    const selectors: any[] = [];
+    if (Types.ObjectId.isValid(String(listingId))) selectors.push({ listing_id: new Types.ObjectId(String(listingId)) });
+    selectors.push({ listing_id: String(listingId) });
+
+    // Delete detail documents for this listing
+    if (listing.category === CategoryEnum.EV || String(listing.category) === 'ev') {
+      const found = await this.evDetailModel.find({ $or: selectors }).lean();
+      if (found.length > 0) {
+        const ids = found.map((d) => d._id).filter(Boolean);
+        const del = await this.evDetailModel.deleteMany({ _id: { $in: ids } });
+        // eslint-disable-next-line no-console
+        console.log('Deleted evdetails for listing', { listingId, foundCount: found.length, deletedCount: del.deletedCount });
+      }
+    } else if (listing.category === CategoryEnum.BATTERY || String(listing.category) === 'battery') {
+      const found = await this.batteryDetailModel.find({ $or: selectors }).lean();
+      if (found.length > 0) {
+        const ids = found.map((d) => d._id).filter(Boolean);
+        const del = await this.batteryDetailModel.deleteMany({ _id: { $in: ids } });
+        // eslint-disable-next-line no-console
+        console.log('Deleted batterydetails for listing', { listingId, foundCount: found.length, deletedCount: del.deletedCount });
+      }
+    }
+
+    // Delete auctions that reference this listing and their related details
+
+    // Finally delete the listing
+    await this.listingModel.findByIdAndDelete(id);
     return listing;
   }
 
@@ -214,13 +238,13 @@ export class ListingsService {
       status: ListingStatus.SOLD,
     };
 
-   
+
 
     if (condition) {
       query.condition = condition;
     }
 
-    
+
 
     const comparableListings = (await this.listingModel
       .find(query)
@@ -251,9 +275,9 @@ export class ListingsService {
       comparables: comparableListings.map((item) => ({
         id: item._id,
         price: item.price,
-       
+
         condition: item.condition,
-        
+
         createdAt: item.createdAt,
       })),
     };
