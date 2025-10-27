@@ -53,6 +53,51 @@ export class CreatePaymentDto {
   bank_code?: string;
 }
 
+export class CreateAuctionPaymentDto {
+  @ApiProperty({
+    example: '6523f5c30fde90429138cc5a',
+    description: 'ID of the auction to pay for',
+  })
+  @IsNotEmpty()
+  @IsString()
+  auction_id: string;
+
+  @ApiPropertyOptional({
+    example: '6523f5c30fde90429138cc5b',
+    description:
+      'Optional: buyer id to use for the payment (if omitted, taken from authenticated user context)',
+  })
+  @IsOptional()
+  @IsString()
+  user_id?: string;
+
+  @ApiProperty({
+    example: 1000000,
+    description: 'Payment amount in VND (server will validate)',
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  amount: number;
+
+  @ApiProperty({
+    example: 'VNPAY',
+    description: 'Payment method',
+    enum: PaymentMethod,
+  })
+  @IsNotEmpty()
+  @IsEnum(PaymentMethod)
+  payment_method: PaymentMethod;
+
+  @ApiProperty({
+    example: 'NCB',
+    description: 'Bank code for VNPAY',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  bank_code?: string;
+}
+
 export class VNPayIPNDto {
   @ApiProperty()
   @IsString()

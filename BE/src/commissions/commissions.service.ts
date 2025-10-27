@@ -9,6 +9,8 @@ import { CreateCommissionDto, UpdateCommissionDto } from './dto';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Commission, CommissionStatus } from 'src/model/commissions';
+import { TransactionsService } from '../transactions/transactions.service';
+import { TransactionStatus } from 'src/model/transactions';
 
 @Injectable()
 export class CommissionsService {
@@ -20,9 +22,52 @@ export class CommissionsService {
     private readonly configService: ConfigService,
     @InjectModel(Commission.name)
     private readonly commissionModel: Model<Commission>,
+    private readonly transactionsService: TransactionsService,
   ) {
     this.defaultRate = this.parseNumberConfig('COMMISSION_DEFAULT_RATE', 0.05);
     this.rules = this.parseRules();
+  }
+
+  /**
+   * Mark a commission as paid and update the related transaction status.
+   * This intentionally does NOT modify any Contract records.
+   */
+  async payCommission(id: string, paymentReference?: string): Promise<Commission> {
+    const commission = await this.commissionModel.findById(id).exec();
+    if (!commission) {
+      throw new NotFoundException(`Commission with ID ${id} not found`);
+    }
+
+    if (commission.status === CommissionStatus.PAID) {
+      return commission;
+    }
+
+    commission.status = CommissionStatus.PAID;
+    commission.paid_at = new Date();
+    if (paymentReference) commission.payment_reference = paymentReference;
+
+    const saved = await commission.save();
+
+    // Update related transaction status to COMPLETED (best-effort)
+    try {
+      const txId = (saved.transaction_id as any)?.toString?.()
+        ? (saved.transaction_id as any).toString()
+        : String(saved.transaction_id || '');
+
+      if (txId) {
+        await this.transactionsService.updateStatus(txId, {
+          status: TransactionStatus.COMPLETED,
+          notes: `Commission ${saved._id} marked as paid`,
+        } as any);
+      }
+    } catch (err) {
+      this.logger.warn('Failed to update related transaction after commission payment', {
+        commissionId: saved._id,
+        error: err?.message || err,
+      });
+    }
+
+    return saved;
   }
 
   calculate(context: CommissionContext) {

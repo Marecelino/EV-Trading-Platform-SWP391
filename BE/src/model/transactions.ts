@@ -11,8 +11,11 @@ export enum TransactionStatus {
 
 @Schema({ timestamps: true })
 export class Transaction {
-  @Prop({ type: Types.ObjectId, ref: 'Listing', required: true })
-  listing_id!: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Listing' })
+  listing_id?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Auction' })
+  auction_id?: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   buyer_id!: Types.ObjectId;
@@ -49,6 +52,9 @@ export class Transaction {
 
   @Prop({ type: Types.ObjectId, ref: 'Contract' })
   contract_id?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Commission' })
+  commission_id?: Types.ObjectId;
 }
 
 export type TransactionDocument = Transaction & Document;

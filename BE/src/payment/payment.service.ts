@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
@@ -17,14 +18,20 @@ import { VNPay } from 'vnpay/vnpay';
 import { ProductCode, VnpLocale } from 'vnpay/enums';
 import { dateFormat } from 'vnpay/utils';
 import { ListingsService } from '../listings/listings.service';
+import { AuctionsService } from '../auctions/auctions.service';
+import { AuctionStatus } from '../model/auctions';
 import { TransactionsService } from '../transactions/transactions.service';
 import { ContractsService } from '../contracts/contracts.service';
 import { CommissionsService } from '../commissions/commissions.service';
 import { SignnowService } from '../signnow/signnow.service';
 import { ListingStatus } from '../model/listings';
+import { TransactionStatus } from '../model/transactions';
+import { User, UserDocument } from '../model/users.schema';
+import { getModelToken } from '@nestjs/mongoose';
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
   private readonly vnpPaymentEndpoint: string;
   private readonly vnpHost: string;
   private readonly tmnCode: string;
@@ -36,10 +43,12 @@ export class PaymentService {
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     private readonly configService: ConfigService,
     private readonly listingsService: ListingsService,
+    private readonly auctionsService: AuctionsService,
     private readonly transactionsService: TransactionsService,
     private readonly contractsService: ContractsService,
     private readonly commissionsService: CommissionsService,
     private readonly signnowService: SignnowService,
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
   ) {
     // Initialize VNPay config values
     const vnpUrlRaw =
@@ -89,6 +98,16 @@ export class PaymentService {
     // Use the server-authoritative payment amount (in case client omitted or sent different value)
     const amount = payment.amount;
 
+    // VNPay requires amounts within certain limits (VND): >= 5,000 and < 1,000,000,000
+    if (typeof amount !== 'number' || !Number.isFinite(amount)) {
+      throw new BadRequestException('Invalid payment amount');
+    }
+    if (amount < 5000 || amount >= 1000000000) {
+      throw new BadRequestException(
+        'Số tiền giao dịch không hợp lệ. Số tiền hợp lệ từ 5,000 đến dưới 1 tỷ đồng',
+      );
+    }
+
     const vnpayResponse = this.vnpay.buildPaymentUrl({
       vnp_Amount: Math.round(amount * 100), // Amount in smallest currency unit (integer)
       vnp_IpAddr: ipAddress,
@@ -108,10 +127,99 @@ export class PaymentService {
   }
 
   /**
+   * Create VNPay payment URL specifically for auctions
+   */
+  async createVNPayUrlForAuction(
+    auctionDto: any,
+    userId: string,
+    ipAddress: string,
+  ) {
+    // Validate auction id
+    const auctionId = auctionDto.auction_id;
+    if (!auctionId || !Types.ObjectId.isValid(String(auctionId))) {
+      throw new BadRequestException('Invalid auction identifier');
+    }
+
+    // Fetch auction
+    const auction = await this.auctionsService.findOne(auctionId);
+    if (!auction) throw new NotFoundException('Auction not found');
+
+    // Determine seller and price
+    const sellerId = auction.seller_id instanceof Types.ObjectId
+      ? auction.seller_id.toString()
+      : (auction.seller_id as any)?._id?.toString() || String(auction.seller_id);
+
+    if (!userId || String(userId).toLowerCase() === 'null') {
+      throw new BadRequestException('Invalid buyer identifier');
+    }
+
+    if (sellerId === userId) {
+      throw new BadRequestException('Buyer cannot be the seller');
+    }
+
+    const amount = auction.current_price ?? auction.starting_price ?? 0;
+
+    // Only allow auction payment when auction has ended
+    if (auction.status !== AuctionStatus.ENDED) {
+      throw new BadRequestException('Auction payment is only allowed when auction has ended');
+    }
+    if (auctionDto.amount && auctionDto.amount !== amount) {
+      throw new BadRequestException('Amount does not match auction price');
+    }
+
+    // VNPay requires amounts within certain limits (VND): >= 5,000 and < 1,000,000,000
+    if (typeof amount !== 'number' || !Number.isFinite(amount)) {
+      throw new BadRequestException('Invalid payment amount');
+    }
+    if (amount < 5000 || amount >= 1000000000) {
+      throw new BadRequestException(
+        'Số tiền giao dịch không hợp lệ. Số tiền hợp lệ từ 5,000 đến dưới 1 tỷ đồng',
+      );
+    }
+
+    // Create payment record
+    const payment = await this.paymentModel.create({
+      buyer_id: userId,
+      seller_id: sellerId,
+      listing_id: (auction as any).listing_id ?? undefined,
+      auction_id: (auction as any)._id ?? auctionId,
+      amount,
+      payment_method: auctionDto.payment_method,
+      status: PaymentStatus.PENDING,
+    });
+
+    const orderId = (payment._id as Types.ObjectId).toString();
+
+    const vnpayResponse = this.vnpay.buildPaymentUrl({
+      // VNPay expects amount in smallest currency unit (e.g., VND * 100)
+      vnp_Amount: Math.round(amount * 100),
+      vnp_IpAddr: ipAddress,
+      vnp_OrderInfo: `Thanh toan cho auction #${auctionId}`,
+      vnp_TxnRef: orderId,
+      vnp_OrderType: ProductCode.Other,
+      vnp_ReturnUrl: this.returnUrl,
+      vnp_Locale: VnpLocale.VN,
+      vnp_CreateDate: dateFormat(new Date()),
+      vnp_ExpireDate: dateFormat(new Date(Date.now() + 30 * 60 * 1000)),
+    });
+
+    return { payment, paymentUrl: vnpayResponse };
+  }
+
+  /**
    * Create new payment record
    */
   private async createPayment(dto: CreatePaymentDto, buyerId: string) {
     // Fetch listing to get seller and price
+    // Validate incoming identifiers early to avoid casting errors later
+    if (!dto?.listing_id || !Types.ObjectId.isValid(String(dto.listing_id))) {
+      throw new BadRequestException('Invalid listing identifier');
+    }
+
+    if (!buyerId || String(buyerId).toLowerCase() === 'null') {
+      throw new BadRequestException('Invalid buyer identifier');
+    }
+
     const listing = await this.listingsService.findOne(dto.listing_id);
     if (!listing) {
       throw new NotFoundException('Listing not found');
@@ -122,7 +230,7 @@ export class PaymentService {
       listing.seller_id instanceof Types.ObjectId
         ? listing.seller_id.toString()
         : (listing.seller_id as any)?._id?.toString() ||
-          String(listing.seller_id);
+        String(listing.seller_id);
 
     if (listingSellerId === buyerId) {
       throw new BadRequestException('Buyer cannot be the seller');
@@ -261,9 +369,11 @@ export class PaymentService {
 
     let listing: any = null;
     try {
-      listing = await this.listingsService.findOne(
-        payment.listing_id.toString(),
-      );
+      if (payment.listing_id) {
+        listing = await this.listingsService.findOne(
+          payment.listing_id.toString(),
+        );
+      }
     } catch (err) {
       // Listing might have been removed; continue with minimal data
       console.warn('Listing not found during payment finalization', err);
@@ -276,8 +386,7 @@ export class PaymentService {
         category,
       });
 
-    const createTransactionDto = {
-      listing_id: payment.listing_id.toString(),
+    const createTransactionDto: any = {
       buyer_id: payment.buyer_id.toString(),
       seller_id: payment.seller_id.toString(),
       price: payment.amount,
@@ -289,14 +398,79 @@ export class PaymentService {
       seller_payout: sellerPayout,
     } as any;
 
+    if (payment.listing_id) createTransactionDto.listing_id = payment.listing_id.toString();
+    if ((payment as any).auction_id) createTransactionDto.auction_id = (payment as any).auction_id.toString();
+
     const transaction =
       await this.transactionsService.create(createTransactionDto);
 
+    // Attempt to create a Commission record linked to this transaction.
+    // We no longer require a CommissionConfig document: use the computed
+    // rate returned from CommissionsService.calculate() and store it as
+    // a percentage (rate * 100) on the Commission document.
+    // Create Commission record and capture its id so we can reference it
+    try {
+      const createCommissionDto: any = {
+        transaction_id: (transaction._id as Types.ObjectId).toString(),
+        // config_id omitted on purpose (we're using hard-coded / ENV rules)
+        percentage: rate * 100,
+        amount: platformFee,
+      };
+
+      const createdCommission = await this.commissionsService.create(
+        createCommissionDto,
+      );
+
+      // Attach commission reference to transaction and payment, and mark transaction complete
+      if (createdCommission && createdCommission._id) {
+        try {
+          // Ensure we assign a proper Mongoose ObjectId to the typed field
+          const commId = new Types.ObjectId(String(createdCommission._id));
+          // prefer the typed property if available
+          (transaction as any).commission_id = commId;
+          transaction.status = TransactionStatus.COMPLETED;
+        } catch (err) {
+          this.logger.warn('Failed to normalize commission id for transaction', {
+            transactionId: transaction._id,
+            commissionId: createdCommission._id,
+            error: err?.message || err,
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to create Commission record for transaction', {
+        transactionId: transaction._id,
+        error: err?.message || err,
+      });
+    }
+
+    // Attach transaction and commission metadata to payment and persist
     (payment as any).transaction_id = transaction._id;
     payment.commission_rate = rate;
     payment.platform_fee = platformFee;
     payment.seller_payout = sellerPayout;
-    await payment.save();
+    // If the transaction was marked complete above, persist it
+    try {
+      await transaction.save();
+    } catch (err) {
+      console.warn('Failed to save transaction after commission update', {
+        transactionId: transaction._id,
+        error: err?.message || err,
+      });
+    }
+
+    try {
+      // If a commission_id was set on the transaction, mirror it on payment
+      if ((transaction as any).commission_id) {
+        payment['commission_id'] = (transaction as any).commission_id;
+      }
+      await payment.save();
+    } catch (err) {
+      console.warn('Failed to save payment after commission update', {
+        paymentId: payment._id,
+        error: err?.message || err,
+      });
+    }
 
     const listingId =
       listing?._id?.toString?.() ??
@@ -336,32 +510,47 @@ export class PaymentService {
       await payment.save();
 
       try {
-        const populatedTransaction = await this.transactionsService.findOne(
-          (transaction._id as Types.ObjectId).toString(),
-        );
-        const buyer = (populatedTransaction as any)?.buyer_id;
-        const seller = (populatedTransaction as any)?.seller_id;
+        // Instead of relying on a populated transaction (which may fail
+        // if buyer_id/seller_id are invalid in DB), fetch buyer/seller
+        // directly and validate before calling SignNow.
+        let buyer: any = null;
+        let seller: any = null;
+        try {
+          const buyerId = payment.buyer_id?.toString?.() ?? String(payment.buyer_id || '');
+          const sellerId = payment.seller_id?.toString?.() ?? String(payment.seller_id || '');
 
-        if (buyer?.email && seller?.email) {
-          if (!contractId) {
-            throw new Error('Missing contract identifier for SignNow');
+          if (buyerId && Types.ObjectId.isValid(buyerId)) {
+            buyer = await this.userModel.findById(buyerId).lean();
           }
-          await this.signnowService.createContractAndInvite({
-            contract_id: contractId,
-            buyer_name: buyer?.name || 'Buyer',
-            buyer_email: buyer.email,
-            seller_name: seller?.name || 'Seller',
-            seller_email: seller.email,
-            amount: payment.amount,
-            subject: contractNo
-              ? `Ký hợp đồng ${contractNo}`
-              : 'Ký hợp đồng giao dịch',
-          });
-        } else {
-          console.warn('Missing buyer/seller email for SignNow invitation', {
-            buyer,
-            seller,
-          });
+          if (sellerId && Types.ObjectId.isValid(sellerId)) {
+            seller = await this.userModel.findById(sellerId).lean();
+          }
+
+          if (buyer?.email && seller?.email) {
+            if (!contractId) {
+              throw new Error('Missing contract identifier for SignNow');
+            }
+            await this.signnowService.createContractAndInvite({
+              contract_id: contractId,
+              buyer_name: buyer?.name || 'Buyer',
+              buyer_email: buyer.email,
+              seller_name: seller?.name || 'Seller',
+              seller_email: seller.email,
+              amount: payment.amount,
+              subject: contractNo
+                ? `Ký hợp đồng ${contractNo}`
+                : 'Ký hợp đồng giao dịch',
+            });
+          } else {
+            console.warn('Missing buyer/seller email for SignNow invitation', {
+              buyerId: payment.buyer_id,
+              sellerId: payment.seller_id,
+              buyer,
+              seller,
+            });
+          }
+        } catch (err) {
+          console.error('Failed to trigger SignNow contract invite', err);
         }
       } catch (error) {
         console.error('Failed to trigger SignNow contract invite', error);

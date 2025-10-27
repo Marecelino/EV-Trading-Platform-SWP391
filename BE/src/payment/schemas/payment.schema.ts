@@ -19,8 +19,11 @@ export class Payment {
   @Prop({ type: Types.ObjectId, required: true })
   seller_id: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, required: true })
-  listing_id: Types.ObjectId;
+  @Prop({ type: Types.ObjectId })
+  listing_id?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId })
+  auction_id?: Types.ObjectId;
 
   @Prop({ required: true })
   amount: number;
@@ -49,6 +52,9 @@ export class Payment {
 
   @Prop({ type: Types.ObjectId })
   transaction_id?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Commission' })
+  commission_id?: Types.ObjectId;
 
   @Prop({ default: 0 })
   commission_rate?: number;

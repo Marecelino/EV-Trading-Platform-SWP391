@@ -16,7 +16,7 @@ export class AuctionsService {
     @InjectModel(Auction.name) private auctionModel: Model<Auction>,
     @InjectModel('EVDetail') private evDetailModel: Model<any>,
     @InjectModel('BatteryDetail') private batteryDetailModel: Model<any>,
-  ) {}
+  ) { }
 
   /**
    * CREATE - Create new auction
@@ -90,18 +90,31 @@ export class AuctionsService {
     }
 
     try {
-      const auction = await this.auctionModel
+      const auctionDoc = await this.auctionModel
         .findById(id)
-        .populate('listing_id')
         .populate('seller_id', 'name email phone')
         .populate('bids.user_id', 'name email phone')
         .exec();
 
-      if (!auction) {
+      if (!auctionDoc) {
         throw new NotFoundException('Auction not found');
       }
 
-      return auction;
+      // Convert to plain object and attach detail document by auction_id
+      const auction = auctionDoc.toObject ? auctionDoc.toObject() : (auctionDoc as any);
+      const category = String(auction.category || '').toLowerCase();
+      const auctionId = auction._id;
+
+      if (category === 'ev') {
+        const evDetail = await this.evDetailModel.findOne({ auction_id: auctionId }).lean();
+        return { ...auction, auction_id: auctionId, evDetail };
+      }
+      if (category === 'battery') {
+        const batteryDetail = await this.batteryDetailModel.findOne({ auction_id: auctionId }).lean();
+        return { ...auction, auction_id: auctionId, batteryDetail };
+      }
+
+      return { ...auction, auction_id: auctionId };
     } catch (error) {
       if (
         error instanceof NotFoundException ||
@@ -168,14 +181,30 @@ export class AuctionsService {
         }
       }
 
-      const updatedAuction = await this.auctionModel
+      const updatedDoc = await this.auctionModel
         .findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
-        .populate('listing_id')
         .populate('seller_id', 'name email phone')
         .populate('bids.user_id', 'name email phone')
         .exec();
 
-      return updatedAuction;
+      if (!updatedDoc) {
+        throw new NotFoundException('Auction not found after update');
+      }
+
+      const updated = updatedDoc.toObject ? updatedDoc.toObject() : (updatedDoc as any);
+      const category = String(updated.category || '').toLowerCase();
+      const auctionId = updated._id;
+
+      if (category === 'ev') {
+        const evDetail = await this.evDetailModel.findOne({ auction_id: auctionId }).lean();
+        return { ...updated, auction_id: auctionId, evDetail };
+      }
+      if (category === 'battery') {
+        const batteryDetail = await this.batteryDetailModel.findOne({ auction_id: auctionId }).lean();
+        return { ...updated, auction_id: auctionId, batteryDetail };
+      }
+
+      return { ...updated, auction_id: auctionId };
     } catch (error) {
       if (
         error instanceof NotFoundException ||
@@ -335,13 +364,29 @@ export class AuctionsService {
 
       await auction.save();
 
-      // Return updated auction with populated fields
-      return await this.auctionModel
+      // Return updated auction with related detail attached
+      const updatedDoc = await this.auctionModel
         .findById(auctionId)
-        .populate('listing_id')
         .populate('seller_id', 'name email phone')
         .populate('bids.user_id', 'name email phone')
         .exec();
+
+      if (!updatedDoc) {
+        throw new NotFoundException('Auction not found after bidding');
+      }
+
+      const updated = updatedDoc.toObject ? updatedDoc.toObject() : (updatedDoc as any);
+      const category = String(updated.category || '').toLowerCase();
+      if (category === 'ev') {
+        const evDetail = await this.evDetailModel.findOne({ auction_id: auctionId }).lean();
+        return { ...updated, auction_id: auctionId, evDetail };
+      }
+      if (category === 'battery') {
+        const batteryDetail = await this.batteryDetailModel.findOne({ auction_id: auctionId }).lean();
+        return { ...updated, auction_id: auctionId, batteryDetail };
+      }
+
+      return { ...updated, auction_id: auctionId };
     } catch (error) {
       console.error('Place bid error:', error);
       if (

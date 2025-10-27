@@ -10,8 +10,48 @@ import * as bcrypt from 'bcrypt';
 import { User, UserDocument, UserRole, UserStatus } from './model/users.schema';
 dotenv.config();
 
+
+async function ensureDetailIndexes(app: any) {
+  // Attempt to drop legacy non-partial indexes on evdetails and batterydetails
+  try {
+    const evModel: Model<any> | undefined = app.get(getModelToken('EVDetail'));
+    const batModel: Model<any> | undefined = app.get(getModelToken('BatteryDetail'));
+
+    for (const model of [evModel, batModel]) {
+      if (!model || !model.collection) continue;
+      try {
+        const indexes = await model.collection.indexes();
+        for (const idx of indexes) {
+          if (idx.key && (idx.key.auction_id !== undefined || idx.key.listing_id !== undefined)) {
+            // If index has no partialFilterExpression, it's the legacy problematic unique index
+            if (!idx.partialFilterExpression) {
+              try {
+                await model.collection.dropIndex(idx.name as string);
+                console.log(`Dropped legacy index ${idx.name as string} on ${model.collection.collectionName}`);
+              } catch (err) {
+                console.warn(`Failed to drop index ${idx.name} on ${model.collection.collectionName}:`, err?.message || err);
+              }
+            }
+          }
+        }
+        // Ensure indexes defined on schema are created (partial unique indexes)
+        await model.syncIndexes();
+      } catch (err) {
+        console.warn('Error ensuring indexes for detail model', err?.message || err);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to run detail index migration:', err?.message || err);
+  }
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // Ensure detail collections have correct partial indexes before any
+  // services create documents. This will drop legacy non-partial unique
+  // indexes (which cause duplicate-key errors for null values) and sync
+  // the schema-defined partial indexes.
+  await ensureDetailIndexes(app);
 
   await seedDefaultUsers(app);
 
@@ -38,7 +78,6 @@ async function bootstrap() {
     .addTag('reviews')
     .addTag('contacts')
     .addTag('evdetails')
-
     .addTag('pricesuggestions')
     .addTag('favorites')
     .build();
@@ -73,29 +112,29 @@ async function seedDefaultUsers(app: INestApplication) {
         logLabel: string;
       }
     > = [
-      {
-        fallbackEmail: 'admin@example.com',
-        fallbackPassword: 'admin123',
-        fallbackName: 'Quản trị viên',
-        role: UserRole.ADMIN,
-        emailEnv: 'DEFAULT_ADMIN_EMAIL',
-        passwordEnv: 'DEFAULT_ADMIN_PASSWORD',
-        nameEnv: 'DEFAULT_ADMIN_NAME',
-        status: UserStatus.ACTIVE,
-        logLabel: 'admin',
-      },
-      {
-        fallbackEmail: 'tuan@demo.com',
-        fallbackPassword: '123456',
-        fallbackName: 'Lê Minh Tuấn',
-        role: UserRole.USER,
-        emailEnv: 'DEFAULT_MEMBER_EMAIL',
-        passwordEnv: 'DEFAULT_MEMBER_PASSWORD',
-        nameEnv: 'DEFAULT_MEMBER_NAME',
-        status: UserStatus.ACTIVE,
-        logLabel: 'demo member',
-      },
-    ];
+        {
+          fallbackEmail: 'admin@example.com',
+          fallbackPassword: 'admin123',
+          fallbackName: 'Quản trị viên',
+          role: UserRole.ADMIN,
+          emailEnv: 'DEFAULT_ADMIN_EMAIL',
+          passwordEnv: 'DEFAULT_ADMIN_PASSWORD',
+          nameEnv: 'DEFAULT_ADMIN_NAME',
+          status: UserStatus.ACTIVE,
+          logLabel: 'admin',
+        },
+        {
+          fallbackEmail: 'tuan@demo.com',
+          fallbackPassword: '123456',
+          fallbackName: 'Lê Minh Tuấn',
+          role: UserRole.USER,
+          emailEnv: 'DEFAULT_MEMBER_EMAIL',
+          passwordEnv: 'DEFAULT_MEMBER_PASSWORD',
+          nameEnv: 'DEFAULT_MEMBER_NAME',
+          status: UserStatus.ACTIVE,
+          logLabel: 'demo member',
+        },
+      ];
 
     for (const config of defaults) {
       const email = process.env[config.emailEnv] ?? config.fallbackEmail;

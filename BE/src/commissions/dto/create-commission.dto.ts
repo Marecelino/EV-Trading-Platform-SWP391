@@ -20,9 +20,11 @@ export class CreateCommissionDto {
   @ApiProperty({
     description: 'ID của cấu hình hoa hồng',
     example: '507f1f77bcf86cd799439012',
+    required: false,
   })
+  @IsOptional()
   @IsString()
-  config_id: string;
+  config_id?: string;
 
   @ApiProperty({
     description: 'Phần trăm hoa hồng',

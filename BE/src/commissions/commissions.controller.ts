@@ -158,6 +158,14 @@ export class CommissionsController {
     return this.commissionsService.markAsPaid(id);
   }
 
+  @Post(':id/pay')
+  @ApiOperation({ summary: 'Thanh toán hoa hồng và cập nhật giao dịch (không cập nhật hợp đồng)' })
+  @ApiResponse({ status: 200, description: 'Thanh toán hoa hồng thành công' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy hoa hồng' })
+  payCommission(@Param('id') id: string, @Body('payment_reference') payment_reference?: string) {
+    return this.commissionsService.payCommission(id, payment_reference);
+  }
+
   @Patch(':id/mark-cancelled')
   @ApiOperation({ summary: 'Đánh dấu hoa hồng đã hủy' })
   @ApiParam({

@@ -5,16 +5,22 @@ import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
 import { Payment, PaymentSchema } from './schemas/payment.schema';
 import { ListingsModule } from '../listings/listings.module';
+import { AuctionsModule } from '../auctions/auctions.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { ContractsModule } from '../contracts/contracts.module';
 import { CommissionsModule } from '../commissions/commissions.module';
 import { SignnowModule } from '../signnow/signnow.module';
+import { User, UserSchema } from '../model/users.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Payment.name, schema: PaymentSchema }]),
+    MongooseModule.forFeature([
+      { name: Payment.name, schema: PaymentSchema },
+      { name: User.name, schema: UserSchema },
+    ]),
     ConfigModule,
     ListingsModule,
+    AuctionsModule,
     TransactionsModule,
     ContractsModule,
     CommissionsModule,
@@ -24,4 +30,4 @@ import { SignnowModule } from '../signnow/signnow.module';
   providers: [PaymentService],
   exports: [PaymentService],
 })
-export class PaymentModule {}
+export class PaymentModule { }

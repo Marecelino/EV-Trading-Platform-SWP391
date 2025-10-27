@@ -24,9 +24,9 @@ export class Commission extends Document {
   @Prop({
     type: Types.ObjectId,
     ref: 'CommissionConfig',
-    required: true,
+    required: false,
   })
-  config_id: Types.ObjectId | CommissionConfig;
+  config_id?: Types.ObjectId | CommissionConfig;
 
   @Prop({
     required: true,

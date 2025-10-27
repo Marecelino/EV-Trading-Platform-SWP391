@@ -118,6 +118,11 @@ export class ContractsService {
   }
 
   async findById(id: string) {
+    // Validate id to avoid Mongoose CastError when callers pass invalid strings
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Contract not found');
+    }
+
     const contract = await this.contractModel.findById(id).lean();
     if (!contract) {
       throw new NotFoundException('Contract not found');

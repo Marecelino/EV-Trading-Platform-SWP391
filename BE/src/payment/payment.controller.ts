@@ -11,13 +11,13 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { PaymentService } from './payment.service';
-import { CreatePaymentDto, VNPayIPNDto } from './dto/payment.dto';
+import { CreatePaymentDto, VNPayIPNDto, CreateAuctionPaymentDto } from './dto/payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Payment')
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(private readonly paymentService: PaymentService) { }
 
   @Post('create-payment-url')
   @UseGuards(JwtAuthGuard)
@@ -36,6 +36,31 @@ export class PaymentController {
 
     return this.paymentService.createVNPayUrl(
       createPaymentDto,
+      buyerId,
+      req.ip || '127.0.0.1',
+    );
+  }
+
+  @Post('auction/create-payment-url')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create VNPay payment URL for auction' })
+  async createAuctionPaymentUrl(
+    @Body() createAuctionPaymentDto: CreateAuctionPaymentDto,
+    @Req() req: Request,
+  ) {
+    const authReq = req as Request & { user?: { userId?: string } };
+    // Prefer explicit user_id from body if provided; otherwise use authenticated userId
+    const buyerId = createAuctionPaymentDto.user_id ?? authReq.user?.userId;
+
+    if (!buyerId) {
+      throw new BadRequestException(
+        'Missing authenticated user context or user_id in request body',
+      );
+    }
+
+    return this.paymentService.createVNPayUrlForAuction(
+      createAuctionPaymentDto,
       buyerId,
       req.ip || '127.0.0.1',
     );
