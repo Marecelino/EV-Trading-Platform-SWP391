@@ -441,6 +441,53 @@ export class AuctionsService {
   }
 
   /**
+   * ACTIVATE AUCTION - mark auction as live immediately.
+   * If auction was scheduled with a future start_time/end_time, this will
+   * set start_time to now and shift end_time by the original duration.
+   */
+  async activateAuction(id: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid auction ID');
+    }
+
+    try {
+      const auction = await this.auctionModel.findById(id);
+      if (!auction) throw new NotFoundException('Auction not found');
+
+      if (auction.status === AuctionStatus.LIVE) return auction;
+      if (auction.status === AuctionStatus.ENDED || auction.status === AuctionStatus.CANCELLED) {
+        throw new BadRequestException('Cannot activate ended or cancelled auction');
+      }
+
+      const now = new Date();
+      // compute existing duration if possible
+      let durationMs = null as number | null;
+      if (auction.start_time && auction.end_time) {
+        durationMs = auction.end_time.getTime() - auction.start_time.getTime();
+      }
+
+      auction.start_time = now;
+      if (durationMs && durationMs > 0) {
+        auction.end_time = new Date(now.getTime() + durationMs);
+      }
+      auction.status = AuctionStatus.LIVE;
+
+      await auction.save();
+
+      const updated = await this.auctionModel
+        .findById(id)
+        .populate('seller_id', 'name email phone')
+        .populate('bids.user_id', 'name email phone')
+        .exec();
+
+      return updated;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+      throw new BadRequestException('Failed to activate auction: ' + error.message);
+    }
+  }
+
+  /**
    * TEST CONNECTION - Simple test to check database connection
    */
   async testConnection() {

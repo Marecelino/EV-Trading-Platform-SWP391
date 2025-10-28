@@ -177,6 +177,14 @@ export class ListingsController {
     return this.listingsService.suggestPrice(dto);
   }
 
+  @Patch(':id/activate')
+  @ApiOperation({ summary: 'Activate listing (set status active)' })
+  @ApiParam({ name: 'id', description: 'Listing ID' })
+  @ApiResponse({ status: 200, description: 'Listing activated' })
+  async activateListing(@Param('id') id: string) {
+    return this.listingsService.updateStatus(id, ListingStatus.ACTIVE);
+  }
+
   @Get(':id/recommendations')
   recommend(@Param('id') id: string, @Query('limit') limit?: number) {
     return this.listingsService.getRecommendations(id, Number(limit) || 6);
