@@ -36,7 +36,7 @@ export class AuctionsController {
     private readonly auctionsService: AuctionsService,
     private readonly evAuctionService: EVAuctionService,
     private readonly batteryAuctionService: BatteryAuctionService,
-  ) {}
+  ) { }
 
   @Get()
   @ApiOperation({
