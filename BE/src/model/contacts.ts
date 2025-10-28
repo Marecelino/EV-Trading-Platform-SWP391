@@ -49,6 +49,9 @@ export class Contract {
   document_url: string;
 
   @Prop()
+  signed_document_url?: string;
+
+  @Prop()
   terms_and_conditions: string;
 
   @Prop({
@@ -61,6 +64,24 @@ export class Contract {
 
   @Prop()
   notes: string;
+
+  @Prop({
+    type: [
+      {
+        event: String,
+        by: String,
+        at: Date,
+        meta: Object,
+      },
+    ],
+    default: [],
+  })
+  audit_events: Array<{
+    event: string;
+    by?: string;
+    at?: Date;
+    meta?: any;
+  }>;
 }
 
 export const ContractSchema = SchemaFactory.createForClass(Contract);

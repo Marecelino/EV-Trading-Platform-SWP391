@@ -63,4 +63,11 @@ export class CreateContactDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Audit events for the contract (created/updated/signature events). Usually populated by the server.',
+    example: [{ event: 'created', by: 'system', at: new Date().toISOString(), meta: {} }],
+  })
+  @IsOptional()
+  audit_events?: Array<Record<string, any>>;
 }

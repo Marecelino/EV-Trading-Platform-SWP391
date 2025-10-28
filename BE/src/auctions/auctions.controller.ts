@@ -82,8 +82,6 @@ export class AuctionsController {
     );
 
     return {
-      statusCode: HttpStatus.OK,
-      message: 'Auctions retrieved successfully',
       data: result.data,
       pagination: {
         total: result.total,
@@ -98,25 +96,21 @@ export class AuctionsController {
   @Post('ev')
   @ApiOperation({ summary: 'Create EV auction' })
   @ApiBody({ type: CreateEVAuctionDto })
+  @HttpCode(HttpStatus.CREATED)
   async createEvAuction(@Body() dto: CreateEVAuctionDto) {
     const result = await this.evAuctionService.create(dto);
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'EV auction created successfully',
-      data: result,
-    };
+    // Return data only as requested
+    return result;
   }
 
   @Post('battery')
   @ApiOperation({ summary: 'Create Battery auction' })
   @ApiBody({ type: CreateBatteryAuctionDto })
+  @HttpCode(HttpStatus.CREATED)
   async createBatteryAuction(@Body() dto: CreateBatteryAuctionDto) {
     const result = await this.batteryAuctionService.create(dto);
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Battery auction created successfully',
-      data: result,
-    };
+    // Return data only for consistency with EV create
+    return result;
   }
 
   @Get('live')

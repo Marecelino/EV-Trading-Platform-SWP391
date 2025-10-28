@@ -8,15 +8,14 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { ListingsModule } from './listings/listings.module';
 import { AuthModule } from './auth/auth.module';
-import { ContractsModule } from './contracts/contracts.module';
+// Historically there was a `contracts` module; repo uses `contacts` for contract records.
+// Keep using `ContactsModule` instead of the non-existent `ContractsModule`.
 import { PaymentModule } from './payment/payment.module';
 import { SignnowModule } from './signnow/signnow.module';
-import { Transaction } from './model/transactions';
 import { TransactionsModule } from './transactions/transactions.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { EvdetailsModule } from './evdetails/evdetails.module';
-import { PriceSuggestion } from './model/pricesuggestions';
 import { PriceSuggestionsModule } from './pricesuggestions/pricesuggestions.module';
 import { FavoritesModule } from './favorites/favorites.module';
 
@@ -67,7 +66,6 @@ import { FavoritesModule } from './favorites/favorites.module';
     ]),
     ListingsModule,
     AuthModule,
-    ContractsModule,
     PaymentModule,
     SignnowModule,
     TransactionsModule,
@@ -85,4 +83,4 @@ import { FavoritesModule } from './favorites/favorites.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

@@ -11,8 +11,8 @@ import FormData = require('form-data');
 import PDFDocument = require('pdfkit');
 import * as crypto from 'crypto';
 import { CreateSignnowContractDto } from './dto/create-signnow-contract.dto';
-import { ContractsService } from '../contracts/contracts.service';
-import { ContractStatus } from '../contracts/schemas/contract.schema';
+import { ContactsService } from '../contacts/contacts.service';
+import { ContractStatus } from '../model/contacts';
 import { SignnowWebhookDto } from './dto/signnow-webhook.dto';
 
 interface UploadResult {
@@ -38,7 +38,7 @@ export class SignnowService {
     @Inject(HttpService)
     private readonly httpService: any,
     private readonly configService: ConfigService,
-    private readonly contractsService: ContractsService,
+    private readonly contactsService: ContactsService,
   ) {
     this.baseUrl =
       this.configService.get<string>('SIGNNOW_BASE_URL') ||
@@ -59,7 +59,7 @@ export class SignnowService {
   }
 
   async createContractAndInvite(dto: CreateSignnowContractDto) {
-    const contract = await this.contractsService.findById(dto.contract_id);
+    const contract = await this.contactsService.findOne(dto.contract_id);
     if (!contract.contract_no) {
       throw new InternalServerErrorException(
         'Contract missing contract number',
@@ -87,22 +87,11 @@ export class SignnowService {
       contractNo,
     );
 
-    await this.contractsService.attachProviderMetadata(dto.contract_id, {
-      provider: 'signnow',
-      provider_document_id: uploadResult.documentId,
-      provider_invite_id: inviteId,
+    // Attach provider info by updating contact record notes/document_url
+    await this.contactsService.update(dto.contract_id, {
       document_url: uploadResult.downloadUrl,
-      notes: 'Pending signatures via SignNow',
-      performed_by: this.fromEmail,
-    });
-
-    // Ensure contract remains pending signature while waiting for webhook
-    if (contract.status !== ContractStatus.PENDING_SIGNATURE) {
-      await this.contractsService.updateStatus(dto.contract_id, {
-        status: ContractStatus.PENDING_SIGNATURE,
-        notes: 'Awaiting SignNow signatures',
-      });
-    }
+      notes: (contract.notes || '') + '\nPending signatures via SignNow',
+    } as any);
 
     return {
       provider: 'signnow',
@@ -137,8 +126,7 @@ export class SignnowService {
       );
     }
 
-    const contract =
-      await this.contractsService.findByProviderDocumentId(documentId);
+    const contract = await this.contactsService.findByDocumentId(documentId);
 
     if (!contract) {
       this.logger.warn(`Received webhook for unknown document ${documentId}`);
@@ -147,18 +135,19 @@ export class SignnowService {
 
     const event = (payload.event || '').toLowerCase();
     if (event.includes('complete') || event.includes('signed')) {
-      await this.contractsService.updateStatus(contract._id.toString(), {
+      await this.contactsService.update(contract._id.toString(), {
         status: ContractStatus.SIGNED,
-        notes: 'SignNow marked contract as signed',
-      });
+        signed_at: new Date(),
+        notes: (contract.notes || '') + '\nSignNow marked contract as signed',
+      } as any);
       return { status: 'signed' };
     }
 
     if (event.includes('decline') || event.includes('reject')) {
-      await this.contractsService.updateStatus(contract._id.toString(), {
+      await this.contactsService.update(contract._id.toString(), {
         status: ContractStatus.CANCELLED,
-        notes: 'SignNow reported decline',
-      });
+        notes: (contract.notes || '') + '\nSignNow reported decline',
+      } as any);
       return { status: 'declined' };
     }
 
@@ -324,9 +313,9 @@ export class SignnowService {
 
       doc.text(
         'Terms and Conditions:\n' +
-          '- The buyer agrees to purchase the listed EV/battery from the seller.\n' +
-          '- The seller guarantees the accuracy of the information provided.\n' +
-          '- Both parties agree to finalize the transaction upon successful payment.',
+        '- The buyer agrees to purchase the listed EV/battery from the seller.\n' +
+        '- The seller guarantees the accuracy of the information provided.\n' +
+        '- Both parties agree to finalize the transaction upon successful payment.',
       );
 
       doc.moveDown();

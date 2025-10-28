@@ -21,14 +21,13 @@ import { ListingsService } from '../listings/listings.service';
 import { AuctionsService } from '../auctions/auctions.service';
 import { AuctionStatus } from '../model/auctions';
 import { TransactionsService } from '../transactions/transactions.service';
-import { ContractsService } from '../contracts/contracts.service';
+import { ContactsService } from '../contacts/contacts.service';
+import { ContractStatus } from '../model/contacts';
 import { CommissionsService } from '../commissions/commissions.service';
 import { SignnowService } from '../signnow/signnow.service';
 import { ListingStatus } from '../model/listings';
 import { TransactionStatus } from '../model/transactions';
 import { User, UserDocument } from '../model/users.schema';
-import { getModelToken } from '@nestjs/mongoose';
-
 @Injectable()
 export class PaymentService {
   private readonly logger = new Logger(PaymentService.name);
@@ -45,7 +44,7 @@ export class PaymentService {
     private readonly listingsService: ListingsService,
     private readonly auctionsService: AuctionsService,
     private readonly transactionsService: TransactionsService,
-    private readonly contractsService: ContractsService,
+    private readonly contactsService: ContactsService,
     private readonly commissionsService: CommissionsService,
     private readonly signnowService: SignnowService,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
@@ -488,13 +487,25 @@ export class PaymentService {
       }
     }
 
-    const contract = await this.contractsService.createFromPayment({
-      transactionId: (transaction._id as Types.ObjectId).toString(),
-      paymentId: (payment._id as Types.ObjectId).toString(),
-      amount: payment.amount,
-      listingTitle: listing?.title,
-      sellerName: listing?.seller_id?.name,
-    });
+    // Create a contact/contract record linked to this transaction/payment.
+    // Contacts schema differs from the previous Contracts model; create a minimal
+    // contact record with a generated contract_no and document_url placeholder.
+    const contractNo = `CONTRACT-${new Date().toISOString().replace(/[:.]/g, '-')}-${String(
+      transaction._id,
+    ).slice(-6)}`;
+    const documentUrl = `${process.env.FRONTEND_URL?.replace(/\/$/, '') || 'http://localhost:5173'}/contracts/${contractNo}.pdf`;
+
+    const contract = await this.contactsService.create({
+      transaction_id: (transaction._id as Types.ObjectId).toString(),
+      contract_no: contractNo,
+      document_url: documentUrl,
+      // Use an existing, valid status value from the ContractStatus enum.
+      // Previously we attempted to set 'PENDING_SIGNATURE' which is not
+      // accepted by the Contract schema; defaulting to DRAFT here.
+      status: ContractStatus.DRAFT,
+      terms_and_conditions: `Auto-generated contract for transaction ${transaction._id}`,
+      notes: `Created from payment ${payment._id}`,
+    } as any);
 
     if (contract) {
       const contractId = (

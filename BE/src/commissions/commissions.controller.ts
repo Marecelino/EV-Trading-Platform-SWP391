@@ -22,7 +22,7 @@ import { CommissionStatus } from '../model/commissions';
 @ApiTags('Commissions')
 @Controller('commissions')
 export class CommissionsController {
-  constructor(private readonly commissionsService: CommissionsService) {}
+  constructor(private readonly commissionsService: CommissionsService) { }
 
   @Post()
   @ApiOperation({ summary: 'Tạo hoa hồng mới' })

@@ -7,7 +7,7 @@ import { Payment, PaymentSchema } from './schemas/payment.schema';
 import { ListingsModule } from '../listings/listings.module';
 import { AuctionsModule } from '../auctions/auctions.module';
 import { TransactionsModule } from '../transactions/transactions.module';
-import { ContractsModule } from '../contracts/contracts.module';
+import { ContactsModule } from '../contacts/contacts.module';
 import { CommissionsModule } from '../commissions/commissions.module';
 import { SignnowModule } from '../signnow/signnow.module';
 import { User, UserSchema } from '../model/users.schema';
@@ -22,7 +22,7 @@ import { User, UserSchema } from '../model/users.schema';
     ListingsModule,
     AuctionsModule,
     TransactionsModule,
-    ContractsModule,
+    ContactsModule,
     CommissionsModule,
     SignnowModule,
   ],

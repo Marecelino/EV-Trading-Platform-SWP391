@@ -1,16 +1,12 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
+import { TransactionsService } from '../transactions/transactions.service';
+import { TransactionStatus } from 'src/model/transactions';
 import { CreateCommissionDto, UpdateCommissionDto } from './dto';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Commission, CommissionStatus } from 'src/model/commissions';
-import { TransactionsService } from '../transactions/transactions.service';
-import { TransactionStatus } from 'src/model/transactions';
 
 @Injectable()
 export class CommissionsService {
@@ -29,8 +25,8 @@ export class CommissionsService {
   }
 
   /**
-   * Mark a commission as paid and update the related transaction status.
-   * This intentionally does NOT modify any Contract records.
+   * Pay a commission and (best-effort) mark the related transaction as COMPLETED.
+   * This intentionally does not modify any Contract records.
    */
   async payCommission(id: string, paymentReference?: string): Promise<Commission> {
     const commission = await this.commissionModel.findById(id).exec();
@@ -48,13 +44,12 @@ export class CommissionsService {
 
     const saved = await commission.save();
 
-    // Update related transaction status to COMPLETED (best-effort)
+    // Best-effort: update related transaction to COMPLETED
     try {
       const txId = (saved.transaction_id as any)?.toString?.()
         ? (saved.transaction_id as any).toString()
         : String(saved.transaction_id || '');
-
-      if (txId) {
+      if (txId && Types.ObjectId.isValid(txId)) {
         await this.transactionsService.updateStatus(txId, {
           status: TransactionStatus.COMPLETED,
           notes: `Commission ${saved._id} marked as paid`,
@@ -130,25 +125,21 @@ export class CommissionsService {
       return await commission.save();
     } catch (error) {
       if (error.code === 11000) {
-        throw new ConflictException(
-          'Commission for this transaction already exists',
-        );
+        throw new ConflictException('Commission for this transaction already exists');
       }
       throw error;
     }
   }
 
   async findAll(): Promise<Commission[]> {
-    return this.commissionModel
-      .find()
+    return this.commissionModel.find()
       .populate('transaction_id')
       .populate('config_id')
       .exec();
   }
 
   async findByStatus(status: CommissionStatus): Promise<Commission[]> {
-    return this.commissionModel
-      .find({ status })
+    return this.commissionModel.find({ status })
       .populate('transaction_id')
       .populate('config_id')
       .exec();
@@ -167,8 +158,7 @@ export class CommissionsService {
   }
 
   async findOne(id: string): Promise<Commission> {
-    const commission = await this.commissionModel
-      .findById(id)
+    const commission = await this.commissionModel.findById(id)
       .populate('transaction_id')
       .populate('config_id')
       .exec();
@@ -179,29 +169,23 @@ export class CommissionsService {
   }
 
   async findByTransactionId(transactionId: string): Promise<Commission> {
-    const commission = await this.commissionModel
-      .findOne({ transaction_id: transactionId })
+    const commission = await this.commissionModel.findOne({ transaction_id: transactionId })
       .populate('transaction_id')
       .populate('config_id')
       .exec();
     if (!commission) {
-      throw new NotFoundException(
-        `Commission for transaction ${transactionId} not found`,
-      );
+      throw new NotFoundException(`Commission for transaction ${transactionId} not found`);
     }
     return commission;
   }
 
-  async update(
-    id: string,
-    updateCommissionDto: UpdateCommissionDto,
-  ): Promise<Commission> {
+  async update(id: string, updateCommissionDto: UpdateCommissionDto): Promise<Commission> {
     try {
-      const commission = await this.commissionModel
-        .findByIdAndUpdate(id, updateCommissionDto, {
-          new: true,
-          runValidators: true,
-        })
+      const commission = await this.commissionModel.findByIdAndUpdate(
+        id,
+        updateCommissionDto,
+        { new: true, runValidators: true }
+      )
         .populate('transaction_id')
         .populate('config_id')
         .exec();
@@ -212,9 +196,7 @@ export class CommissionsService {
       return commission;
     } catch (error) {
       if (error.code === 11000) {
-        throw new ConflictException(
-          'Commission for this transaction already exists',
-        );
+        throw new ConflictException('Commission for this transaction already exists');
       }
       throw error;
     }
@@ -228,8 +210,11 @@ export class CommissionsService {
   }
 
   async markAsPaid(id: string): Promise<Commission> {
-    const commission = await this.commissionModel
-      .findByIdAndUpdate(id, { status: CommissionStatus.PAID }, { new: true })
+    const commission = await this.commissionModel.findByIdAndUpdate(
+      id,
+      { status: CommissionStatus.PAID },
+      { new: true }
+    )
       .populate('transaction_id')
       .populate('config_id')
       .exec();
@@ -241,12 +226,11 @@ export class CommissionsService {
   }
 
   async markAsCancelled(id: string): Promise<Commission> {
-    const commission = await this.commissionModel
-      .findByIdAndUpdate(
-        id,
-        { status: CommissionStatus.CANCELLED },
-        { new: true },
-      )
+    const commission = await this.commissionModel.findByIdAndUpdate(
+      id,
+      { status: CommissionStatus.CANCELLED },
+      { new: true }
+    )
       .populate('transaction_id')
       .populate('config_id')
       .exec();
@@ -258,12 +242,10 @@ export class CommissionsService {
   }
 
   async getTotalCommissionByStatus(status: CommissionStatus): Promise<number> {
-    const result = await this.commissionModel
-      .aggregate([
-        { $match: { status } },
-        { $group: { _id: null, total: { $sum: '$amount' } } },
-      ])
-      .exec();
+    const result = await this.commissionModel.aggregate([
+      { $match: { status } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]).exec();
 
     return result.length > 0 ? result[0].total : 0;
   }
@@ -281,31 +263,30 @@ export class CommissionsService {
     paid: { count: number; total: number };
     cancelled: { count: number; total: number };
   }> {
-    const stats = await this.commissionModel
-      .aggregate([
-        {
-          $group: {
-            _id: '$status',
-            count: { $sum: 1 },
-            total: { $sum: '$amount' },
-          },
-        },
-      ])
-      .exec();
+    const stats = await this.commissionModel.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          total: { $sum: '$amount' }
+        }
+      }
+    ]).exec();
 
     const result = {
       pending: { count: 0, total: 0 },
       paid: { count: 0, total: 0 },
-      cancelled: { count: 0, total: 0 },
+      cancelled: { count: 0, total: 0 }
     };
 
-    stats.forEach((stat) => {
+    stats.forEach(stat => {
       result[stat._id] = { count: stat.count, total: stat.total };
     });
 
     return result;
   }
 }
+
 
 type CommissionRule = {
   min?: number;
@@ -318,3 +299,5 @@ type CommissionContext = {
   amount: number;
   category?: string;
 };
+
+

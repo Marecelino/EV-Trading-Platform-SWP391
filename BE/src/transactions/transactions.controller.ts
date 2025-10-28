@@ -13,7 +13,6 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { FilterTransactionsDto } from './dto/filter-transactions.dto';
 import { UpdateTransactionStatusDto } from './dto/update-transaction-status.dto';
 import type { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -33,8 +32,8 @@ export class TransactionsController {
   }
 
   @Get()
-  findAll(@Query() filters: FilterTransactionsDto) {
-    return this.transactionsService.findAll(filters);
+  findAll() {
+    return this.transactionsService.findAll();
   }
 
   @UseGuards(JwtAuthGuard)

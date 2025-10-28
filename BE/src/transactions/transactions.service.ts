@@ -12,7 +12,6 @@ import {
 } from '../model/transactions';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionStatusDto } from './dto/update-transaction-status.dto';
-import { FilterTransactionsDto } from './dto/filter-transactions.dto';
 import { ListingsService } from '../listings/listings.service';
 import { ListingStatus } from '../model/listings';
 
@@ -22,7 +21,7 @@ export class TransactionsService {
     @InjectModel(Transaction.name)
     private readonly transactionModel: Model<TransactionDocument>,
     private readonly listingsService: ListingsService,
-  ) {}
+  ) { }
 
   async create(createTransactionDto: CreateTransactionDto) {
     const transaction = new this.transactionModel({
@@ -39,41 +38,23 @@ export class TransactionsService {
     return saved;
   }
 
-  async findAll(filters: FilterTransactionsDto) {
-    const {
-      buyer_id,
-      seller_id,
-      status,
-      payment_method,
-      search,
-      limit = 20,
-      page = 1,
-    } = filters;
+  async findAll() {
+    // We intentionally ignore filters (buyer/seller/status/search) per request.
+    // Only respect pagination parameters (limit, page).
+    const { limit = 20, page = 1 } = {} as any;
     const query: FilterQuery<TransactionDocument> = {};
 
-    if (buyer_id) query.buyer_id = buyer_id;
-    if (seller_id) query.seller_id = seller_id;
-    if (status) query.status = status;
-    if (payment_method) query.payment_method = payment_method;
-
-    if (search) {
-      query.$or = [
-        { payment_reference: { $regex: new RegExp(search, 'i') } },
-        { notes: { $regex: new RegExp(search, 'i') } },
-      ];
-    }
-
-    const skip = (page - 1) * limit;
+    // Normalize pagination values and apply sane defaults / caps
+    const normalizedLimit = Math.max(1, Math.min(Number(limit) || 20, 1000));
+    const normalizedPage = Math.max(1, Number(page) || 1);
+    const skip = (normalizedPage - 1) * normalizedLimit;
 
     const [data, total, stats] = await Promise.all([
       this.transactionModel
         .find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit)
-        .populate('listing_id', 'title price')
-        .populate('buyer_id', 'name email')
-        .populate('seller_id', 'name email')
+        .limit(normalizedLimit)
         .lean(),
       this.transactionModel.countDocuments(query),
       this.transactionModel.aggregate([
@@ -102,10 +83,10 @@ export class TransactionsService {
     return {
       data,
       meta: {
-        page,
-        limit,
+        page: normalizedPage,
+        limit: normalizedLimit,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / normalizedLimit),
       },
       stats: aggregated,
     };
