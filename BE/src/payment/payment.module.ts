@@ -30,4 +30,4 @@ import { User, UserSchema } from '../model/users.schema';
   providers: [PaymentService],
   exports: [PaymentService],
 })
-export class PaymentModule { }
+export class PaymentModule {}

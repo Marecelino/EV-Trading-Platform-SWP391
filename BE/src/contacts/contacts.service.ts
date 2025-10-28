@@ -11,7 +11,7 @@ export class ContactsService {
   constructor(
     @InjectModel(Contract.name)
     private readonly contractModel: Model<ContractDocument>,
-  ) { }
+  ) {}
 
   async create(createContactDto: CreateContactDto): Promise<ContractDocument> {
     // Initialize audit events and record creation event
@@ -62,7 +62,10 @@ export class ContactsService {
   async findOne(id: string): Promise<ContractDocument> {
     const contract = await this.contractModel
       .findById(id)
-      .populate({ path: 'transaction_id', populate: [{ path: 'buyer_id' }, { path: 'seller_id' }] })
+      .populate({
+        path: 'transaction_id',
+        populate: [{ path: 'buyer_id' }, { path: 'seller_id' }],
+      })
       .exec();
 
     if (!contract) {
@@ -149,7 +152,8 @@ export class ContactsService {
       contract.signatures.push(payload.signature_hash);
     }
 
-    const signer = payload.signer_email || payload.signer_id || performedBy || 'unknown';
+    const signer =
+      payload.signer_email || payload.signer_id || performedBy || 'unknown';
     const when = payload.signed_at ? new Date(payload.signed_at) : new Date();
     const note = `Signature confirmed by ${signer} method=${payload.method || 'electronic'} at ${when.toISOString()}`;
     contract.notes = (contract.notes || '') + '\n' + note;
@@ -183,12 +187,11 @@ export class ContactsService {
    */
   async setSignedDocumentUrl(id: string, url: string) {
     const contract = await this.contractModel
-      .findByIdAndUpdate(
-        id,
-        { signed_document_url: url },
-        { new: true },
-      )
-      .populate({ path: 'transaction_id', populate: [{ path: 'buyer_id' }, { path: 'seller_id' }] })
+      .findByIdAndUpdate(id, { signed_document_url: url }, { new: true })
+      .populate({
+        path: 'transaction_id',
+        populate: [{ path: 'buyer_id' }, { path: 'seller_id' }],
+      })
       .exec();
 
     if (!contract) {

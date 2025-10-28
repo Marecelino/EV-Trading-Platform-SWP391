@@ -1,4 +1,3 @@
-
 import {
   Body,
   Controller,
@@ -29,14 +28,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ContactsPdfService } from './contacts-pdf.service';
 
-
 @ApiTags('contacts')
 @Controller('contacts')
 export class ContactsController {
   constructor(
     private readonly contactsService: ContactsService,
     private readonly contactsPdfService: ContactsPdfService,
-  ) { }
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -144,12 +142,24 @@ export class ContactsController {
   ) {
     // Accept name/email from JSON body, form body or query string. If none provided,
     // default to an API marker or the authenticated user email if available.
-    const signerName = body?.name ?? (req as any)?.body?.name ?? (req as any)?.query?.name ?? (req as any)?.user?.email ?? 'accepted-via-api';
-    const signerEmail = body?.email ?? (req as any)?.body?.email ?? (req as any)?.query?.email ?? (req as any)?.user?.email ?? undefined;
+    const signerName =
+      body?.name ??
+      (req as any)?.body?.name ??
+      (req as any)?.query?.name ??
+      (req as any)?.user?.email ??
+      'accepted-via-api';
+    const signerEmail =
+      body?.email ??
+      (req as any)?.body?.email ??
+      (req as any)?.query?.email ??
+      (req as any)?.user?.email ??
+      undefined;
 
     const hash = crypto
       .createHash('sha256')
-      .update(`${signerName}|${signerEmail || ''}|${req.ip || ''}|${Date.now()}`)
+      .update(
+        `${signerName}|${signerEmail || ''}|${req.ip || ''}|${Date.now()}`,
+      )
       .digest('hex');
 
     await this.contactsService.confirmSignature(
@@ -172,19 +182,29 @@ export class ContactsController {
       await this.contactsService.setSignedDocumentUrl(id, signedUrl);
     } catch (err) {
       // non-fatal: rendering failure shouldn't break the signature confirmation
-      console.warn('Failed to render contract PDF after signing:', err?.message || err);
+      console.warn(
+        'Failed to render contract PDF after signing:',
+        err?.message || err,
+      );
     }
 
     return { status: 'signed', signed_document_url: signedUrl };
   }
 
   @Get(':id/download')
-  @ApiOperation({ summary: 'Download rendered contract PDF (renders first if missing)' })
-  async downloadContract(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+  @ApiOperation({
+    summary: 'Download rendered contract PDF (renders first if missing)',
+  })
+  async downloadContract(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
       const contract = await this.contactsService.findOne(id);
 
-      let url = (contract as any).signed_document_url || (contract as any).document_url;
+      let url =
+        (contract as any).signed_document_url || (contract as any).document_url;
 
       if (!url) {
         // Render and persist the signed document URL
@@ -207,10 +227,15 @@ export class ContactsController {
 
       // If client prefers JSON, return the public URL (use Host header if available)
       const accept = (req.headers['accept'] || '').toString();
-      const wantsJson = accept.includes('application/json') || req.query['json'] === '1';
+      const wantsJson =
+        accept.includes('application/json') || req.query['json'] === '1';
       if (wantsJson) {
-        const host = req.headers['host'] || `localhost:${process.env.PORT || 3000}`;
-        const proto = (req.headers['x-forwarded-proto'] as string) || (req as any).protocol || 'http';
+        const host =
+          req.headers['host'] || `localhost:${process.env.PORT || 3000}`;
+        const proto =
+          (req.headers['x-forwarded-proto'] as string) ||
+          (req as any).protocol ||
+          'http';
         const fullUrl = `${proto}://${host}/${rel.replace(/^[\\/]+/, '')}`;
         return res.json({ url, download_url: fullUrl });
       }
@@ -219,7 +244,10 @@ export class ContactsController {
       const stat = fs.statSync(filePath);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Length', String(stat.size));
-      res.setHeader('Content-Disposition', `attachment; filename="${path.basename(filePath)}"`);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${path.basename(filePath)}"`,
+      );
       // Allow caching for short time
       res.setHeader('Cache-Control', 'private, max-age=60');
 

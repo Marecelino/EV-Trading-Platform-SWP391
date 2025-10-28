@@ -12,26 +12,36 @@ import * as bcrypt from 'bcrypt';
 import { User, UserDocument, UserRole, UserStatus } from './model/users.schema';
 dotenv.config();
 
-
 async function ensureDetailIndexes(app: any) {
   // Attempt to drop legacy non-partial indexes on evdetails and batterydetails
   try {
     const evModel: Model<any> | undefined = app.get(getModelToken('EVDetail'));
-    const batModel: Model<any> | undefined = app.get(getModelToken('BatteryDetail'));
+    const batModel: Model<any> | undefined = app.get(
+      getModelToken('BatteryDetail'),
+    );
 
     for (const model of [evModel, batModel]) {
       if (!model || !model.collection) continue;
       try {
         const indexes = await model.collection.indexes();
         for (const idx of indexes) {
-          if (idx.key && (idx.key.auction_id !== undefined || idx.key.listing_id !== undefined)) {
+          if (
+            idx.key &&
+            (idx.key.auction_id !== undefined ||
+              idx.key.listing_id !== undefined)
+          ) {
             // If index has no partialFilterExpression, it's the legacy problematic unique index
             if (!idx.partialFilterExpression) {
               try {
                 await model.collection.dropIndex(idx.name as string);
-                console.log(`Dropped legacy index ${idx.name as string} on ${model.collection.collectionName}`);
+                console.log(
+                  `Dropped legacy index ${idx.name as string} on ${model.collection.collectionName}`,
+                );
               } catch (err) {
-                console.warn(`Failed to drop index ${idx.name} on ${model.collection.collectionName}:`, err?.message || err);
+                console.warn(
+                  `Failed to drop index ${idx.name} on ${model.collection.collectionName}:`,
+                  err?.message || err,
+                );
               }
             }
           }
@@ -39,7 +49,10 @@ async function ensureDetailIndexes(app: any) {
         // Ensure indexes defined on schema are created (partial unique indexes)
         await model.syncIndexes();
       } catch (err) {
-        console.warn('Error ensuring indexes for detail model', err?.message || err);
+        console.warn(
+          'Error ensuring indexes for detail model',
+          err?.message || err,
+        );
       }
     }
   } catch (err) {
@@ -81,7 +94,7 @@ async function bootstrap() {
       if (req.query && typeof req.query === 'object') {
         for (const k of Object.keys(req.query)) {
           try {
-            (req.query as any)[k] = sanitizeValue((req.query as any)[k]);
+            req.query[k] = sanitizeValue(req.query[k]);
           } catch (e) {
             // ignore individual key failures
           }
@@ -148,7 +161,10 @@ async function bootstrap() {
       prefix: '/uploads',
     });
   } catch (err) {
-    console.warn('Failed to configure static assets for uploads', err?.message || err);
+    console.warn(
+      'Failed to configure static assets for uploads',
+      err?.message || err,
+    );
   }
   await app.listen(port);
 
@@ -176,29 +192,29 @@ async function seedDefaultUsers(app: INestApplication) {
         logLabel: string;
       }
     > = [
-        {
-          fallbackEmail: 'admin@example.com',
-          fallbackPassword: 'admin123',
-          fallbackName: 'Quản trị viên',
-          role: UserRole.ADMIN,
-          emailEnv: 'DEFAULT_ADMIN_EMAIL',
-          passwordEnv: 'DEFAULT_ADMIN_PASSWORD',
-          nameEnv: 'DEFAULT_ADMIN_NAME',
-          status: UserStatus.ACTIVE,
-          logLabel: 'admin',
-        },
-        {
-          fallbackEmail: 'tuan@demo.com',
-          fallbackPassword: '123456',
-          fallbackName: 'Lê Minh Tuấn',
-          role: UserRole.USER,
-          emailEnv: 'DEFAULT_MEMBER_EMAIL',
-          passwordEnv: 'DEFAULT_MEMBER_PASSWORD',
-          nameEnv: 'DEFAULT_MEMBER_NAME',
-          status: UserStatus.ACTIVE,
-          logLabel: 'demo member',
-        },
-      ];
+      {
+        fallbackEmail: 'admin@example.com',
+        fallbackPassword: 'admin123',
+        fallbackName: 'Quản trị viên',
+        role: UserRole.ADMIN,
+        emailEnv: 'DEFAULT_ADMIN_EMAIL',
+        passwordEnv: 'DEFAULT_ADMIN_PASSWORD',
+        nameEnv: 'DEFAULT_ADMIN_NAME',
+        status: UserStatus.ACTIVE,
+        logLabel: 'admin',
+      },
+      {
+        fallbackEmail: 'tuan@demo.com',
+        fallbackPassword: '123456',
+        fallbackName: 'Lê Minh Tuấn',
+        role: UserRole.USER,
+        emailEnv: 'DEFAULT_MEMBER_EMAIL',
+        passwordEnv: 'DEFAULT_MEMBER_PASSWORD',
+        nameEnv: 'DEFAULT_MEMBER_NAME',
+        status: UserStatus.ACTIVE,
+        logLabel: 'demo member',
+      },
+    ];
 
     for (const config of defaults) {
       const email = process.env[config.emailEnv] ?? config.fallbackEmail;

@@ -22,7 +22,7 @@ import { CommissionStatus } from '../model/commissions';
 @ApiTags('Commissions')
 @Controller('commissions')
 export class CommissionsController {
-  constructor(private readonly commissionsService: CommissionsService) { }
+  constructor(private readonly commissionsService: CommissionsService) {}
 
   @Post()
   @ApiOperation({ summary: 'Tạo hoa hồng mới' })
@@ -159,10 +159,16 @@ export class CommissionsController {
   }
 
   @Post(':id/pay')
-  @ApiOperation({ summary: 'Thanh toán hoa hồng và cập nhật giao dịch (không cập nhật hợp đồng)' })
+  @ApiOperation({
+    summary:
+      'Thanh toán hoa hồng và cập nhật giao dịch (không cập nhật hợp đồng)',
+  })
   @ApiResponse({ status: 200, description: 'Thanh toán hoa hồng thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy hoa hồng' })
-  payCommission(@Param('id') id: string, @Body('payment_reference') payment_reference?: string) {
+  payCommission(
+    @Param('id') id: string,
+    @Body('payment_reference') payment_reference?: string,
+  ) {
     return this.commissionsService.payCommission(id, payment_reference);
   }
 

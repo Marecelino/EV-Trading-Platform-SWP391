@@ -13,7 +13,13 @@ import { ContactsService } from './contacts.service';
     forwardRef(() => require('../signnow/signnow.module').SignnowModule),
   ],
   controllers: [ContactsController],
-  providers: [ContactsService, require('./contacts-pdf.service').ContactsPdfService],
-  exports: [ContactsService, require('./contacts-pdf.service').ContactsPdfService],
+  providers: [
+    ContactsService,
+    require('./contacts-pdf.service').ContactsPdfService,
+  ],
+  exports: [
+    ContactsService,
+    require('./contacts-pdf.service').ContactsPdfService,
+  ],
 })
-export class ContactsModule { }
+export class ContactsModule {}

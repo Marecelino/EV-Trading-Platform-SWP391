@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, Types } from 'mongoose';
 import {
@@ -57,25 +61,193 @@ export class ListingsService {
     return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
+  private buildListingDetailQuery(
+    listingIds: string[],
+  ): FilterQuery<any> | null {
+    const uniqueIds = Array.from(
+      new Set(
+        (listingIds || [])
+          .map((id) => (id ? String(id) : ''))
+          .filter((id) => id.length > 0),
+      ),
+    );
+
+    if (uniqueIds.length === 0) {
+      return null;
+    }
+
+    const objectIds: Types.ObjectId[] = [];
+    const stringIds: string[] = [];
+
+    uniqueIds.forEach((id) => {
+      if (Types.ObjectId.isValid(id)) {
+        objectIds.push(new Types.ObjectId(id));
+      } else {
+        stringIds.push(id);
+      }
+    });
+
+    const clauses: FilterQuery<any>[] = [];
+    if (objectIds.length) {
+      clauses.push({ listing_id: { $in: objectIds } });
+    }
+    if (stringIds.length) {
+      clauses.push({ listing_id: { $in: stringIds } });
+    }
+
+    if (clauses.length === 0) {
+      return null;
+    }
+
+    if (clauses.length === 1) {
+      return clauses[0];
+    }
+
+    return { $or: clauses };
+  }
+
+  private async hydrateListings<T extends Listing & { _id: any }>(
+    listings: T[],
+  ): Promise<Array<T & { evDetail?: any; batteryDetail?: any }>> {
+    if (!Array.isArray(listings) || listings.length === 0) {
+      return [];
+    }
+
+    const listingIds = listings
+      .map((item) => (item?._id ? String(item._id) : null))
+      .filter((id): id is string => Boolean(id));
+
+    const detailQuery = this.buildListingDetailQuery(listingIds);
+
+    const [evDetails, batteryDetails] = await Promise.all([
+      detailQuery ? this.evDetailModel.find(detailQuery).lean() : [],
+      detailQuery ? this.batteryDetailModel.find(detailQuery).lean() : [],
+    ]);
+
+    const evDetailArray = Array.isArray(evDetails)
+      ? (evDetails as Array<{ listing_id?: any }>)
+      : [];
+    const batteryDetailArray = Array.isArray(batteryDetails)
+      ? (batteryDetails as Array<{ listing_id?: any }>)
+      : [];
+
+    const evDetailMap = new Map<string, any>(
+      evDetailArray
+        .filter((detail) => detail?.listing_id)
+        .map((detail) => [String(detail.listing_id), detail]),
+    );
+
+    const batteryDetailMap = new Map<string, any>(
+      batteryDetailArray
+        .filter((detail) => detail?.listing_id)
+        .map((detail) => [String(detail.listing_id), detail]),
+    );
+
+    return listings.map((item) => {
+      const idStr = String(item._id);
+      const categoryValue = String(item.category);
+
+      if (categoryValue === CategoryEnum.EV) {
+        const evDetail = evDetailMap.get(idStr) ?? null;
+        return { ...item, evDetail };
+      }
+
+      if (categoryValue === CategoryEnum.BATTERY) {
+        const batteryDetail = batteryDetailMap.get(idStr) ?? null;
+        return { ...item, batteryDetail };
+      }
+
+      return item;
+    });
+  }
+
   async findAll(filters: FilterListingsDto) {
     const {
       brand_id,
+      brandName,
       status,
       condition,
       search,
       minPrice,
       maxPrice,
       location,
-      limit = 12,
-      page = 1,
+      minYear,
+      maxYear,
+      minMileage,
+      maxMileage,
+      minRange,
+      maxRange,
+      minCapacity,
+      maxCapacity,
+      minSoh,
+      maxSoh,
+      category,
+      limit: limitParam = 12,
+      page: pageParam = 1,
     } = filters;
+
+    const safeLimit = Math.min(Math.max(limitParam ?? 12, 1), 50);
+    const safePage = Math.max(pageParam ?? 1, 1);
 
     const query: FilterQuery<ListingDocument> = {};
 
-    if (brand_id) query.brand_id = brand_id;
     if (status) query.status = status;
     if (condition) query.condition = condition;
-    if (location) query.location = { $regex: new RegExp(location, 'i') };
+    if (category) query.category = category;
+    if (location) {
+      query.location = {
+        $regex: new RegExp(this.escapeRegex(location), 'i'),
+      };
+    }
+
+    const brandIdSet = new Set<string>();
+    if (brand_id) {
+      if (!Types.ObjectId.isValid(brand_id)) {
+        return {
+          data: [],
+          meta: {
+            page: safePage,
+            limit: safeLimit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+      brandIdSet.add(String(brand_id));
+    }
+
+    if (brandName) {
+      const brandMatches = await this.brandModel
+        .find({
+          name: { $regex: new RegExp(this.escapeRegex(brandName), 'i') },
+        })
+        .select('_id')
+        .lean<Array<{ _id: Types.ObjectId }>>();
+
+      brandMatches.forEach((brand) => brandIdSet.add(String(brand._id)));
+
+      if (brandMatches.length === 0 && brandIdSet.size === 0) {
+        return {
+          data: [],
+          meta: {
+            page: safePage,
+            limit: safeLimit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+    }
+
+    if (brandIdSet.size > 0) {
+      const brandObjectIds = Array.from(brandIdSet).map(
+        (id) => new Types.ObjectId(id),
+      );
+      query.brand_id =
+        brandObjectIds.length === 1
+          ? brandObjectIds[0]
+          : { $in: brandObjectIds };
+    }
 
     const priceCondition = buildNumberCondition(minPrice, maxPrice);
     if (priceCondition) {
@@ -85,7 +257,139 @@ export class ListingsService {
       query.$text = { $search: search };
     }
 
-    const skip = (page - 1) * limit;
+    const wantsEV = !category || category === CategoryEnum.EV;
+    const wantsBattery = !category || category === CategoryEnum.BATTERY;
+
+    const hasEvDetailFilters = [
+      minYear,
+      maxYear,
+      minMileage,
+      maxMileage,
+      minRange,
+      maxRange,
+      minCapacity,
+      maxCapacity,
+    ].some((value) => value !== undefined);
+
+    const hasBatteryDetailFilters = [
+      minCapacity,
+      maxCapacity,
+      minSoh,
+      maxSoh,
+    ].some((value) => value !== undefined);
+
+    let evListingIds: Set<string> | null = null;
+    if (wantsEV && hasEvDetailFilters) {
+      const evDetailQuery: FilterQuery<any> = {};
+      const yearCondition = buildNumberCondition(minYear, maxYear);
+      if (yearCondition) {
+        evDetailQuery.year = yearCondition;
+      }
+      const mileageCondition = buildNumberCondition(minMileage, maxMileage);
+      if (mileageCondition) {
+        evDetailQuery.mileage_km = mileageCondition;
+      }
+      const rangeCondition = buildNumberCondition(minRange, maxRange);
+      if (rangeCondition) {
+        evDetailQuery.range_km = rangeCondition;
+      }
+      const capacityCondition = buildNumberCondition(minCapacity, maxCapacity);
+      if (capacityCondition) {
+        evDetailQuery.battery_capacity_kwh = capacityCondition;
+      }
+
+      if (Object.keys(evDetailQuery).length > 0) {
+        evDetailQuery.listing_id = { $exists: true };
+        const evDetails = await this.evDetailModel
+          .find(evDetailQuery)
+          .select('listing_id')
+          .lean();
+
+        evListingIds = new Set(
+          (Array.isArray(evDetails) ? evDetails : [])
+            .map((detail: any) => detail?.listing_id)
+            .filter((id) => id)
+            .map((id) => String(id)),
+        );
+      }
+    }
+
+    let batteryListingIds: Set<string> | null = null;
+    if (wantsBattery && hasBatteryDetailFilters) {
+      const batteryDetailQuery: FilterQuery<any> = {};
+      const capacityCondition = buildNumberCondition(minCapacity, maxCapacity);
+      if (capacityCondition) {
+        batteryDetailQuery.capacity_kwh = capacityCondition;
+      }
+      const sohCondition = buildNumberCondition(minSoh, maxSoh);
+      if (sohCondition) {
+        batteryDetailQuery.soh_percent = sohCondition;
+      }
+
+      if (Object.keys(batteryDetailQuery).length > 0) {
+        batteryDetailQuery.listing_id = { $exists: true };
+        const batteryDetails = await this.batteryDetailModel
+          .find(batteryDetailQuery)
+          .select('listing_id')
+          .lean();
+
+        batteryListingIds = new Set(
+          (Array.isArray(batteryDetails) ? batteryDetails : [])
+            .map((detail: any) => detail?.listing_id)
+            .filter((id) => id)
+            .map((id) => String(id)),
+        );
+      }
+    }
+
+    let detailListingIds: Set<string> | null = null;
+    if (category === CategoryEnum.EV) {
+      detailListingIds = evListingIds;
+    } else if (category === CategoryEnum.BATTERY) {
+      detailListingIds = batteryListingIds;
+    } else if (evListingIds && batteryListingIds) {
+      detailListingIds = new Set([
+        ...Array.from(evListingIds),
+        ...Array.from(batteryListingIds),
+      ]);
+    } else {
+      detailListingIds = evListingIds ?? batteryListingIds ?? null;
+    }
+
+    if (detailListingIds) {
+      if (detailListingIds.size === 0) {
+        return {
+          data: [],
+          meta: {
+            page: safePage,
+            limit: safeLimit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+
+      const objectIdList = Array.from(detailListingIds)
+        .filter((id) => Types.ObjectId.isValid(id))
+        .map((id) => new Types.ObjectId(id));
+
+      if (objectIdList.length === 0) {
+        return {
+          data: [],
+          meta: {
+            page: safePage,
+            limit: safeLimit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+
+      query._id =
+        objectIdList.length === 1 ? objectIdList[0] : { $in: objectIdList };
+    }
+
+    const skip = (safePage - 1) * safeLimit;
 
     const [data, total] = await Promise.all([
       this.listingModel
@@ -94,54 +398,111 @@ export class ListingsService {
         .populate({ path: 'brand_id', select: 'name' })
         .sort({ is_featured: -1, createdAt: -1 })
         .skip(skip)
-        .limit(limit)
-        .lean<Listing & { _id: string; createdAt?: Date }>(),
+        .limit(safeLimit)
+        .lean<Listing & { _id: Types.ObjectId; createdAt?: Date }>(),
       this.listingModel.countDocuments(query),
     ]);
 
-    const dataWithDetail = await Promise.all(
-      (Array.isArray(data) ? data : []).map(async (item) => {
-        if (item.category === 'ev' || item.category === CategoryEnum.EV) {
-          const evDetail = await this.evDetailModel
-            .findOne({ listing_id: item._id })
-            .lean();
-          return { ...item, evDetail };
-        }
-        if (
-          item.category === 'battery' ||
-          item.category === CategoryEnum.BATTERY
-        ) {
-          const batteryDetail = await this.batteryDetailModel
-            .findOne({ listing_id: item._id })
-            .lean();
-          return { ...item, batteryDetail };
-        }
-        return item;
-      }),
+    const dataWithDetail = await this.hydrateListings(
+      Array.isArray(data) ? data : [],
     );
 
     return {
       data: dataWithDetail,
       meta: {
-        page,
-        limit,
+        page: safePage,
+        limit: safeLimit,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / safeLimit),
+      },
+    };
+  }
+
+  async findManyByIds(listingIds: string[]) {
+    const orderedDistinctIds = Array.from(
+      new Set(
+        (listingIds || [])
+          .map((id) => (id ? String(id) : ''))
+          .filter((id) => id.length > 0),
+      ),
+    );
+
+    if (orderedDistinctIds.length === 0) {
+      return [];
+    }
+
+    const objectIds = orderedDistinctIds
+      .filter((id) => Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+
+    if (objectIds.length === 0) {
+      return [];
+    }
+
+    const listings = (await this.listingModel
+      .find({ _id: { $in: objectIds } })
+      .populate({ path: 'seller_id', select: 'name email phone' })
+      .populate({ path: 'brand_id', select: 'name' })
+      .lean()) as Array<Listing & { _id: Types.ObjectId; createdAt?: Date }>;
+
+    if (!listings.length) {
+      return [];
+    }
+
+    const enriched = await this.hydrateListings(listings);
+
+    const listingMap = new Map(
+      enriched.map((item) => [String(item._id), item]),
+    );
+
+    return orderedDistinctIds
+      .map((id) => listingMap.get(id))
+      .filter((item): item is (typeof enriched)[number] => Boolean(item));
+  }
+
+  async compareListings(ids: string[]) {
+    const normalizedIds = Array.from(
+      new Set((ids || []).map((id) => (id ? String(id) : '')).filter(Boolean)),
+    );
+
+    if (normalizedIds.length < 2) {
+      throw new BadRequestException(
+        'At least two listing IDs are required for comparison',
+      );
+    }
+
+    const listings = await this.findManyByIds(normalizedIds);
+    const foundIdSet = new Set(listings.map((item) => String(item._id)));
+    const missingIds = normalizedIds.filter((id) => !foundIdSet.has(id));
+
+    if (listings.length < 2) {
+      throw new NotFoundException(
+        'Not enough listings found to perform a comparison',
+      );
+    }
+
+    return {
+      data: listings,
+      meta: {
+        total: listings.length,
+        missingIds,
       },
     };
   }
 
   async findOne(id: string) {
-    const listing = await this.listingModel
+    const listing = (await this.listingModel
       .findById(id)
       .populate('seller_id', 'name email phone')
-      .lean();
+      .populate('brand_id', 'name')
+      .lean()) as (Listing & { _id: Types.ObjectId }) | null;
 
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
 
-    return listing;
+    const [enriched] = await this.hydrateListings([listing]);
+    return enriched ?? listing;
   }
 
   async updateStatus(id: string, status: ListingStatus) {
@@ -211,10 +572,9 @@ export class ListingsService {
     selectors.push({ listing_id: String(listingId) });
 
     // Delete detail documents for this listing
-    if (
-      listing.category === CategoryEnum.EV ||
-      String(listing.category) === 'ev'
-    ) {
+    const listingCategory = String(listing.category);
+
+    if (listingCategory === CategoryEnum.EV) {
       const found = await this.evDetailModel.find({ $or: selectors }).lean();
       if (found.length > 0) {
         const ids = found.map((d) => d._id).filter(Boolean);
@@ -226,10 +586,7 @@ export class ListingsService {
           deletedCount: del.deletedCount,
         });
       }
-    } else if (
-      listing.category === CategoryEnum.BATTERY ||
-      String(listing.category) === 'battery'
-    ) {
+    } else if (listingCategory === CategoryEnum.BATTERY) {
       const found = await this.batteryDetailModel
         .find({ $or: selectors })
         .lean();
@@ -262,7 +619,7 @@ export class ListingsService {
   }
 
   async suggestPrice(dto: PriceSuggestionDto) {
-    const { mileage, condition, battery_capacity } = dto;
+    const { condition } = dto;
 
     const query: FilterQuery<ListingDocument> = {
       status: ListingStatus.SOLD,
@@ -341,13 +698,13 @@ export class ListingsService {
       recommendationQuery.brand_id = baseListing.brand_id;
     }
 
-    return (await this.listingModel
+    const recommendations = (await this.listingModel
       .find(recommendationQuery)
       .sort({ is_featured: -1, createdAt: -1 })
       .limit(limit)
-      .lean()) as unknown as Array<
-      Listing & { _id: Types.ObjectId; createdAt?: Date }
-    >;
+      .lean()) as Array<Listing & { _id: Types.ObjectId; createdAt?: Date }>;
+
+    return this.hydrateListings(recommendations);
   }
 
   /**
@@ -385,21 +742,18 @@ export class ListingsService {
         ],
       };
 
-      // console.log('Query:', JSON.stringify(query));
-
-      // // Add status filter if provided
-      // if (status) {
-      //   // Convert status to lowercase to match DB format
-      //   query.status = status.toLowerCase();
-      // }
-
-      // console.log('Final query with status:', JSON.stringify(query));
+      if (status) {
+        query.status = status;
+      }
 
       // Execute query with pagination
       const [data, total] = await Promise.all([
         this.listingModel
           .find(query)
           .select([
+            'category',
+            'brand_id',
+            'seller_id',
             'title',
             'description',
             'price',
@@ -424,9 +778,13 @@ export class ListingsService {
         this.listingModel.countDocuments(query),
       ]);
 
+      const dataWithDetails = await this.hydrateListings(
+        Array.isArray(data) ? data : [],
+      );
+
       // Return formatted response
       return {
-        data,
+        data: dataWithDetails,
         meta: {
           page,
           limit,

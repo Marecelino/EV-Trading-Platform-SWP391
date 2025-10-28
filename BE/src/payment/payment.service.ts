@@ -144,9 +144,10 @@ export class PaymentService {
     if (!auction) throw new NotFoundException('Auction not found');
 
     // Determine seller and price
-    const sellerId = auction.seller_id instanceof Types.ObjectId
-      ? auction.seller_id.toString()
-      : (auction.seller_id as any)?._id?.toString() || String(auction.seller_id);
+    const sellerId =
+      auction.seller_id instanceof Types.ObjectId
+        ? auction.seller_id.toString()
+        : auction.seller_id?._id?.toString() || String(auction.seller_id);
 
     if (!userId || String(userId).toLowerCase() === 'null') {
       throw new BadRequestException('Invalid buyer identifier');
@@ -160,7 +161,9 @@ export class PaymentService {
 
     // Only allow auction payment when auction has ended
     if (auction.status !== AuctionStatus.ENDED) {
-      throw new BadRequestException('Auction payment is only allowed when auction has ended');
+      throw new BadRequestException(
+        'Auction payment is only allowed when auction has ended',
+      );
     }
     if (auctionDto.amount && auctionDto.amount !== amount) {
       throw new BadRequestException('Amount does not match auction price');
@@ -180,8 +183,8 @@ export class PaymentService {
     const payment = await this.paymentModel.create({
       buyer_id: userId,
       seller_id: sellerId,
-      listing_id: (auction as any).listing_id ?? undefined,
-      auction_id: (auction as any)._id ?? auctionId,
+      listing_id: auction.listing_id ?? undefined,
+      auction_id: auction._id ?? auctionId,
       amount,
       payment_method: auctionDto.payment_method,
       status: PaymentStatus.PENDING,
@@ -229,7 +232,7 @@ export class PaymentService {
       listing.seller_id instanceof Types.ObjectId
         ? listing.seller_id.toString()
         : (listing.seller_id as any)?._id?.toString() ||
-        String(listing.seller_id);
+          String(listing.seller_id);
 
     if (listingSellerId === buyerId) {
       throw new BadRequestException('Buyer cannot be the seller');
@@ -397,8 +400,10 @@ export class PaymentService {
       seller_payout: sellerPayout,
     } as any;
 
-    if (payment.listing_id) createTransactionDto.listing_id = payment.listing_id.toString();
-    if ((payment as any).auction_id) createTransactionDto.auction_id = (payment as any).auction_id.toString();
+    if (payment.listing_id)
+      createTransactionDto.listing_id = payment.listing_id.toString();
+    if ((payment as any).auction_id)
+      createTransactionDto.auction_id = (payment as any).auction_id.toString();
 
     const transaction =
       await this.transactionsService.create(createTransactionDto);
@@ -416,9 +421,8 @@ export class PaymentService {
         amount: platformFee,
       };
 
-      const createdCommission = await this.commissionsService.create(
-        createCommissionDto,
-      );
+      const createdCommission =
+        await this.commissionsService.create(createCommissionDto);
 
       // Attach commission reference to transaction and payment, and mark transaction complete
       if (createdCommission && createdCommission._id) {
@@ -429,11 +433,14 @@ export class PaymentService {
           (transaction as any).commission_id = commId;
           transaction.status = TransactionStatus.COMPLETED;
         } catch (err) {
-          this.logger.warn('Failed to normalize commission id for transaction', {
-            transactionId: transaction._id,
-            commissionId: createdCommission._id,
-            error: err?.message || err,
-          });
+          this.logger.warn(
+            'Failed to normalize commission id for transaction',
+            {
+              transactionId: transaction._id,
+              commissionId: createdCommission._id,
+              error: err?.message || err,
+            },
+          );
         }
       }
     } catch (err) {
@@ -527,8 +534,10 @@ export class PaymentService {
         let buyer: any = null;
         let seller: any = null;
         try {
-          const buyerId = payment.buyer_id?.toString?.() ?? String(payment.buyer_id || '');
-          const sellerId = payment.seller_id?.toString?.() ?? String(payment.seller_id || '');
+          const buyerId =
+            payment.buyer_id?.toString?.() ?? String(payment.buyer_id || '');
+          const sellerId =
+            payment.seller_id?.toString?.() ?? String(payment.seller_id || '');
 
           if (buyerId && Types.ObjectId.isValid(buyerId)) {
             buyer = await this.userModel.findById(buyerId).lean();

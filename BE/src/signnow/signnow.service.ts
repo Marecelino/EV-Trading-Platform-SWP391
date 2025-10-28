@@ -313,9 +313,9 @@ export class SignnowService {
 
       doc.text(
         'Terms and Conditions:\n' +
-        '- The buyer agrees to purchase the listed EV/battery from the seller.\n' +
-        '- The seller guarantees the accuracy of the information provided.\n' +
-        '- Both parties agree to finalize the transaction upon successful payment.',
+          '- The buyer agrees to purchase the listed EV/battery from the seller.\n' +
+          '- The seller guarantees the accuracy of the information provided.\n' +
+          '- Both parties agree to finalize the transaction upon successful payment.',
       );
 
       doc.moveDown();

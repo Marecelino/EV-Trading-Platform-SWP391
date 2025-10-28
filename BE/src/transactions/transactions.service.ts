@@ -21,7 +21,7 @@ export class TransactionsService {
     @InjectModel(Transaction.name)
     private readonly transactionModel: Model<TransactionDocument>,
     private readonly listingsService: ListingsService,
-  ) { }
+  ) {}
 
   async create(createTransactionDto: CreateTransactionDto) {
     const transaction = new this.transactionModel({

@@ -49,7 +49,9 @@ export class FavoritesService {
 
   async listByUser(userId: string, page = 1, limit = 12) {
     const query: FilterQuery<FavoriteDocument> = { user_id: userId };
-    const skip = (page - 1) * limit;
+    const safePage = page > 0 ? page : 1;
+    const safeLimit = limit > 0 ? limit : 12;
+    const skip = (safePage - 1) * safeLimit;
 
     const [favorites, total] = await Promise.all([
       this.favoriteModel
@@ -57,18 +59,66 @@ export class FavoritesService {
         .populate('listing_id')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit)
+        .limit(safeLimit)
         .lean(),
       this.favoriteModel.countDocuments(query),
     ]);
 
+    const listingIds = (Array.isArray(favorites) ? favorites : [])
+      .map((favorite) => {
+        const listingRef = favorite?.listing_id as
+          | string
+          | { _id?: unknown }
+          | undefined;
+        if (!listingRef) {
+          return null;
+        }
+        if (typeof listingRef === 'string') {
+          return listingRef;
+        }
+        if (listingRef._id) {
+          return String(listingRef._id);
+        }
+        return null;
+      })
+      .filter((id): id is string => Boolean(id));
+
+    const listings = await this.listingsService.findManyByIds(listingIds);
+    const listingMap = new Map(
+      listings.map((listing) => [String(listing._id), listing]),
+    );
+
+    const enrichedFavorites = (Array.isArray(favorites) ? favorites : []).map(
+      (favorite) => {
+        const listingRef = favorite?.listing_id as
+          | string
+          | { _id?: unknown }
+          | undefined;
+        const listingId =
+          typeof listingRef === 'string'
+            ? listingRef
+            : listingRef && listingRef._id
+              ? String(listingRef._id)
+              : null;
+
+        const enrichedListing = listingId
+          ? (listingMap.get(listingId) ?? favorite.listing_id)
+          : favorite.listing_id;
+
+        return {
+          ...favorite,
+          listing_id: enrichedListing ?? null,
+        };
+      },
+    );
+
     return {
-      data: favorites,
+      data: enrichedFavorites,
       meta: {
-        page,
-        limit,
+        page: safePage,
+        limit: safeLimit,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / safeLimit),
       },
     };
   }

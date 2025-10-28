@@ -16,4 +16,4 @@ import { TransactionsModule } from '../transactions/transactions.module';
   providers: [CommissionsService],
   exports: [CommissionsService],
 })
-export class CommissionsModule { }
+export class CommissionsModule {}

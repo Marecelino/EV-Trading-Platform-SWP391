@@ -11,13 +11,17 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { PaymentService } from './payment.service';
-import { CreatePaymentDto, VNPayIPNDto, CreateAuctionPaymentDto } from './dto/payment.dto';
+import {
+  CreatePaymentDto,
+  VNPayIPNDto,
+  CreateAuctionPaymentDto,
+} from './dto/payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Payment')
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) { }
+  constructor(private readonly paymentService: PaymentService) {}
 
   @Post('create-payment-url')
   @UseGuards(JwtAuthGuard)

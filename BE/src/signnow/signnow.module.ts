@@ -15,4 +15,4 @@ import { ContactsModule } from '../contacts/contacts.module';
   controllers: [SignnowController],
   exports: [SignnowService],
 })
-export class SignnowModule { }
+export class SignnowModule {}

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseArrayPipe,
   Patch,
   Post,
   Query,
@@ -53,10 +54,24 @@ export class ListingsController {
     return this.listingsService.findAll(filters);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.listingsService.findOne(id);
+  @Get('compare')
+  @ApiOperation({ summary: 'Compare multiple listings by IDs' })
+  @ApiQuery({
+    name: 'ids',
+    required: true,
+    description: 'Comma separated list of listing IDs to compare',
+    example: '671234567890abcdef123456,671234567890abcdef654321',
+  })
+  compare(
+    @Query(
+      'ids',
+      new ParseArrayPipe({ items: String, separator: ',', optional: false }),
+    )
+    ids: string[],
+  ) {
+    return this.listingsService.compareListings(ids);
   }
+
   @Patch('ev/:id')
   updateEV(@Param('id') id: string, @Body() dto: CreateEVListingDto) {
     return this.evListingsService.update(id, dto);
@@ -180,5 +195,10 @@ export class ListingsController {
   @Get(':id/recommendations')
   recommend(@Param('id') id: string, @Query('limit') limit?: number) {
     return this.listingsService.getRecommendations(id, Number(limit) || 6);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.listingsService.findOne(id);
   }
 }

@@ -16,7 +16,7 @@ export class AuctionsService {
     @InjectModel(Auction.name) private auctionModel: Model<Auction>,
     @InjectModel('EVDetail') private evDetailModel: Model<any>,
     @InjectModel('BatteryDetail') private batteryDetailModel: Model<any>,
-  ) { }
+  ) {}
 
   /**
    * CREATE - Create new auction
@@ -101,16 +101,22 @@ export class AuctionsService {
       }
 
       // Convert to plain object and attach detail document by auction_id
-      const auction = auctionDoc.toObject ? auctionDoc.toObject() : (auctionDoc as any);
+      const auction = auctionDoc.toObject
+        ? auctionDoc.toObject()
+        : (auctionDoc as any);
       const category = String(auction.category || '').toLowerCase();
       const auctionId = auction._id;
 
       if (category === 'ev') {
-        const evDetail = await this.evDetailModel.findOne({ auction_id: auctionId }).lean();
+        const evDetail = await this.evDetailModel
+          .findOne({ auction_id: auctionId })
+          .lean();
         return { ...auction, auction_id: auctionId, evDetail };
       }
       if (category === 'battery') {
-        const batteryDetail = await this.batteryDetailModel.findOne({ auction_id: auctionId }).lean();
+        const batteryDetail = await this.batteryDetailModel
+          .findOne({ auction_id: auctionId })
+          .lean();
         return { ...auction, auction_id: auctionId, batteryDetail };
       }
 
@@ -191,16 +197,22 @@ export class AuctionsService {
         throw new NotFoundException('Auction not found after update');
       }
 
-      const updated = updatedDoc.toObject ? updatedDoc.toObject() : (updatedDoc as any);
+      const updated = updatedDoc.toObject
+        ? updatedDoc.toObject()
+        : (updatedDoc as any);
       const category = String(updated.category || '').toLowerCase();
       const auctionId = updated._id;
 
       if (category === 'ev') {
-        const evDetail = await this.evDetailModel.findOne({ auction_id: auctionId }).lean();
+        const evDetail = await this.evDetailModel
+          .findOne({ auction_id: auctionId })
+          .lean();
         return { ...updated, auction_id: auctionId, evDetail };
       }
       if (category === 'battery') {
-        const batteryDetail = await this.batteryDetailModel.findOne({ auction_id: auctionId }).lean();
+        const batteryDetail = await this.batteryDetailModel
+          .findOne({ auction_id: auctionId })
+          .lean();
         return { ...updated, auction_id: auctionId, batteryDetail };
       }
 
@@ -375,14 +387,20 @@ export class AuctionsService {
         throw new NotFoundException('Auction not found after bidding');
       }
 
-      const updated = updatedDoc.toObject ? updatedDoc.toObject() : (updatedDoc as any);
+      const updated = updatedDoc.toObject
+        ? updatedDoc.toObject()
+        : (updatedDoc as any);
       const category = String(updated.category || '').toLowerCase();
       if (category === 'ev') {
-        const evDetail = await this.evDetailModel.findOne({ auction_id: auctionId }).lean();
+        const evDetail = await this.evDetailModel
+          .findOne({ auction_id: auctionId })
+          .lean();
         return { ...updated, auction_id: auctionId, evDetail };
       }
       if (category === 'battery') {
-        const batteryDetail = await this.batteryDetailModel.findOne({ auction_id: auctionId }).lean();
+        const batteryDetail = await this.batteryDetailModel
+          .findOne({ auction_id: auctionId })
+          .lean();
         return { ...updated, auction_id: auctionId, batteryDetail };
       }
 
