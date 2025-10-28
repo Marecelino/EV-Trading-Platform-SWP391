@@ -36,7 +36,7 @@ export class AuctionsController {
     private readonly auctionsService: AuctionsService,
     private readonly evAuctionService: EVAuctionService,
     private readonly batteryAuctionService: BatteryAuctionService,
-  ) {}
+  ) { }
 
   @Get()
   @ApiOperation({
@@ -134,8 +134,6 @@ export class AuctionsController {
     );
 
     return {
-      statusCode: HttpStatus.OK,
-      message: 'Live auctions retrieved successfully',
       data: result.data,
       pagination: {
         total: result.total,
@@ -178,8 +176,6 @@ export class AuctionsController {
     );
 
     return {
-      statusCode: HttpStatus.OK,
-      message: 'Seller auctions retrieved successfully',
       data: result.data,
       pagination: {
         total: result.total,
@@ -204,8 +200,6 @@ export class AuctionsController {
   })
   async findOne(@Param('id') id: string) {
     return {
-      statusCode: HttpStatus.OK,
-      message: 'Auction retrieved successfully',
       data: await this.auctionsService.findOne(id),
     };
   }
@@ -264,8 +258,6 @@ export class AuctionsController {
     @Body() updateAuctionDto: UpdateAuctionDto,
   ) {
     return {
-      statusCode: HttpStatus.OK,
-      message: 'Auction updated successfully',
       data: await this.auctionsService.update(id, updateAuctionDto),
     };
   }
@@ -436,6 +428,18 @@ export class AuctionsController {
       statusCode: HttpStatus.OK,
       message: 'Auction ended successfully',
       data: await this.auctionsService.endAuction(id),
+    };
+  }
+
+  @Patch(':id/activate')
+  @ApiOperation({ summary: 'Activate auction (set live now)' })
+  @ApiParam({ name: 'id', description: 'Auction ID' })
+  @ApiResponse({ status: 200, description: 'Auction activated successfully' })
+  async activateAuction(@Param('id') id: string) {
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Auction activated',
+      data: await this.auctionsService.activateAuction(id),
     };
   }
 }
