@@ -146,6 +146,8 @@ describe('ListingsService filters (integration)', () => {
       listing_id: batteryListing._id,
       capacity_kwh: 100,
       soh_percent: 92,
+      battery_type: 'Lithium-Ion',
+      manufacture_year: 2023,
     });
 
     const otherBattery = await listingModel.create({
@@ -160,6 +162,8 @@ describe('ListingsService filters (integration)', () => {
       listing_id: otherBattery._id,
       capacity_kwh: 50,
       soh_percent: 70,
+      battery_type: 'Nickel-MH',
+      manufacture_year: 2016,
     });
 
     const result = await listingsService.findAll({
@@ -172,6 +176,50 @@ describe('ListingsService filters (integration)', () => {
     expect(result.meta.total).toBe(1);
     expect(result.data[0].title).toBe('CATL Pack 100kWh');
     expect(result.data[0].batteryDetail.soh_percent).toBe(92);
+  });
+
+  it('filters battery listings by type and manufacture year range', async () => {
+    const byd = await brandModel.create({ name: 'BYD Energy' });
+
+    const modernBattery = await listingModel.create({
+      ...baseListingPayload(),
+      title: 'BYD Blade Battery',
+      brand_id: byd._id,
+      category: CategoryEnum.BATTERY,
+    });
+
+    await batteryDetailModel.create({
+      listing_id: modernBattery._id,
+      capacity_kwh: 82,
+      soh_percent: 96,
+      battery_type: 'LFP',
+      manufacture_year: 2024,
+    });
+
+    const legacyBattery = await listingModel.create({
+      ...baseListingPayload(),
+      title: 'Legacy BYD Pack',
+      brand_id: byd._id,
+      category: CategoryEnum.BATTERY,
+    });
+
+    await batteryDetailModel.create({
+      listing_id: legacyBattery._id,
+      capacity_kwh: 60,
+      soh_percent: 80,
+      battery_type: 'NCM',
+      manufacture_year: 2015,
+    });
+
+    const result = await listingsService.findAll({
+      category: CategoryEnum.BATTERY,
+      batteryType: 'lfp',
+      minManufactureYear: 2020,
+    });
+
+    expect(result.meta.total).toBe(1);
+    expect(result.data[0].title).toBe('BYD Blade Battery');
+    expect(result.data[0].batteryDetail.manufacture_year).toBe(2024);
   });
 
   it('combines price and location filters across categories', async () => {

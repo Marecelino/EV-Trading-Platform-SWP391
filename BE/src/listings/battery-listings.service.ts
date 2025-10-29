@@ -69,6 +69,8 @@ export class BatteryListingsService {
       listing_id: saved._id,
       capacity_kwh: dto.capacity_kwh ?? dto.battery_capacity,
       soh_percent: dto.soh_percent,
+      battery_type: dto.battery_type,
+      manufacture_year: dto.manufacture_year,
     };
     Object.keys(batteryPayload).forEach(
       (k) => batteryPayload[k] === undefined && delete batteryPayload[k],
@@ -114,6 +116,10 @@ export class BatteryListingsService {
     if (dto.battery_capacity !== undefined)
       batPayload.capacity_kwh = dto.battery_capacity;
     if (dto.soh_percent !== undefined) batPayload.soh_percent = dto.soh_percent;
+    if (dto.battery_type !== undefined)
+      batPayload.battery_type = dto.battery_type;
+    if (dto.manufacture_year !== undefined)
+      batPayload.manufacture_year = dto.manufacture_year;
 
     let batteryDetail: any = null;
     if (Object.keys(batPayload).length > 0) {

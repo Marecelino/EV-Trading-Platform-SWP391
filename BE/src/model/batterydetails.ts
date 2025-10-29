@@ -37,6 +37,20 @@ export class BatteryDetail {
     max: 100,
   })
   soh_percent: number;
+
+  @Prop({
+    required: false,
+    trim: true,
+    maxlength: 100,
+  })
+  battery_type?: string;
+
+  @Prop({
+    required: false,
+    min: 1900,
+    max: new Date().getFullYear() + 5,
+  })
+  manufacture_year?: number;
 }
 
 export const BatteryDetailSchema = SchemaFactory.createForClass(BatteryDetail);

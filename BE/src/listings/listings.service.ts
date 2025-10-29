@@ -141,7 +141,12 @@ export class ListingsService {
       maxCapacity,
       minSoh,
       maxSoh,
+      batteryType,
+      minManufactureYear,
+      maxManufactureYear,
     } = filters;
+
+    const batteryTypeTerm = batteryType?.trim() || undefined;
 
     const wantsEV = !category || category === CategoryEnum.EV;
     const wantsBattery = !category || category === CategoryEnum.BATTERY;
@@ -162,6 +167,9 @@ export class ListingsService {
       maxCapacity,
       minSoh,
       maxSoh,
+      batteryTypeTerm,
+      minManufactureYear,
+      maxManufactureYear,
     ].some((value) => value !== undefined);
 
     let evListingIds: Set<string> | null = null;
@@ -210,6 +218,18 @@ export class ListingsService {
       const sohCondition = buildNumberCondition(minSoh, maxSoh);
       if (sohCondition) {
         batteryDetailQuery.soh_percent = sohCondition;
+      }
+      const manufactureCondition = buildNumberCondition(
+        minManufactureYear,
+        maxManufactureYear,
+      );
+      if (manufactureCondition) {
+        batteryDetailQuery.manufacture_year = manufactureCondition;
+      }
+      if (batteryTypeTerm) {
+        batteryDetailQuery.battery_type = {
+          $regex: new RegExp(this.escapeRegex(batteryTypeTerm), 'i'),
+        };
       }
 
       if (Object.keys(batteryDetailQuery).length > 0) {

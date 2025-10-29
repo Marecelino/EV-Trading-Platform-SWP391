@@ -119,6 +119,24 @@ export class FilterListingsDto {
   maxSoh?: number;
 
   @IsOptional()
+  @IsString()
+  batteryType?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1900)
+  @Max(new Date().getFullYear() + 5)
+  minManufactureYear?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1900)
+  @Max(new Date().getFullYear() + 5)
+  maxManufactureYear?: number;
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(1)
