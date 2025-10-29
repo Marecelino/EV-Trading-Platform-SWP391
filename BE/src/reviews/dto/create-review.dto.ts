@@ -1,9 +1,11 @@
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsMongoId,
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
   Min,
   MinLength,
@@ -17,7 +19,9 @@ export class CreateReviewDto {
   reviewee_id: string;
 
   @IsNumber()
+  @Type(() => Number)
   @Min(1)
+  @Max(5)
   rating: number;
 
   @IsString()
@@ -25,9 +29,8 @@ export class CreateReviewDto {
   @MaxLength(500)
   comment: string;
 
-  @IsOptional()
   @IsMongoId()
-  transaction_id?: string;
+  transaction_id: string;
 
   @IsOptional()
   @IsBoolean()

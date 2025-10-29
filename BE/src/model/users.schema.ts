@@ -51,6 +51,12 @@ export class User {
   @Prop({ default: false })
   isEmailVerified: boolean;
 
+  @Prop({ default: 0 })
+  review_average?: number;
+
+  @Prop({ default: 0 })
+  review_count?: number;
+
   // ----- OAuth -----
   @Prop({
     type: [

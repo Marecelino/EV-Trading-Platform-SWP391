@@ -13,6 +13,7 @@ import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { FilterReviewsDto } from './dto/filter-reviews.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
+import { ToggleVisibilityDto } from './dto/toggle-visibility.dto';
 
 @ApiTags('reviews')
 @Controller('reviews')
@@ -42,9 +43,9 @@ export class ReviewsController {
   @Patch(':id/visibility')
   toggleVisibility(
     @Param('id') id: string,
-    @Body('is_visible') isVisible: boolean,
+    @Body() { is_visible }: ToggleVisibilityDto,
   ) {
-    return this.reviewsService.toggleVisibility(id, isVisible);
+    return this.reviewsService.toggleVisibility(id, is_visible);
   }
 
   @Delete(':id')
