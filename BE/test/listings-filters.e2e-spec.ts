@@ -203,4 +203,111 @@ describe('ListingsService filters (integration)', () => {
     expect(result.meta.total).toBe(1);
     expect(result.data[0].title).toBe('VinFast VF8');
   });
+
+  it('searches listings by keyword across title, location, and brand', async () => {
+    const tesla = await brandModel.create({ name: 'Tesla' });
+    const catl = await brandModel.create({ name: 'CATL' });
+
+    const evListing = await listingModel.create({
+      ...baseListingPayload(),
+      title: 'Model S Plaid',
+      description: 'Flagship Tesla EV with extended range',
+      brand_id: tesla._id,
+      category: CategoryEnum.EV,
+      location: 'Ho Chi Minh City',
+    });
+
+    await evDetailModel.create({
+      listing_id: evListing._id,
+      year: 2023,
+      mileage_km: 12000,
+      battery_capacity_kwh: 100,
+      range_km: 650,
+    });
+
+    const batteryListing = await listingModel.create({
+      ...baseListingPayload(),
+      title: 'Energy Storage Pack',
+      description: 'CATL pack suitable for commercial energy storage',
+      brand_id: catl._id,
+      category: CategoryEnum.BATTERY,
+      location: 'Da Nang Harbor',
+    });
+
+    await batteryDetailModel.create({
+      listing_id: batteryListing._id,
+      capacity_kwh: 90,
+      soh_percent: 94,
+    });
+
+    const byBrand = await listingsService.searchVehicles({ keyword: 'Tesla' });
+    expect(byBrand.meta.total).toBe(1);
+    expect(byBrand.data[0].title).toBe('Model S Plaid');
+
+    const byLocation = await listingsService.searchVehicles({
+      keyword: 'Da Nang',
+    });
+    expect(byLocation.meta.total).toBe(1);
+    expect(byLocation.data[0].title).toBe('Energy Storage Pack');
+
+    const byTitle = await listingsService.searchVehicles({
+      keyword: 'Energy Storage',
+    });
+    expect(byTitle.meta.total).toBe(1);
+    expect(byTitle.data[0].category).toBe(CategoryEnum.BATTERY);
+  });
+
+  it('applies detail filters and default active status when searching', async () => {
+    const detailBrand = await brandModel.create({ name: 'DetailBrand' });
+
+    const activeListing = await listingModel.create({
+      ...baseListingPayload(),
+      title: 'Detail EV Active',
+      brand_id: detailBrand._id,
+      category: CategoryEnum.EV,
+      status: ListingStatus.ACTIVE,
+    });
+
+    await evDetailModel.create({
+      listing_id: activeListing._id,
+      year: 2022,
+      mileage_km: 18000,
+      battery_capacity_kwh: 80,
+      range_km: 500,
+    });
+
+    const draftListing = await listingModel.create({
+      ...baseListingPayload(),
+      title: 'Detail EV Draft',
+      brand_id: detailBrand._id,
+      category: CategoryEnum.EV,
+      status: ListingStatus.DRAFT,
+    });
+
+    await evDetailModel.create({
+      listing_id: draftListing._id,
+      year: 2024,
+      mileage_km: 1000,
+      battery_capacity_kwh: 90,
+      range_km: 550,
+    });
+
+    const defaultResult = await listingsService.searchVehicles({
+      keyword: 'Detail EV',
+      category: CategoryEnum.EV,
+      minYear: 2023,
+    });
+
+    expect(defaultResult.meta.total).toBe(0);
+
+    const draftResult = await listingsService.searchVehicles({
+      keyword: 'Detail EV',
+      category: CategoryEnum.EV,
+      minYear: 2023,
+      status: ListingStatus.DRAFT,
+    });
+
+    expect(draftResult.meta.total).toBe(1);
+    expect(draftResult.data[0].title).toBe('Detail EV Draft');
+  });
 });

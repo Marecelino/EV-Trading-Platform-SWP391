@@ -18,6 +18,7 @@ import {
 } from '../model/pricesuggestions';
 
 import { FilterListingsDto } from './dto/filter-listings.dto';
+import { SearchListingsDto } from './dto/search-listings.dto';
 import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { Brand, BrandDocument } from 'src/model/brands';
 import { EVDetail } from 'src/model/evdetails';
@@ -59,6 +60,25 @@ export class ListingsService {
   ) {}
   private escapeRegex(input: string) {
     return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private buildSearchRegex(term?: string): RegExp | null {
+    if (!term) {
+      return null;
+    }
+
+    const words = term
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0)
+      .map((word) => this.escapeRegex(word));
+
+    if (!words.length) {
+      return null;
+    }
+
+    const pattern = words.join('.*');
+    return new RegExp(pattern, 'i');
   }
 
   private buildListingDetailQuery(
@@ -104,6 +124,126 @@ export class ListingsService {
     }
 
     return { $or: clauses };
+  }
+
+  private async resolveDetailListingIds(
+    filters: FilterListingsDto,
+  ): Promise<Set<string> | null> {
+    const {
+      category,
+      minYear,
+      maxYear,
+      minMileage,
+      maxMileage,
+      minRange,
+      maxRange,
+      minCapacity,
+      maxCapacity,
+      minSoh,
+      maxSoh,
+    } = filters;
+
+    const wantsEV = !category || category === CategoryEnum.EV;
+    const wantsBattery = !category || category === CategoryEnum.BATTERY;
+
+    const hasEvDetailFilters = [
+      minYear,
+      maxYear,
+      minMileage,
+      maxMileage,
+      minRange,
+      maxRange,
+      minCapacity,
+      maxCapacity,
+    ].some((value) => value !== undefined);
+
+    const hasBatteryDetailFilters = [
+      minCapacity,
+      maxCapacity,
+      minSoh,
+      maxSoh,
+    ].some((value) => value !== undefined);
+
+    let evListingIds: Set<string> | null = null;
+    if (wantsEV && hasEvDetailFilters) {
+      const evDetailQuery: FilterQuery<any> = {};
+      const yearCondition = buildNumberCondition(minYear, maxYear);
+      if (yearCondition) {
+        evDetailQuery.year = yearCondition;
+      }
+      const mileageCondition = buildNumberCondition(minMileage, maxMileage);
+      if (mileageCondition) {
+        evDetailQuery.mileage_km = mileageCondition;
+      }
+      const rangeCondition = buildNumberCondition(minRange, maxRange);
+      if (rangeCondition) {
+        evDetailQuery.range_km = rangeCondition;
+      }
+      const capacityCondition = buildNumberCondition(minCapacity, maxCapacity);
+      if (capacityCondition) {
+        evDetailQuery.battery_capacity_kwh = capacityCondition;
+      }
+
+      if (Object.keys(evDetailQuery).length > 0) {
+        evDetailQuery.listing_id = { $exists: true };
+        const evDetails = await this.evDetailModel
+          .find(evDetailQuery)
+          .select('listing_id')
+          .lean();
+
+        evListingIds = new Set(
+          (Array.isArray(evDetails) ? evDetails : [])
+            .map((detail: any) => detail?.listing_id)
+            .filter((id) => id)
+            .map((id) => String(id)),
+        );
+      }
+    }
+
+    let batteryListingIds: Set<string> | null = null;
+    if (wantsBattery && hasBatteryDetailFilters) {
+      const batteryDetailQuery: FilterQuery<any> = {};
+      const capacityCondition = buildNumberCondition(minCapacity, maxCapacity);
+      if (capacityCondition) {
+        batteryDetailQuery.capacity_kwh = capacityCondition;
+      }
+      const sohCondition = buildNumberCondition(minSoh, maxSoh);
+      if (sohCondition) {
+        batteryDetailQuery.soh_percent = sohCondition;
+      }
+
+      if (Object.keys(batteryDetailQuery).length > 0) {
+        batteryDetailQuery.listing_id = { $exists: true };
+        const batteryDetails = await this.batteryDetailModel
+          .find(batteryDetailQuery)
+          .select('listing_id')
+          .lean();
+
+        batteryListingIds = new Set(
+          (Array.isArray(batteryDetails) ? batteryDetails : [])
+            .map((detail: any) => detail?.listing_id)
+            .filter((id) => id)
+            .map((id) => String(id)),
+        );
+      }
+    }
+
+    if (category === CategoryEnum.EV) {
+      return evListingIds;
+    }
+
+    if (category === CategoryEnum.BATTERY) {
+      return batteryListingIds;
+    }
+
+    if (evListingIds && batteryListingIds) {
+      return new Set([
+        ...Array.from(evListingIds),
+        ...Array.from(batteryListingIds),
+      ]);
+    }
+
+    return evListingIds ?? batteryListingIds ?? null;
   }
 
   private async hydrateListings<T extends Listing & { _id: any }>(
@@ -257,104 +397,7 @@ export class ListingsService {
       query.$text = { $search: search };
     }
 
-    const wantsEV = !category || category === CategoryEnum.EV;
-    const wantsBattery = !category || category === CategoryEnum.BATTERY;
-
-    const hasEvDetailFilters = [
-      minYear,
-      maxYear,
-      minMileage,
-      maxMileage,
-      minRange,
-      maxRange,
-      minCapacity,
-      maxCapacity,
-    ].some((value) => value !== undefined);
-
-    const hasBatteryDetailFilters = [
-      minCapacity,
-      maxCapacity,
-      minSoh,
-      maxSoh,
-    ].some((value) => value !== undefined);
-
-    let evListingIds: Set<string> | null = null;
-    if (wantsEV && hasEvDetailFilters) {
-      const evDetailQuery: FilterQuery<any> = {};
-      const yearCondition = buildNumberCondition(minYear, maxYear);
-      if (yearCondition) {
-        evDetailQuery.year = yearCondition;
-      }
-      const mileageCondition = buildNumberCondition(minMileage, maxMileage);
-      if (mileageCondition) {
-        evDetailQuery.mileage_km = mileageCondition;
-      }
-      const rangeCondition = buildNumberCondition(minRange, maxRange);
-      if (rangeCondition) {
-        evDetailQuery.range_km = rangeCondition;
-      }
-      const capacityCondition = buildNumberCondition(minCapacity, maxCapacity);
-      if (capacityCondition) {
-        evDetailQuery.battery_capacity_kwh = capacityCondition;
-      }
-
-      if (Object.keys(evDetailQuery).length > 0) {
-        evDetailQuery.listing_id = { $exists: true };
-        const evDetails = await this.evDetailModel
-          .find(evDetailQuery)
-          .select('listing_id')
-          .lean();
-
-        evListingIds = new Set(
-          (Array.isArray(evDetails) ? evDetails : [])
-            .map((detail: any) => detail?.listing_id)
-            .filter((id) => id)
-            .map((id) => String(id)),
-        );
-      }
-    }
-
-    let batteryListingIds: Set<string> | null = null;
-    if (wantsBattery && hasBatteryDetailFilters) {
-      const batteryDetailQuery: FilterQuery<any> = {};
-      const capacityCondition = buildNumberCondition(minCapacity, maxCapacity);
-      if (capacityCondition) {
-        batteryDetailQuery.capacity_kwh = capacityCondition;
-      }
-      const sohCondition = buildNumberCondition(minSoh, maxSoh);
-      if (sohCondition) {
-        batteryDetailQuery.soh_percent = sohCondition;
-      }
-
-      if (Object.keys(batteryDetailQuery).length > 0) {
-        batteryDetailQuery.listing_id = { $exists: true };
-        const batteryDetails = await this.batteryDetailModel
-          .find(batteryDetailQuery)
-          .select('listing_id')
-          .lean();
-
-        batteryListingIds = new Set(
-          (Array.isArray(batteryDetails) ? batteryDetails : [])
-            .map((detail: any) => detail?.listing_id)
-            .filter((id) => id)
-            .map((id) => String(id)),
-        );
-      }
-    }
-
-    let detailListingIds: Set<string> | null = null;
-    if (category === CategoryEnum.EV) {
-      detailListingIds = evListingIds;
-    } else if (category === CategoryEnum.BATTERY) {
-      detailListingIds = batteryListingIds;
-    } else if (evListingIds && batteryListingIds) {
-      detailListingIds = new Set([
-        ...Array.from(evListingIds),
-        ...Array.from(batteryListingIds),
-      ]);
-    } else {
-      detailListingIds = evListingIds ?? batteryListingIds ?? null;
-    }
+    const detailListingIds = await this.resolveDetailListingIds(filters);
 
     if (detailListingIds) {
       if (detailListingIds.size === 0) {
@@ -387,6 +430,196 @@ export class ListingsService {
 
       query._id =
         objectIdList.length === 1 ? objectIdList[0] : { $in: objectIdList };
+    }
+
+    const skip = (safePage - 1) * safeLimit;
+
+    const [data, total] = await Promise.all([
+      this.listingModel
+        .find(query)
+        .populate({ path: 'seller_id', select: 'name email phone' })
+        .populate({ path: 'brand_id', select: 'name' })
+        .sort({ is_featured: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(safeLimit)
+        .lean<Listing & { _id: Types.ObjectId; createdAt?: Date }>(),
+      this.listingModel.countDocuments(query),
+    ]);
+
+    const dataWithDetail = await this.hydrateListings(
+      Array.isArray(data) ? data : [],
+    );
+
+    return {
+      data: dataWithDetail,
+      meta: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages: Math.ceil(total / safeLimit),
+      },
+    };
+  }
+
+  async searchVehicles(filters: SearchListingsDto) {
+    const {
+      keyword,
+      q,
+      search,
+      brand_id,
+      brandName,
+      status,
+      condition,
+      category,
+      location,
+      minPrice,
+      maxPrice,
+      limit: limitParam = 10,
+      page: pageParam = 1,
+    } = filters;
+
+    const searchTerm = keyword ?? q ?? search;
+
+    const safeLimit = Math.min(Math.max(limitParam ?? 10, 1), 50);
+    const safePage = Math.max(pageParam ?? 1, 1);
+
+    const query: FilterQuery<ListingDocument> = {};
+
+    const effectiveStatus = status ?? ListingStatus.ACTIVE;
+    if (effectiveStatus) {
+      query.status = effectiveStatus;
+    }
+
+    if (condition) {
+      query.condition = condition;
+    }
+    if (category) {
+      query.category = category;
+    }
+    if (location) {
+      query.location = {
+        $regex: new RegExp(this.escapeRegex(location), 'i'),
+      };
+    }
+
+    const brandIdSet = new Set<string>();
+    if (brand_id) {
+      if (!Types.ObjectId.isValid(brand_id)) {
+        return {
+          data: [],
+          meta: {
+            page: safePage,
+            limit: safeLimit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+      brandIdSet.add(String(brand_id));
+    }
+
+    if (brandName) {
+      const brandMatches = await this.brandModel
+        .find({
+          name: { $regex: new RegExp(this.escapeRegex(brandName), 'i') },
+        })
+        .select('_id')
+        .lean<Array<{ _id: Types.ObjectId }>>();
+
+      brandMatches.forEach((brand) => brandIdSet.add(String(brand._id)));
+
+      if (brandMatches.length === 0 && brandIdSet.size === 0) {
+        return {
+          data: [],
+          meta: {
+            page: safePage,
+            limit: safeLimit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+    }
+
+    if (brandIdSet.size > 0) {
+      const brandObjectIds = Array.from(brandIdSet).map(
+        (id) => new Types.ObjectId(id),
+      );
+      query.brand_id =
+        brandObjectIds.length === 1
+          ? brandObjectIds[0]
+          : { $in: brandObjectIds };
+    }
+
+    const priceCondition = buildNumberCondition(minPrice, maxPrice);
+    if (priceCondition) {
+      query.price = priceCondition as unknown as ListingDocument['price'];
+    }
+
+    const detailListingIds = await this.resolveDetailListingIds(filters);
+
+    if (detailListingIds) {
+      if (detailListingIds.size === 0) {
+        return {
+          data: [],
+          meta: {
+            page: safePage,
+            limit: safeLimit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+
+      const objectIdList = Array.from(detailListingIds)
+        .filter((id) => Types.ObjectId.isValid(id))
+        .map((id) => new Types.ObjectId(id));
+
+      if (objectIdList.length === 0) {
+        return {
+          data: [],
+          meta: {
+            page: safePage,
+            limit: safeLimit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+
+      query._id =
+        objectIdList.length === 1 ? objectIdList[0] : { $in: objectIdList };
+    }
+
+    const searchRegex = this.buildSearchRegex(searchTerm);
+    const orConditions: FilterQuery<ListingDocument>[] = [];
+
+    if (searchRegex) {
+      orConditions.push({ title: { $regex: searchRegex } });
+      orConditions.push({ description: { $regex: searchRegex } });
+      orConditions.push({ location: { $regex: searchRegex } });
+
+      const brandKeywordMatches = await this.brandModel
+        .find({ name: { $regex: searchRegex } })
+        .select('_id')
+        .lean<Array<{ _id: Types.ObjectId }>>();
+
+      const brandKeywordObjectIds = brandKeywordMatches
+        .map((brand) => brand?._id)
+        .filter((id): id is Types.ObjectId => Boolean(id))
+        .map((id) => new Types.ObjectId(id));
+
+      if (brandKeywordObjectIds.length) {
+        orConditions.push({ brand_id: { $in: brandKeywordObjectIds } });
+      }
+    }
+
+    if (searchRegex && !orConditions.length) {
+      orConditions.push({ title: { $regex: searchRegex } });
+    }
+
+    if (orConditions.length > 0) {
+      query.$or = orConditions;
     }
 
     const skip = (safePage - 1) * safeLimit;

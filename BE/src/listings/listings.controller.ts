@@ -22,6 +22,7 @@ import { BatteryListingsService } from './battery-listings.service';
 import { CreateEVListingDto } from './dto/create-ev-listing.dto';
 import { CreateBatteryListingDto } from './dto/create-battery-listing.dto';
 import { FilterListingsDto } from './dto/filter-listings.dto';
+import { SearchListingsDto } from './dto/search-listings.dto';
 import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { ListingStatus } from '../model/listings';
 
@@ -47,6 +48,12 @@ export class ListingsController {
   @Post('battery')
   createBattery(@Body() dto: CreateBatteryListingDto) {
     return this.batteryListingsService.create(dto);
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Search EV and battery listings' })
+  search(@Query() filters: SearchListingsDto) {
+    return this.listingsService.searchVehicles(filters);
   }
 
   @Get()
