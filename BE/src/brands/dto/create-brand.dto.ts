@@ -1,12 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsBoolean, IsNumber, IsUrl, MinLength, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsNumber,
+  IsUrl,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateBrandDto {
   @ApiProperty({
     description: 'Tên thương hiệu',
     example: 'Tesla',
     minLength: 2,
-    maxLength: 50
+    maxLength: 50,
   })
   @IsString()
   @MinLength(2)
@@ -17,7 +25,7 @@ export class CreateBrandDto {
     description: 'Mô tả thương hiệu',
     example: 'Thương hiệu xe điện hàng đầu thế giới',
     maxLength: 500,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -27,7 +35,7 @@ export class CreateBrandDto {
   @ApiProperty({
     description: 'URL logo thương hiệu',
     example: 'https://example.com/tesla-logo.png',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsUrl()
@@ -36,7 +44,7 @@ export class CreateBrandDto {
   @ApiProperty({
     description: 'Website chính thức',
     example: 'https://www.tesla.com',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsUrl()
@@ -46,7 +54,7 @@ export class CreateBrandDto {
     description: 'Quốc gia',
     example: 'United States',
     maxLength: 100,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -57,7 +65,7 @@ export class CreateBrandDto {
     description: 'Trạng thái hoạt động',
     example: true,
     default: true,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsBoolean()
@@ -67,7 +75,7 @@ export class CreateBrandDto {
     description: 'Số lượng listing',
     example: 0,
     default: 0,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber()

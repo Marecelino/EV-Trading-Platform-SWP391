@@ -1,12 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsDateString, IsOptional, IsBoolean, IsString, Min, Max } from 'class-validator';
+import {
+  IsNumber,
+  IsDateString,
+  IsOptional,
+  IsBoolean,
+  IsString,
+  Min,
+  Max,
+} from 'class-validator';
 
 export class CreateCommissionConfigDto {
   @ApiProperty({
     description: 'Phần trăm hoa hồng',
     example: 5.5,
     minimum: 0,
-    maximum: 100
+    maximum: 100,
   })
   @IsNumber()
   @Min(0)
@@ -16,7 +24,7 @@ export class CreateCommissionConfigDto {
   @ApiProperty({
     description: 'Phí tối thiểu (VND)',
     example: 10000,
-    minimum: 0
+    minimum: 0,
   })
   @IsNumber()
   @Min(0)
@@ -25,7 +33,7 @@ export class CreateCommissionConfigDto {
   @ApiProperty({
     description: 'Phí tối đa (VND)',
     example: 1000000,
-    minimum: 0
+    minimum: 0,
   })
   @IsNumber()
   @Min(0)
@@ -33,7 +41,7 @@ export class CreateCommissionConfigDto {
 
   @ApiProperty({
     description: 'Ngày có hiệu lực',
-    example: '2024-10-15T00:00:00.000Z'
+    example: '2024-10-15T00:00:00.000Z',
   })
   @IsDateString()
   effective_from: string;
@@ -41,7 +49,7 @@ export class CreateCommissionConfigDto {
   @ApiProperty({
     description: 'Ngày hết hiệu lực',
     example: '2024-12-31T23:59:59.999Z',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsDateString()
@@ -51,7 +59,7 @@ export class CreateCommissionConfigDto {
     description: 'Trạng thái hoạt động',
     example: true,
     default: true,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsBoolean()
@@ -60,7 +68,7 @@ export class CreateCommissionConfigDto {
   @ApiProperty({
     description: 'Mô tả về config',
     example: 'Cấu hình hoa hồng cho giao dịch pin xe điện',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -69,7 +77,7 @@ export class CreateCommissionConfigDto {
   @ApiProperty({
     description: 'Admin tạo config',
     example: 'admin001',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()

@@ -8,7 +8,11 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { ListingStatus, VehicleCondition } from '../../model/listings';
+import {
+  ListingStatus,
+  VehicleCondition,
+  CategoryEnum,
+} from '../../model/listings';
 
 export class FilterListingsDto {
   @IsOptional()
@@ -16,12 +20,12 @@ export class FilterListingsDto {
   brand_id?: string;
 
   @IsOptional()
-  @IsMongoId()
-  model_id?: string;
+  @IsString()
+  brandName?: string;
 
   @IsOptional()
-  @IsMongoId()
-  category_id?: string;
+  @IsEnum(CategoryEnum)
+  category?: CategoryEnum;
 
   @IsOptional()
   @IsEnum(ListingStatus)
@@ -66,6 +70,32 @@ export class FilterListingsDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  @Min(1900)
+  @Max(new Date().getFullYear() + 5)
+  maxYear?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1900)
+  @Max(new Date().getFullYear() + 5)
+  minYear?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minMileage?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  maxMileage?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   @Min(0)
   minCapacity?: number;
 
@@ -74,6 +104,19 @@ export class FilterListingsDto {
   @IsNumber()
   @Min(0)
   maxCapacity?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minSoh?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  maxSoh?: number;
 
   @IsOptional()
   @Type(() => Number)

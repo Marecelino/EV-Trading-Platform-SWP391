@@ -17,7 +17,9 @@ import { FilterPriceSuggestionsDto } from './dto/filter-pricesuggestions.dto';
 @ApiTags('pricesuggestions')
 @Controller('pricesuggestions')
 export class PriceSuggestionsController {
-  constructor(private readonly priceSuggestionsService: PriceSuggestionsService) {}
+  constructor(
+    private readonly priceSuggestionsService: PriceSuggestionsService,
+  ) {}
 
   @Post()
   create(@Body() createPriceSuggestionDto: CreatePriceSuggestionDto) {
@@ -49,7 +51,10 @@ export class PriceSuggestionsController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updatePriceSuggestionDto: UpdatePriceSuggestionDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updatePriceSuggestionDto: UpdatePriceSuggestionDto,
+  ) {
     return this.priceSuggestionsService.update(id, updatePriceSuggestionDto);
   }
 

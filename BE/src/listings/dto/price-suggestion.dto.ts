@@ -3,9 +3,6 @@ import { IsEnum, IsMongoId, IsNumber, IsOptional, Min } from 'class-validator';
 import { VehicleCondition } from '../../model/listings';
 
 export class PriceSuggestionDto {
-  @IsMongoId()
-  model_id: string;
-
   @IsOptional()
   @IsNumber()
   @Type(() => Number)

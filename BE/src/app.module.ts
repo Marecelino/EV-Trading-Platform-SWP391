@@ -6,24 +6,18 @@ import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-
-import { AuthModule } from './auth/auth.module';
 import { ListingsModule } from './listings/listings.module';
+import { AuthModule } from './auth/auth.module';
+// Historically there was a `contracts` module; repo uses `contacts` for contract records.
+// Keep using `ContactsModule` instead of the non-existent `ContractsModule`.
+import { PaymentModule } from './payment/payment.module';
+import { SignnowModule } from './signnow/signnow.module';
 import { TransactionsModule } from './transactions/transactions.module';
-import { FavoritesModule } from './favorites/favorites.module';
 import { ReviewsModule } from './reviews/reviews.module';
-import { NotificationsModule } from './notifications/notifications.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { EvdetailsModule } from './evdetails/evdetails.module';
-import { ModelsModule } from './models/models.module';
 import { PriceSuggestionsModule } from './pricesuggestions/pricesuggestions.module';
-import { BatteryDetailsModule } from './battery-details/battery-details.module';
-import { BrandsModule } from './brands/brands.module';
-import { CategoriesModule } from './categories/categories.module';
-import { CommissionConfigsModule } from './commission-configs/commission-configs.module';
-import { CommissionsModule } from './commissions/commissions.module';
+import { FavoritesModule } from './favorites/favorites.module';
 
 @Module({
   imports: [
@@ -70,25 +64,19 @@ import { CommissionsModule } from './commissions/commissions.module';
         limit: 100,
       },
     ]),
-    AuthModule,
     ListingsModule,
+    AuthModule,
+    PaymentModule,
+    SignnowModule,
     TransactionsModule,
-    FavoritesModule,
     ReviewsModule,
-    NotificationsModule,
-    BatteryDetailsModule,
-    BrandsModule,
-    CategoriesModule,
-    CommissionConfigsModule,
-    CommissionsModule,
     ContactsModule,
     EvdetailsModule,
-    ModelsModule,
     PriceSuggestionsModule,
+    FavoritesModule,
   ],
-  controllers: [AppController],
+  controllers: [],
   providers: [
-    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

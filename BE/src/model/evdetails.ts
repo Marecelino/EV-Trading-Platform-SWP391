@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { Listing } from './listings';
+import { Auction } from './auctions';
 
 export type EVDetailDocument = HydratedDocument<EVDetail>;
 
@@ -11,10 +12,16 @@ export class EVDetail {
   @Prop({
     type: Types.ObjectId,
     ref: 'Listing',
-    required: true,
-    unique: true,
+    required: false,
   })
-  listing_id: Types.ObjectId | Listing;
+  listing_id?: Types.ObjectId | Listing;
+
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'Auction',
+    required: false,
+  })
+  auction_id?: Types.ObjectId | Auction;
 
   @Prop({
     required: true,
@@ -40,61 +47,25 @@ export class EVDetail {
     min: 0,
   })
   range_km: number;
-
-  @Prop({
-    required: true,
-    trim: true,
-  })
-  condition: string;
-
-  @Prop({
-    required: true,
-    trim: true,
-  })
-  color: string;
-
-  @Prop({
-    required: true,
-    min: 1,
-    max: 9,
-  })
-  seats: number;
-
-  @Prop({
-    required: true,
-    trim: true,
-  })
-  drive_type: string; // FWD, RWD, AWD
-
-  // Additional EV specific fields
-  @Prop()
-  charging_time_ac: number; // hours
-
-  @Prop()
-  charging_time_dc: number; // minutes
-
-  @Prop()
-  motor_power: number; // kW
-
-  @Prop()
-  top_speed: number; // km/h
-
-  @Prop()
-  acceleration_0_100: number; // seconds
-
-  @Prop()
-  charging_port_type: string;
-
-  @Prop({
-    type: [String],
-  })
-  features: string[];
 }
 
+// Đảm bảo ít nhất 1 trong 2 trường listing_id hoặc auction_id phải có
 export const EVDetailSchema = SchemaFactory.createForClass(EVDetail);
 
-// Indexes
-EVDetailSchema.index({ listing_id: 1 });
-EVDetailSchema.index({ year: 1, mileage_km: 1 });
-EVDetailSchema.index({ battery_capacity_kwh: 1, range_km: 1 });
-EVDetailSchema.index({ color: 1, seats: 1 });
+EVDetailSchema.pre('validate', function (next) {
+  if (!this.listing_id && !this.auction_id) {
+    return next(
+      new Error('Either listing_id or auction_id is required for EVDetail'),
+    );
+  }
+  next();
+});
+// Ensure uniqueness only when the field exists (allow multiple documents without auction_id/listing_id)
+EVDetailSchema.index(
+  { listing_id: 1 },
+  { unique: true, partialFilterExpression: { listing_id: { $exists: true } } },
+);
+EVDetailSchema.index(
+  { auction_id: 1 },
+  { unique: true, partialFilterExpression: { auction_id: { $exists: true } } },
+);

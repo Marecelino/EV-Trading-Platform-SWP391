@@ -13,7 +13,9 @@ export class EvdetailsService {
     private readonly evDetailModel: Model<EVDetailDocument>,
   ) {}
 
-  async create(createEVDetailDto: CreateEVDetailDto): Promise<EVDetailDocument> {
+  async create(
+    createEVDetailDto: CreateEVDetailDto,
+  ): Promise<EVDetailDocument> {
     const evDetail = new this.evDetailModel(createEVDetailDto);
     return evDetail.save();
   }
@@ -95,9 +97,15 @@ export class EvdetailsService {
       .exec();
   }
 
-  async update(id: string, updateEVDetailDto: UpdateEVDetailDto): Promise<EVDetailDocument> {
+  async update(
+    id: string,
+    updateEVDetailDto: UpdateEVDetailDto,
+  ): Promise<EVDetailDocument> {
     const evDetail = await this.evDetailModel
-      .findByIdAndUpdate(id, updateEVDetailDto, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, updateEVDetailDto, {
+        new: true,
+        runValidators: true,
+      })
       .populate('listing_id')
       .exec();
 

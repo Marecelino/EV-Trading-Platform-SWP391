@@ -50,7 +50,11 @@ export class BrandsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Lấy thông tin thương hiệu theo ID' })
-  @ApiParam({ name: 'id', description: 'ID của thương hiệu', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của thương hiệu',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Lấy thông tin thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   findOne(@Param('id') id: string) {
@@ -59,7 +63,11 @@ export class BrandsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Cập nhật thông tin thương hiệu' })
-  @ApiParam({ name: 'id', description: 'ID của thương hiệu', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của thương hiệu',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
@@ -70,7 +78,11 @@ export class BrandsController {
 
   @Patch(':id/toggle-active')
   @ApiOperation({ summary: 'Bật/tắt trạng thái hoạt động của thương hiệu' })
-  @ApiParam({ name: 'id', description: 'ID của thương hiệu', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của thương hiệu',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   toggleActive(@Param('id') id: string) {
@@ -79,7 +91,11 @@ export class BrandsController {
 
   @Patch(':id/increment-listing')
   @ApiOperation({ summary: 'Tăng số lượng listing của thương hiệu' })
-  @ApiParam({ name: 'id', description: 'ID của thương hiệu', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của thương hiệu',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   incrementListingCount(@Param('id') id: string) {
@@ -88,7 +104,11 @@ export class BrandsController {
 
   @Patch(':id/decrement-listing')
   @ApiOperation({ summary: 'Giảm số lượng listing của thương hiệu' })
-  @ApiParam({ name: 'id', description: 'ID của thương hiệu', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của thương hiệu',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   decrementListingCount(@Param('id') id: string) {
@@ -97,7 +117,11 @@ export class BrandsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Xóa thương hiệu' })
-  @ApiParam({ name: 'id', description: 'ID của thương hiệu', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của thương hiệu',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Xóa thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   remove(@Param('id') id: string) {

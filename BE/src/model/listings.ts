@@ -16,7 +16,12 @@ export enum VehicleCondition {
   EXCELLENT = 'excellent',
   GOOD = 'good',
   FAIR = 'fair',
-  POOR = 'poor', 
+  POOR = 'poor',
+}
+
+export enum CategoryEnum {
+  EV = 'ev',
+  BATTERY = 'battery',
 }
 
 export type ListingDocument = HydratedDocument<Listing>;
@@ -38,13 +43,6 @@ export class Listing {
     required: true,
   })
   brand_id: Types.ObjectId;
-
-  @Prop({
-    type: Types.ObjectId,
-    ref: 'Models',
-    required: true,
-  })
-  model_id: Types.ObjectId;
 
   @Prop({
     required: true,
@@ -93,11 +91,11 @@ export class Listing {
   is_featured: boolean;
 
   @Prop({
-    type: Types.ObjectId,
-    ref: 'Category',
+    type: String,
+    enum: CategoryEnum,
     required: true,
   })
-  category_id: Types.ObjectId;
+  category: CategoryEnum;
 
   @Prop({
     type: [String],
@@ -109,38 +107,20 @@ export class Listing {
     },
   })
   images: string[];
-
-  // Thông tin bổ sung
-  @Prop()
-  year: number;
-
-  @Prop()
-  mileage: number;
-
-  @Prop()
-  location: string;
-
-  @Prop()
-  battery_capacity: number; // kWh
-
-  @Prop()
-  range: number; // km
-
-  @Prop({ default: 0 })
-  view_count: number;
-
-  @Prop({ default: 0 })
-  favorite_count: number;
-
-  @Prop()
-  expiry_date: Date;
+  @Prop({
+    type: String,
+    trim: true,
+    maxlength: 255,
+    required: false,
+  })
+  location?: string;
 }
 
 export const ListingSchema = SchemaFactory.createForClass(Listing);
 
 // Indexes
 ListingSchema.index({ seller_id: 1, status: 1 });
-ListingSchema.index({ brand_id: 1, model_id: 1 });
+ListingSchema.index({ brand_id: 1 });
 ListingSchema.index({ category_id: 1, status: 1 });
 ListingSchema.index({ price: 1, condition: 1 });
 ListingSchema.index({ is_featured: 1, status: 1 });

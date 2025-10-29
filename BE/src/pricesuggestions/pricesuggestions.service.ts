@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model } from 'mongoose';
-import { PriceSuggestion, PriceSuggestionDocument } from '../model/pricesuggestions';
+import {
+  PriceSuggestion,
+  PriceSuggestionDocument,
+} from '../model/pricesuggestions';
 import { CreatePriceSuggestionDto } from './dto/create-pricesuggestion.dto';
 import { UpdatePriceSuggestionDto } from './dto/update-pricesuggestion.dto';
 import { FilterPriceSuggestionsDto } from './dto/filter-pricesuggestions.dto';
@@ -13,8 +16,12 @@ export class PriceSuggestionsService {
     private readonly priceSuggestionModel: Model<PriceSuggestionDocument>,
   ) {}
 
-  async create(createPriceSuggestionDto: CreatePriceSuggestionDto): Promise<PriceSuggestionDocument> {
-    const priceSuggestion = new this.priceSuggestionModel(createPriceSuggestionDto);
+  async create(
+    createPriceSuggestionDto: CreatePriceSuggestionDto,
+  ): Promise<PriceSuggestionDocument> {
+    const priceSuggestion = new this.priceSuggestionModel(
+      createPriceSuggestionDto,
+    );
     return priceSuggestion.save();
   }
 
@@ -78,7 +85,9 @@ export class PriceSuggestionsService {
       .exec();
   }
 
-  async findLatestByListing(listingId: string): Promise<PriceSuggestionDocument | null> {
+  async findLatestByListing(
+    listingId: string,
+  ): Promise<PriceSuggestionDocument | null> {
     return this.priceSuggestionModel
       .findOne({ listing_id: listingId })
       .populate('listing_id')
@@ -86,9 +95,15 @@ export class PriceSuggestionsService {
       .exec();
   }
 
-  async update(id: string, updatePriceSuggestionDto: UpdatePriceSuggestionDto): Promise<PriceSuggestionDocument> {
+  async update(
+    id: string,
+    updatePriceSuggestionDto: UpdatePriceSuggestionDto,
+  ): Promise<PriceSuggestionDocument> {
     const priceSuggestion = await this.priceSuggestionModel
-      .findByIdAndUpdate(id, updatePriceSuggestionDto, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, updatePriceSuggestionDto, {
+        new: true,
+        runValidators: true,
+      })
       .populate('listing_id')
       .exec();
 
@@ -100,7 +115,9 @@ export class PriceSuggestionsService {
   }
 
   async remove(id: string): Promise<PriceSuggestionDocument> {
-    const priceSuggestion = await this.priceSuggestionModel.findByIdAndDelete(id).exec();
+    const priceSuggestion = await this.priceSuggestionModel
+      .findByIdAndDelete(id)
+      .exec();
 
     if (!priceSuggestion) {
       throw new NotFoundException('Price Suggestion not found');
@@ -110,6 +127,8 @@ export class PriceSuggestionsService {
   }
 
   async removeByListing(listingId: string): Promise<void> {
-    await this.priceSuggestionModel.deleteMany({ listing_id: listingId }).exec();
+    await this.priceSuggestionModel
+      .deleteMany({ listing_id: listingId })
+      .exec();
   }
 }

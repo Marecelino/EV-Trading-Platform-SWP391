@@ -1,5 +1,11 @@
 import { Type } from 'class-transformer';
-import { IsMongoId, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsMongoId,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class FilterPriceSuggestionsDto {
   @IsOptional()

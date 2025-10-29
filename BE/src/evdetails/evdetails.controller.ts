@@ -44,7 +44,10 @@ export class EvdetailsController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateEVDetailDto: UpdateEVDetailDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateEVDetailDto: UpdateEVDetailDto,
+  ) {
     return this.evdetailsService.update(id, updateEVDetailDto);
   }
 

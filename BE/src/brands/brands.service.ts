@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Brand } from '../model/brands';
@@ -6,9 +10,7 @@ import { CreateBrandDto, UpdateBrandDto } from './dto';
 
 @Injectable()
 export class BrandsService {
-  constructor(
-    @InjectModel(Brand.name) private brandModel: Model<Brand>,
-  ) {}
+  constructor(@InjectModel(Brand.name) private brandModel: Model<Brand>) {}
 
   async create(createBrandDto: CreateBrandDto): Promise<Brand> {
     try {
@@ -48,12 +50,13 @@ export class BrandsService {
 
   async update(id: string, updateBrandDto: UpdateBrandDto): Promise<Brand> {
     try {
-      const brand = await this.brandModel.findByIdAndUpdate(
-        id,
-        updateBrandDto,
-        { new: true, runValidators: true }
-      ).exec();
-      
+      const brand = await this.brandModel
+        .findByIdAndUpdate(id, updateBrandDto, {
+          new: true,
+          runValidators: true,
+        })
+        .exec();
+
       if (!brand) {
         throw new NotFoundException(`Brand with ID ${id} not found`);
       }
@@ -74,12 +77,10 @@ export class BrandsService {
   }
 
   async incrementListingCount(id: string): Promise<Brand> {
-    const brand = await this.brandModel.findByIdAndUpdate(
-      id,
-      { $inc: { listing_count: 1 } },
-      { new: true }
-    ).exec();
-    
+    const brand = await this.brandModel
+      .findByIdAndUpdate(id, { $inc: { listing_count: 1 } }, { new: true })
+      .exec();
+
     if (!brand) {
       throw new NotFoundException(`Brand with ID ${id} not found`);
     }
@@ -87,12 +88,10 @@ export class BrandsService {
   }
 
   async decrementListingCount(id: string): Promise<Brand> {
-    const brand = await this.brandModel.findByIdAndUpdate(
-      id,
-      { $inc: { listing_count: -1 } },
-      { new: true }
-    ).exec();
-    
+    const brand = await this.brandModel
+      .findByIdAndUpdate(id, { $inc: { listing_count: -1 } }, { new: true })
+      .exec();
+
     if (!brand) {
       throw new NotFoundException(`Brand with ID ${id} not found`);
     }
@@ -104,7 +103,7 @@ export class BrandsService {
     if (!brand) {
       throw new NotFoundException(`Brand with ID ${id} not found`);
     }
-    
+
     brand.is_active = !brand.is_active;
     return brand.save();
   }

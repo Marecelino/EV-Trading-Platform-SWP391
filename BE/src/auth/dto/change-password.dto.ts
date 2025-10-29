@@ -4,7 +4,7 @@ import { IsString, MinLength } from 'class-validator';
 export class ChangePasswordDto {
   @ApiProperty({
     description: 'Mật khẩu hiện tại',
-    example: 'oldPassword123!'
+    example: 'oldPassword123!',
   })
   @IsString()
   currentPassword: string;
@@ -12,7 +12,7 @@ export class ChangePasswordDto {
   @ApiProperty({
     description: 'Mật khẩu mới',
     example: 'newPassword123!',
-    minLength: 6
+    minLength: 6,
   })
   @IsString()
   @MinLength(6)

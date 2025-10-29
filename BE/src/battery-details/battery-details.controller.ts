@@ -9,7 +9,13 @@ import {
   Query,
   ParseFloatPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { BatteryDetailsService } from './battery-details.service';
 import { CreateBatteryDetailDto, UpdateBatteryDetailDto } from './dto';
 
@@ -35,7 +41,11 @@ export class BatteryDetailsController {
 
   @Get('by-chemistry/:chemistry')
   @ApiOperation({ summary: 'Lấy danh sách pin theo loại hóa học' })
-  @ApiParam({ name: 'chemistry', description: 'Loại hóa học pin', example: 'lithium_ion' })
+  @ApiParam({
+    name: 'chemistry',
+    description: 'Loại hóa học pin',
+    example: 'lithium_ion',
+  })
   @ApiResponse({ status: 200, description: 'Lấy danh sách thành công' })
   findByChemistry(@Param('chemistry') chemistry: string) {
     return this.batteryDetailsService.findByChemistry(chemistry);
@@ -43,8 +53,16 @@ export class BatteryDetailsController {
 
   @Get('by-capacity')
   @ApiOperation({ summary: 'Lấy danh sách pin theo khoảng dung lượng' })
-  @ApiQuery({ name: 'min', description: 'Dung lượng tối thiểu (kWh)', example: 50 })
-  @ApiQuery({ name: 'max', description: 'Dung lượng tối đa (kWh)', example: 100 })
+  @ApiQuery({
+    name: 'min',
+    description: 'Dung lượng tối thiểu (kWh)',
+    example: 50,
+  })
+  @ApiQuery({
+    name: 'max',
+    description: 'Dung lượng tối đa (kWh)',
+    example: 100,
+  })
   @ApiResponse({ status: 200, description: 'Lấy danh sách thành công' })
   findByCapacityRange(
     @Query('min', ParseFloatPipe) min: number,
@@ -54,9 +72,19 @@ export class BatteryDetailsController {
   }
 
   @Get('by-health')
-  @ApiOperation({ summary: 'Lấy danh sách pin theo khoảng tình trạng sức khỏe' })
-  @ApiQuery({ name: 'min', description: 'Tình trạng sức khỏe tối thiểu (%)', example: 80 })
-  @ApiQuery({ name: 'max', description: 'Tình trạng sức khỏe tối đa (%)', example: 100 })
+  @ApiOperation({
+    summary: 'Lấy danh sách pin theo khoảng tình trạng sức khỏe',
+  })
+  @ApiQuery({
+    name: 'min',
+    description: 'Tình trạng sức khỏe tối thiểu (%)',
+    example: 80,
+  })
+  @ApiQuery({
+    name: 'max',
+    description: 'Tình trạng sức khỏe tối đa (%)',
+    example: 100,
+  })
   @ApiResponse({ status: 200, description: 'Lấy danh sách thành công' })
   findByHealthRange(
     @Query('min', ParseFloatPipe) min: number,
@@ -67,7 +95,11 @@ export class BatteryDetailsController {
 
   @Get('by-listing/:listingId')
   @ApiOperation({ summary: 'Lấy thông tin chi tiết pin theo ID listing' })
-  @ApiParam({ name: 'listingId', description: 'ID của listing', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'listingId',
+    description: 'ID của listing',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Lấy thông tin thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   findByListingId(@Param('listingId') listingId: string) {
@@ -76,7 +108,11 @@ export class BatteryDetailsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Lấy thông tin chi tiết pin theo ID' })
-  @ApiParam({ name: 'id', description: 'ID của battery detail', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của battery detail',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Lấy thông tin thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   findOne(@Param('id') id: string) {
@@ -85,17 +121,28 @@ export class BatteryDetailsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Cập nhật thông tin chi tiết pin' })
-  @ApiParam({ name: 'id', description: 'ID của battery detail', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của battery detail',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
-  update(@Param('id') id: string, @Body() updateBatteryDetailDto: UpdateBatteryDetailDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateBatteryDetailDto: UpdateBatteryDetailDto,
+  ) {
     return this.batteryDetailsService.update(id, updateBatteryDetailDto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Xóa thông tin chi tiết pin' })
-  @ApiParam({ name: 'id', description: 'ID của battery detail', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID của battery detail',
+    example: '507f1f77bcf86cd799439011',
+  })
   @ApiResponse({ status: 200, description: 'Xóa thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   remove(@Param('id') id: string) {

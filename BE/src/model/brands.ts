@@ -5,7 +5,6 @@ export type BrandDocument = HydratedDocument<Brand>;
 @Schema({
   timestamps: true,
 })
-
 export class Brand extends Document {
   @Prop({
     required: true,
