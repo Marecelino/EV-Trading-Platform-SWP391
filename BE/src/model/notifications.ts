@@ -9,6 +9,7 @@ export enum NotificationType {
   TRANSACTION_COMPLETED = 'transaction_completed',
   PRICE_SUGGESTION = 'price_suggestion',
   SYSTEM_ANNOUNCEMENT = 'system_announcement',
+  REVIEW_RECEIVED = 'review_received',
 }
 
 export type NotificationDocument = HydratedDocument<Notification>;

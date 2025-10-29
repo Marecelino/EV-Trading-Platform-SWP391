@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import * as Joi from 'joi';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { ListingsModule } from './listings/listings.module';
 import { AuthModule } from './auth/auth.module';
@@ -64,6 +65,7 @@ import { FavoritesModule } from './favorites/favorites.module';
         limit: 100,
       },
     ]),
+    EventEmitterModule.forRoot(),
     ListingsModule,
     AuthModule,
     PaymentModule,

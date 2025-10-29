@@ -6,6 +6,7 @@ import { Transaction, TransactionSchema } from '../model/transactions';
 import { User, UserSchema } from '../model/users.schema';
 import { ReviewsController } from './reviews.controller';
 import { ReviewsService } from './reviews.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ReviewsService } from './reviews.service';
       { name: Transaction.name, schema: TransactionSchema },
       { name: User.name, schema: UserSchema },
     ]),
+    NotificationsModule,
   ],
   controllers: [ReviewsController],
   providers: [ReviewsService],

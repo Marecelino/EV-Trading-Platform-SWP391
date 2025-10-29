@@ -15,6 +15,8 @@ import {
   TransactionStatus,
 } from '../model/transactions';
 import { User, UserDocument } from '../model/users.schema';
+import { NotificationType } from '../model/notifications';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ReviewsService {
@@ -25,6 +27,7 @@ export class ReviewsService {
     private readonly transactionModel: Model<TransactionDocument>,
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(createReviewDto: CreateReviewDto) {
@@ -48,6 +51,13 @@ export class ReviewsService {
     });
 
     await this.updateUserReviewStats(revieweeObjectId.toHexString());
+
+    await this.notificationsService.create({
+      user_id: revieweeObjectId.toHexString(),
+      type: NotificationType.REVIEW_RECEIVED,
+      message: `You received a new review with rating ${createReviewDto.rating}/5.`,
+      related_id: review._id.toString(),
+    });
 
     return review.toObject();
   }

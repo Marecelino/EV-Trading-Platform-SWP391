@@ -4,6 +4,7 @@ import {
   getModelToken,
   MongooseModule,
 } from '@nestjs/mongoose';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { Connection, Model, Types } from 'mongoose';
 import { ReviewsModule } from '../src/reviews/reviews.module';
@@ -17,6 +18,11 @@ import {
 import { User, UserDocument } from '../src/model/users.schema';
 import { CreateReviewDto } from '../src/reviews/dto/create-review.dto';
 import { BadRequestException } from '@nestjs/common';
+import {
+  Notification,
+  NotificationDocument,
+  NotificationType,
+} from '../src/model/notifications';
 
 const uniqueEmail = (prefix: string) =>
   `${prefix}-${new Types.ObjectId().toString()}@example.com`;
@@ -29,13 +35,18 @@ describe('ReviewsService (integration)', () => {
   let reviewModel: Model<ReviewDocument>;
   let userModel: Model<UserDocument>;
   let transactionModel: Model<TransactionDocument>;
+  let notificationModel: Model<NotificationDocument>;
 
   beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
     const uri = mongoServer.getUri();
 
     moduleRef = await Test.createTestingModule({
-      imports: [MongooseModule.forRoot(uri), ReviewsModule],
+      imports: [
+        EventEmitterModule.forRoot(),
+        MongooseModule.forRoot(uri),
+        ReviewsModule,
+      ],
     }).compile();
 
     connection = moduleRef.get<Connection>(getConnectionToken());
@@ -43,6 +54,7 @@ describe('ReviewsService (integration)', () => {
     reviewModel = moduleRef.get(getModelToken(Review.name));
     userModel = moduleRef.get(getModelToken(User.name));
     transactionModel = moduleRef.get(getModelToken(Transaction.name));
+    notificationModel = moduleRef.get(getModelToken(Notification.name));
   });
 
   afterAll(async () => {
@@ -133,6 +145,16 @@ describe('ReviewsService (integration)', () => {
     const sellerAfter = await userModel.findById(seller._id).lean();
     expect(sellerAfter?.review_count).toBe(1);
     expect(sellerAfter?.review_average).toBeCloseTo(4);
+
+    const notifications = await notificationModel
+      .find({ user_id: seller._id })
+      .lean();
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0].type).toBe(NotificationType.REVIEW_RECEIVED);
+    expect(notifications[0].related_id).toBe(review._id.toString());
+    expect(notifications[0].message).toBe(
+      'You received a new review with rating 4/5.',
+    );
   });
 
   it('prevents duplicate reviews for the same transaction and reviewer', async () => {
