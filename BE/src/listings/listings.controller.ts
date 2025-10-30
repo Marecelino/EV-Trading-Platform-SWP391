@@ -31,6 +31,7 @@ import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { ListingStatus } from '../model/listings';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { Request as ExpressRequest } from 'express';
+import { Public } from '../auth/decorators/public.decorator';
 
 type AuthenticatedRequest = ExpressRequest & {
   user?: {
@@ -62,6 +63,7 @@ export class ListingsController {
     return this.batteryListingsService.create(dto);
   }
 
+  @Public()
   @Get('search')
   @ApiOperation({ summary: 'Search EV and battery listings' })
   search(@Query() filters: SearchListingsDto) {
