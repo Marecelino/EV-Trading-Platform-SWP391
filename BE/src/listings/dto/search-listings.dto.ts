@@ -5,8 +5,4 @@ export class SearchListingsDto extends FilterListingsDto {
   @IsOptional()
   @IsString()
   keyword?: string;
-
-  @IsOptional()
-  @IsString()
-  q?: string;
 }

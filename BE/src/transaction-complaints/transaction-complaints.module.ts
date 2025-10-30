@@ -9,6 +9,7 @@ import { User, UserSchema } from '../model/users.schema';
 import { TransactionComplaintsService } from './transaction-complaints.service';
 import { TransactionComplaintsController } from './transaction-complaints.controller';
 import { TransactionComplaintsAdminController } from './transaction-complaints.admin.controller';
+import { TransactionComplaintsUserController } from './transaction-complaints.user.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
@@ -23,8 +24,9 @@ import { NotificationsModule } from '../notifications/notifications.module';
   controllers: [
     TransactionComplaintsController,
     TransactionComplaintsAdminController,
+    TransactionComplaintsUserController,
   ],
   providers: [TransactionComplaintsService],
   exports: [TransactionComplaintsService],
 })
-export class TransactionComplaintsModule {}
+export class TransactionComplaintsModule { }

@@ -34,7 +34,7 @@ export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   /** Đăng ký tài khoản với email/password */
   async register(dto: RegisterDto) {
@@ -336,6 +336,43 @@ export class AuthService {
       }
     } catch (error) {
       console.error('Delete user error:', error);
+      throw error;
+    }
+  }
+
+  /** Approve user: mark email verified and activate account (Admin) */
+  async approveUser(id: string): Promise<any> {
+    try {
+      const user = await this.userModel.findById(id);
+      if (!user) throw new NotFoundException('User not found');
+
+      user.isEmailVerified = true;
+      user.status = UserStatus.ACTIVE;
+      await user.save();
+
+      return this.sanitizeUser(user);
+    } catch (error) {
+      console.error('Approve user error:', error);
+      throw error;
+    }
+  }
+
+  /** Set user status (e.g., lock/ban or set inactive) (Admin) */
+  async setUserStatus(id: string, status: UserStatus): Promise<any> {
+    try {
+      const user = await this.userModel.findById(id);
+      if (!user) throw new NotFoundException('User not found');
+
+      user.status = status;
+      // Optionally clear refresh token when banning
+      if (status === UserStatus.BANNED) {
+        user.refreshTokenHash = undefined;
+      }
+
+      await user.save();
+      return this.sanitizeUser(user);
+    } catch (error) {
+      console.error('Set user status error:', error);
       throw error;
     }
   }

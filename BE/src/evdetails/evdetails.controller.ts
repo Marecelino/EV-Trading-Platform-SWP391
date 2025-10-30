@@ -8,13 +8,14 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { EvdetailsService } from './evdetails.service';
 import { CreateEVDetailDto } from './dto/create-evdetail.dto';
 import { UpdateEVDetailDto } from './dto/update-evdetail.dto';
 import { FilterEVDetailsDto } from './dto/filter-evdetails.dto';
 
 @ApiTags('evdetails')
+  @ApiBearerAuth()
 @Controller('evdetails')
 export class EvdetailsController {
   constructor(private readonly evdetailsService: EvdetailsService) {}

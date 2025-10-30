@@ -17,6 +17,7 @@ import {
   ApiParam,
   ApiQuery,
   ApiConsumes,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ContactsService } from './contacts.service';
 import { CreateContactDto } from './dto/create-contact.dto';
@@ -29,6 +30,7 @@ import * as path from 'path';
 import { ContactsPdfService } from './contacts-pdf.service';
 
 @ApiTags('contacts')
+  @ApiBearerAuth()
 @Controller('contacts')
 export class ContactsController {
   constructor(

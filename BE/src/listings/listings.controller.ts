@@ -53,7 +53,7 @@ export class ListingsController {
     private readonly listingsService: ListingsService,
     private readonly evListingsService: EVListingsService,
     private readonly batteryListingsService: BatteryListingsService,
-  ) {}
+  ) { }
 
   @Post('ev')
   createEV(@Body() dto: CreateEVListingDto) {
@@ -73,22 +73,6 @@ export class ListingsController {
     required: false,
     description:
       'Free text keyword applied to title, description, location, and brand',
-  })
-  @ApiQuery({
-    name: 'q',
-    required: false,
-    description: 'Alias of keyword for backwards compatibility',
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-    description: 'Legacy keyword field retained for compatibility',
-  })
-  @ApiQuery({
-    name: 'brand_id',
-    required: false,
-    description: 'Filter by brand identifier',
-    schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' },
   })
   @ApiQuery({
     name: 'brandName',
@@ -117,95 +101,6 @@ export class ListingsController {
     name: 'location',
     required: false,
     description: 'Match listings by location substring',
-  })
-  @ApiQuery({
-    name: 'minPrice',
-    required: false,
-    description: 'Minimum price filter',
-    schema: { type: 'number', minimum: 0 },
-  })
-  @ApiQuery({
-    name: 'maxPrice',
-    required: false,
-    description: 'Maximum price filter',
-    schema: { type: 'number', minimum: 0 },
-  })
-  @ApiQuery({
-    name: 'minYear',
-    required: false,
-    description: 'Minimum model year (EVs)',
-    schema: { type: 'number', minimum: 1900 },
-  })
-  @ApiQuery({
-    name: 'maxYear',
-    required: false,
-    description: 'Maximum model year (EVs)',
-    schema: { type: 'number', minimum: 1900 },
-  })
-  @ApiQuery({
-    name: 'minMileage',
-    required: false,
-    description: 'Minimum mileage in kilometers (EVs)',
-    schema: { type: 'number', minimum: 0 },
-  })
-  @ApiQuery({
-    name: 'maxMileage',
-    required: false,
-    description: 'Maximum mileage in kilometers (EVs)',
-    schema: { type: 'number', minimum: 0 },
-  })
-  @ApiQuery({
-    name: 'minRange',
-    required: false,
-    description: 'Minimum driving range in kilometers (EVs)',
-    schema: { type: 'number', minimum: 0 },
-  })
-  @ApiQuery({
-    name: 'maxRange',
-    required: false,
-    description: 'Maximum driving range in kilometers (EVs)',
-    schema: { type: 'number', minimum: 0 },
-  })
-  @ApiQuery({
-    name: 'minCapacity',
-    required: false,
-    description: 'Minimum battery capacity in kWh (EVs & batteries)',
-    schema: { type: 'number', minimum: 0 },
-  })
-  @ApiQuery({
-    name: 'maxCapacity',
-    required: false,
-    description: 'Maximum battery capacity in kWh (EVs & batteries)',
-    schema: { type: 'number', minimum: 0 },
-  })
-  @ApiQuery({
-    name: 'minSoh',
-    required: false,
-    description: 'Minimum state-of-health percentage (battery listings)',
-    schema: { type: 'number', minimum: 0, maximum: 100 },
-  })
-  @ApiQuery({
-    name: 'maxSoh',
-    required: false,
-    description: 'Maximum state-of-health percentage (battery listings)',
-    schema: { type: 'number', minimum: 0, maximum: 100 },
-  })
-  @ApiQuery({
-    name: 'batteryType',
-    required: false,
-    description: 'Filter battery listings by type',
-  })
-  @ApiQuery({
-    name: 'minManufactureYear',
-    required: false,
-    description: 'Minimum battery manufacture year',
-    schema: { type: 'number', minimum: 1900 },
-  })
-  @ApiQuery({
-    name: 'maxManufactureYear',
-    required: false,
-    description: 'Maximum battery manufacture year',
-    schema: { type: 'number', minimum: 1900 },
   })
   @ApiQuery({
     name: 'limit',

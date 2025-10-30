@@ -7,7 +7,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { TransactionComplaintsService } from './transaction-complaints.service';
 import { CreateTransactionComplaintDto } from './dto/create-transaction-complaint.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -18,6 +18,7 @@ interface AuthenticatedRequest extends ExpressRequest {
 }
 
 @ApiTags('transaction-complaints')
+@ApiBearerAuth()
 @Controller('transactions/:transactionId/complaints')
 export class TransactionComplaintsController {
   constructor(
@@ -49,4 +50,6 @@ export class TransactionComplaintsController {
       transactionId,
     );
   }
+
+  
 }

@@ -14,12 +14,14 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { CommissionsService } from './commissions.service';
 import { CreateCommissionDto, UpdateCommissionDto } from './dto';
 import { CommissionStatus } from '../model/commissions';
 
 @ApiTags('Commissions')
+  @ApiBearerAuth()
 @Controller('commissions')
 export class CommissionsController {
   constructor(private readonly commissionsService: CommissionsService) {}

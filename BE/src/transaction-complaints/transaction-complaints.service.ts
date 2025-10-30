@@ -27,7 +27,7 @@ export class TransactionComplaintsService {
     @InjectModel(Transaction.name)
     private readonly transactionModel: Model<TransactionDocument>,
     private readonly notificationsService: NotificationsService,
-  ) {}
+  ) { }
 
   async create(
     userId: string,
@@ -160,6 +160,45 @@ export class TransactionComplaintsService {
     return complaint;
   }
 
+  /**
+   * Find complaints filed by a specific sender (complainant).
+   * Returns paginated results with meta similar to findAllForAdmin.
+   */
+  async findBySender(senderId: string, limit = 20, page = 1) {
+    if (!Types.ObjectId.isValid(senderId)) {
+      throw new BadRequestException('Invalid user reference');
+    }
+
+    const query = { complainant_id: new Types.ObjectId(senderId) };
+
+    const capLimit = Math.max(1, Math.min(limit, 100));
+    const normalizedPage = Math.max(1, page);
+    const skip = (normalizedPage - 1) * capLimit;
+
+    const [data, total] = await Promise.all([
+      this.complaintModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(capLimit)
+        .populate('transaction_id')
+        .populate('complainant_id', 'name email')
+        .populate('respondent_id', 'name email')
+        .lean(),
+      this.complaintModel.countDocuments(query),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page: normalizedPage,
+        limit: capLimit,
+        total,
+        totalPages: Math.ceil(total / capLimit),
+      },
+    };
+  }
+
   async updateByAdmin(
     id: string,
     dto: UpdateTransactionComplaintDto,
@@ -213,16 +252,16 @@ export class TransactionComplaintsService {
       complaint.complainant_id instanceof Types.ObjectId
         ? complaint.complainant_id.toHexString()
         : String(
-            (complaint.complainant_id as any)?._id ?? complaint.complainant_id,
-          );
+          (complaint.complainant_id as any)?._id ?? complaint.complainant_id,
+        );
 
     const respondentId =
       complaint.respondent_id instanceof Types.ObjectId
         ? complaint.respondent_id.toHexString()
         : complaint.respondent_id
           ? String(
-              (complaint.respondent_id as any)?._id ?? complaint.respondent_id,
-            )
+            (complaint.respondent_id as any)?._id ?? complaint.respondent_id,
+          )
           : undefined;
 
     const notifyPromises = [

@@ -492,8 +492,6 @@ export class ListingsService {
   async searchVehicles(filters: SearchListingsDto) {
     const {
       keyword,
-      q,
-      search,
       brand_id,
       brandName,
       status,
@@ -506,7 +504,7 @@ export class ListingsService {
       page: pageParam = 1,
     } = filters;
 
-    const searchTerm = keyword ?? q ?? search;
+    const searchTerm = keyword;
 
     const safeLimit = Math.min(Math.max(limitParam ?? 10, 1), 50);
     const safePage = Math.max(pageParam ?? 1, 1);
@@ -861,7 +859,7 @@ export class ListingsService {
     return listing;
   }
 
-  
+
 
 
   async remove(id: string) {

@@ -13,6 +13,7 @@ import {
   HttpCode,
   HttpStatus,
   Res,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -42,7 +43,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { User } from 'src/model/users.schema';
 import { Roles } from './decorators/roles.decorator';
-import { UserRole } from '../model/users.schema';
+import { UserRole, UserStatus } from '../model/users.schema';
 import { Public } from './decorators/public.decorator';
 import { ListingsService } from '../listings/listings.service';
 import { ListingStatus } from '../model/listings';
@@ -68,7 +69,7 @@ export class AuthController {
     private readonly configService: ConfigService,
     private readonly listingsService: ListingsService,
     private readonly transactionsService: TransactionsService,
-  ) {}
+  ) { }
 
   // ✅ Đăng ký tài khoản
   @Public()
@@ -316,6 +317,24 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'Không tìm thấy người dùng' })
   deleteUser(@Param('id') id: string) {
     return this.authService.deleteUser(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @Patch('users/:id/approve')
+  @ApiOperation({ summary: 'Phê duyệt tài khoản (Admin)' })
+  approveUser(@Param('id') id: string) {
+    return this.authService.approveUser(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @Patch('users/:id/ban')
+  @ApiOperation({ summary: 'Khóa / banned tài khoản (Admin)' })
+  banUser(@Param('id') id: string) {
+    return this.authService.setUserStatus(id, UserStatus.BANNED);
   }
 
   @Get('google')
