@@ -12,6 +12,9 @@ export enum NotificationType {
   REVIEW_RECEIVED = 'review_received',
   COMPLAINT_SUBMITTED = 'complaint_submitted',
   COMPLAINT_UPDATED = 'complaint_updated',
+  FAVORITE_AUCTION_BID = 'favorite_auction_bid',
+  FAVORITE_AUCTION_SOLD = 'favorite_auction_sold',
+  FAVORITE_LISTING_SOLD = 'favorite_listing_sold',
 }
 
 export type NotificationDocument = HydratedDocument<Notification>;

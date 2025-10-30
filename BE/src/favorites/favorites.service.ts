@@ -2,12 +2,13 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model } from 'mongoose';
 import { Favorite, FavoriteDocument } from '../model/favorites';
-import { CreateFavoriteDto } from './dto/create-favorite.dto';
 import { ListingsService } from '../listings/listings.service';
+import { AuctionsService } from '../auctions/auctions.service';
 
 @Injectable()
 export class FavoritesService {
@@ -15,35 +16,45 @@ export class FavoritesService {
     @InjectModel(Favorite.name)
     private readonly favoriteModel: Model<FavoriteDocument>,
     private readonly listingsService: ListingsService,
-  ) {}
+    private readonly auctionsService: AuctionsService,
+  ) { }
 
-  async add(createFavoriteDto: CreateFavoriteDto) {
-    try {
-      const favorite = new this.favoriteModel(createFavoriteDto);
-      const saved = await favorite.save();
-      await this.listingsService.adjustFavoriteCount(
-        createFavoriteDto.listing_id,
-        1,
-      );
-      return saved;
-    } catch (error) {
-      if (error.code === 11000) {
-        throw new ConflictException('Listing already favorited');
-      }
-      throw error;
-    }
-  }
 
   async remove(userId: string, listingId: string) {
+    // Support removing either a listing favorite or an auction favorite.
+    const targetId = listingId;
+
     const favorite = await this.favoriteModel
-      .findOneAndDelete({ user_id: userId, listing_id: listingId })
+      .findOneAndDelete({
+        user_id: userId,
+        $or: [{ listing_id: targetId }, { auction_id: targetId }],
+      })
       .lean();
 
     if (!favorite) {
       throw new NotFoundException('Favorite not found');
     }
 
-    await this.listingsService.adjustFavoriteCount(listingId, -1);
+    // Adjust favorite counts depending on which field was set
+    if (favorite.listing_id) {
+      const lid = (favorite.listing_id as any)?._id ?? favorite.listing_id;
+      try {
+        await this.listingsService.adjustFavoriteCount(String(lid), -1);
+      } catch (err) {
+        // non-fatal: log and continue
+        console.error('Failed to decrement listing favorite count', err?.message ?? err);
+      }
+    }
+
+    if (favorite.auction_id) {
+      const aid = (favorite.auction_id as any)?._id ?? favorite.auction_id;
+      try {
+        await this.auctionsService.adjustFavoriteCount(String(aid), -1);
+      } catch (err) {
+        console.error('Failed to decrement auction favorite count', err?.message ?? err);
+      }
+    }
+
     return favorite;
   }
 
@@ -124,10 +135,61 @@ export class FavoritesService {
   }
 
   async isFavorite(userId: string, listingId: string) {
-    const favorite = await this.favoriteModel.exists({
+    // Check whether the user has favorited the provided target id
+    const exists = await this.favoriteModel.exists({
       user_id: userId,
-      listing_id: listingId,
+      $or: [{ listing_id: listingId }, { auction_id: listingId }],
     });
-    return { isFavorite: Boolean(favorite) };
+    return { isFavorite: Boolean(exists) };
+  }
+
+  async add(dto: { user_id: string; listing_id?: string; auction_id?: string }) {
+    const { user_id, listing_id, auction_id } = dto as any;
+
+    // require exactly one target
+    if ((!listing_id && !auction_id) || (listing_id && auction_id)) {
+      throw new BadRequestException('Provide exactly one of listing_id or auction_id');
+    }
+
+    // Remove old favorite of the same type for this user (if exists)
+    let removeQuery: any = { user_id };
+    if (listing_id) removeQuery.listing_id = { $exists: true };
+    if (auction_id) removeQuery.auction_id = { $exists: true };
+    await this.favoriteModel.deleteMany(removeQuery);
+
+    // Build insert document without including fields that are undefined/null
+    const insertDoc: any = { user_id };
+    if (listing_id) insertDoc.listing_id = listing_id;
+    if (auction_id) insertDoc.auction_id = auction_id;
+
+    let created: any;
+    try {
+      created = await this.favoriteModel.create(insertDoc);
+    } catch (err: any) {
+      // Translate duplicate key errors into Conflict with guidance
+      if (err && (err.code === 11000 || err.code === 11001)) {
+        const keyValue = err.keyValue || {};
+        if (keyValue.listing_id === null) {
+          throw new ConflictException(
+            'Failed to create favorite due to existing DB index treating missing listing_id as null. ' +
+            'Please drop the old index on (user_id, listing_id) or recreate the partial index to allow multiple auction favorites. ' +
+            'Example (mongo): db.favorites.dropIndex("user_id_1_listing_id_1");',
+          );
+        }
+        throw new ConflictException('Favorite already exists');
+      }
+      throw err;
+    }
+
+    // Adjust favorite counters
+    try {
+      if (listing_id) await this.listingsService.adjustFavoriteCount(listing_id, 1);
+      if (auction_id) await this.auctionsService.adjustFavoriteCount(auction_id, 1);
+    } catch (err) {
+      // Log but don't fail the creation; counters can be fixed later
+      console.error('Failed to adjust favorite count after create', err?.message ?? err);
+    }
+
+    return created;
   }
 }

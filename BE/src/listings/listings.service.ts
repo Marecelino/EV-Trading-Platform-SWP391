@@ -23,6 +23,9 @@ import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { Brand, BrandDocument } from 'src/model/brands';
 import { EVDetail } from 'src/model/evdetails';
 import { BatteryDetail } from 'src/model/batterydetails';
+import { Favorite, FavoriteDocument } from 'src/model/favorites';
+import { NotificationType } from 'src/model/notifications';
+import { NotificationsService } from 'src/notifications/notifications.service';
 import type { ComparisonResponse, ListingWithDetails } from './comparison.util';
 import { buildComparisonResponse } from './comparison.util';
 
@@ -59,7 +62,10 @@ export class ListingsService {
     private readonly evDetailModel: Model<any>,
     @InjectModel(BatteryDetail.name)
     private readonly batteryDetailModel: Model<any>,
-  ) {}
+    @InjectModel(Favorite.name)
+    private readonly favoriteModel: Model<FavoriteDocument>,
+    private readonly notificationsService: NotificationsService,
+  ) { }
   private escapeRegex(input: string) {
     return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
@@ -775,54 +781,88 @@ export class ListingsService {
   async updateStatus(id: string, status: ListingStatus) {
     const listing = await this.listingModel
       .findByIdAndUpdate(id, { status }, { new: true })
-      .lean<Listing & { _id: string }>();
+      .lean<Listing & { _id: any }>();
 
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
 
+    // Find users who favorited this listing
+    const favorites = await this.favoriteModel
+      .find({ listing_id: id })
+      .select('user_id')
+      .lean<Array<{ user_id?: any }>>();
+
+    if (Array.isArray(favorites) && favorites.length > 0) {
+      // Build notification type and message based on status
+      const mapStatusToType = (s: ListingStatus) => {
+        switch (s) {
+          case ListingStatus.SOLD:
+            return NotificationType.FAVORITE_LISTING_SOLD;
+          case ListingStatus.ACTIVE:
+            return NotificationType.LISTING_APPROVED;
+          case ListingStatus.REMOVED:
+          case ListingStatus.EXPIRED:
+            return NotificationType.LISTING_REJECTED;
+          default:
+            return NotificationType.SYSTEM_ANNOUNCEMENT;
+        }
+      };
+
+      const type = mapStatusToType(status);
+      const title = listing.title || 'Tin rao bán';
+
+      // Prefer the persisted listing.status (safer if caller passed undefined)
+      const finalStatus = (listing as any).status ?? status;
+
+      const statusLabels: Record<string, string> = {
+        [ListingStatus.DRAFT]: 'bản nháp',
+        [ListingStatus.ACTIVE]: 'đang hoạt động',
+        [ListingStatus.SOLD]: 'đã bán',
+        [ListingStatus.EXPIRED]: 'hết hạn',
+        [ListingStatus.REMOVED]: 'đã gỡ',
+      };
+
+      const humanStatus = finalStatus
+        ? statusLabels[String(finalStatus)] ?? String(finalStatus)
+        : 'không xác định';
+
+      const message =
+        finalStatus === ListingStatus.SOLD
+          ? `Một tin bạn đã đánh dấu yêu thích đã được bán: "${title}".`
+          : `Trạng thái tin "${title}" đã thay đổi thành: ${humanStatus}.`;
+
+      // Send notifications (best-effort — don't fail update if notifications fail)
+      await Promise.all(
+        favorites.map(async (fav) => {
+          const userId = fav?.user_id ? String(fav.user_id) : undefined;
+          if (!userId) return null;
+          try {
+            await this.notificationsService.create({
+              user_id: userId,
+              message,
+              type,
+              related_id: String(listing._id),
+              action_url: `/listings/${String(listing._id)}`,
+            } as any);
+          } catch (err) {
+            // Log and continue
+            console.error('Failed to create favorite notification', {
+              listingId: id,
+              userId,
+              err: err?.message ?? err,
+            });
+          }
+          return null;
+        }),
+      );
+    }
+
     return listing;
   }
 
-  // async update(id: string, updateListingDto: UpdateListingDto) {
-  //   const updatePayload: Record<string, unknown> = {
-  //     ...updateListingDto,
-  //   };
+  
 
-  //   const listing = await this.listingModel
-  //     .findByIdAndUpdate(id, updatePayload, { new: true, runValidators: true })
-  //     .lean<Listing & { _id: string }>();
-
-  //   if (!listing) {
-  //     throw new NotFoundException('Listing not found');
-  //   }
-
-  //   return listing;
-  // }
-
-  // async updateStatus(id: string, status: ListingStatus) {
-  //   const listing = await this.listingModel
-  //     .findByIdAndUpdate(id, { status }, { new: true })
-  //     .lean<Listing & { _id: string }>();
-
-  //   if (!listing) {
-  //     throw new NotFoundException('Listing not found');
-  //   }
-
-  //   return listing;
-  // }
-
-  // async incrementViewCount(id: string) {
-  //   const listing = await this.listingModel
-  //     .findByIdAndUpdate(id, { $inc: { view_count: 1 } }, { new: true })
-  //     .lean<Listing & { _id: string }>();
-
-  //   if (!listing) {
-  //     throw new NotFoundException('Listing not found');
-  //   }
-
-  //   return { view_count: listing.view_count };
-  // }
 
   async remove(id: string) {
     const listing = await this.listingModel
@@ -901,8 +941,8 @@ export class ListingsService {
       .sort({ createdAt: -1 })
       .limit(20)
       .lean()) as unknown as Array<
-      Listing & { _id: Types.ObjectId; createdAt?: Date }
-    >;
+        Listing & { _id: Types.ObjectId; createdAt?: Date }
+      >;
 
     if (comparableListings.length === 0) {
       return {

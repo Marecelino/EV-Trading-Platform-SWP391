@@ -19,6 +19,7 @@ import {
   ApiQuery,
   ApiResponse,
   ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { ListingsService } from './listings.service';
 import { EVListingsService } from './ev-listings.service';
@@ -33,6 +34,7 @@ import {
   VehicleCondition,
   CategoryEnum,
 } from '../model/listings';
+import { UpdateListingStatusDto } from './dto/update-listing-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { Request as ExpressRequest } from 'express';
 import { Public } from '../auth/decorators/public.decorator';
@@ -44,6 +46,7 @@ type AuthenticatedRequest = ExpressRequest & {
 };
 
 @ApiTags('listings')
+@ApiBearerAuth()
 @Controller('listings')
 export class ListingsController {
   constructor(
@@ -51,11 +54,6 @@ export class ListingsController {
     private readonly evListingsService: EVListingsService,
     private readonly batteryListingsService: BatteryListingsService,
   ) {}
-
-  // @Post()
-  // create(@Body() createListingDto: CreateListingDto) {
-  //   return this.listingsService.create(createListingDto);
-  // }
 
   @Post('ev')
   createEV(@Body() dto: CreateEVListingDto) {
@@ -304,10 +302,18 @@ export class ListingsController {
   //   return this.listingsService.update(id, updateListingDto);
   // }
 
-  // @Patch(':id/status')
-  // updateStatus(@Param('id') id: string, @Body('status') status: ListingStatus) {
-  //   return this.listingsService.updateStatus(id, status);
-  // }
+  @Patch(':id/status')
+  @ApiBody({
+    type: UpdateListingStatusDto,
+    examples: {
+      Active: { summary: 'Set listing active', value: { status: ListingStatus.ACTIVE } },
+      Sold: { summary: 'Set listing sold', value: { status: ListingStatus.SOLD } },
+      Removed: { summary: 'Remove listing', value: { status: ListingStatus.REMOVED } },
+    },
+  })
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateListingStatusDto) {
+    return this.listingsService.updateStatus(id, dto.status);
+  }
 
   // @Post(':id/views')
   // incrementView(@Param('id') id: string) {
