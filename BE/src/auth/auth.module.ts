@@ -10,6 +10,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { FacebookStrategy } from './strategies/facebook.strategy';
 import { RolesGuard } from './guards/roles.guard';
+import { ListingsModule } from '../listings/listings.module';
+import { TransactionsModule } from '../transactions/transactions.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { RolesGuard } from './guards/roles.guard';
         return options;
       },
     }),
+    ListingsModule,
+    TransactionsModule,
   ],
   controllers: [AuthController],
   providers: [

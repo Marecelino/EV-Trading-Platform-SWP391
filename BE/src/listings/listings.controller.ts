@@ -8,7 +8,9 @@ import {
   Patch,
   Post,
   Query,
-  ParseEnumPipe,
+  Request,
+  UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -29,6 +31,15 @@ import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { ListingStatus } from '../model/listings';
 import { UpdateListingStatusDto } from './dto/update-listing-status.dto';
 import { ApiBody } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { Request as ExpressRequest } from 'express';
+import { Public } from '../auth/decorators/public.decorator';
+
+type AuthenticatedRequest = ExpressRequest & {
+  user?: {
+    userId?: string;
+  };
+};
 
 @ApiTags('listings')
 @ApiBearerAuth()
@@ -50,6 +61,7 @@ export class ListingsController {
     return this.batteryListingsService.create(dto);
   }
 
+  @Public()
   @Get('search')
   @ApiOperation({ summary: 'Search EV and battery listings' })
   search(@Query() filters: SearchListingsDto) {
@@ -61,12 +73,47 @@ export class ListingsController {
     return this.listingsService.findAll(filters);
   }
 
-  @Get('active')
-  @ApiOperation({ summary: 'Get active listings (convenience endpoint)' })
-  active(@Query() filters: FilterListingsDto) {
-    // Ensure status is ACTIVE regardless of caller
-    const merged = { ...(filters || {}), status: ListingStatus.ACTIVE } as FilterListingsDto;
-    return this.listingsService.findAll(merged);
+  @Get('my')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get listings created by the authenticated user' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter by listing status',
+    enum: ListingStatus,
+  })
+  findMine(
+    @Request() req: AuthenticatedRequest,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: ListingStatus,
+  ) {
+    const sellerId = req?.user?.userId;
+    if (!sellerId) {
+      throw new UnauthorizedException('Missing authenticated user context');
+    }
+
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.listingsService.findBySeller(
+      sellerId,
+      pageNum,
+      limitNum,
+      status,
+    );
   }
 
   @Get('compare')

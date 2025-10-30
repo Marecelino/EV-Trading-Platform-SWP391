@@ -107,15 +107,20 @@ export class TransactionsService {
     return transaction;
   }
 
-  async findForUser(userId: string) {
+  async findForUser(userId: string, role?: 'buyer' | 'seller') {
     if (!Types.ObjectId.isValid(userId)) {
       throw new BadRequestException('Invalid user id');
     }
 
+    const query: FilterQuery<TransactionDocument> =
+      role === 'buyer'
+        ? { buyer_id: userId }
+        : role === 'seller'
+          ? { seller_id: userId }
+          : { $or: [{ buyer_id: userId }, { seller_id: userId }] };
+
     return this.transactionModel
-      .find({
-        $or: [{ buyer_id: userId }, { seller_id: userId }],
-      })
+      .find(query)
       .sort({ createdAt: -1 })
       .populate('listing_id', 'title price status images')
       .populate('buyer_id', 'name email phone')

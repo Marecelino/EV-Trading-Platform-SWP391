@@ -39,8 +39,13 @@ export class TransactionsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('my')
-  findMine(@Request() req: AuthenticatedRequest) {
-    return this.transactionsService.findForUser(req.user.userId);
+  findMine(
+    @Request() req: AuthenticatedRequest,
+    @Query('as') asRole?: 'buyer' | 'seller',
+  ) {
+    const roleFilter =
+      asRole === 'buyer' || asRole === 'seller' ? asRole : undefined;
+    return this.transactionsService.findForUser(req.user.userId, roleFilter);
   }
 
   @Get(':id')
