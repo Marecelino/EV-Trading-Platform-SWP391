@@ -24,6 +24,7 @@ import { ReportsModule } from './reports/reports.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { BrandsModule } from './brands/brands.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     FavoritesModule,
     TransactionComplaintsModule,
     ReportsModule,
+    BrandsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -11,7 +11,7 @@ export class ContactsService {
   constructor(
     @InjectModel(Contract.name)
     private readonly contractModel: Model<ContractDocument>,
-  ) {}
+  ) { }
 
   async create(createContactDto: CreateContactDto): Promise<ContractDocument> {
     // Initialize audit events and record creation event
@@ -59,22 +59,48 @@ export class ContactsService {
     };
   }
 
+
   async findOne(id: string): Promise<ContractDocument> {
     const contract = await this.contractModel
       .findById(id)
       .populate({
         path: 'transaction_id',
-        populate: [{ path: 'buyer_id' }, { path: 'seller_id' }],
+        populate: [
+          { path: 'buyer_id', select: 'name email phone' },
+          { path: 'seller_id', select: 'name email phone' },
+          { path: 'listing_id', populate: { path: 'brand_id', select: 'name' } },
+        ],
       })
       .exec();
-
     if (!contract) {
       throw new NotFoundException('Contract not found');
     }
-
     return contract;
   }
 
+  async findByTransaction(
+    transactionId: string,
+  ): Promise<ContractDocument | null> {
+    // sanitize input
+    if (!transactionId || transactionId === 'null' || transactionId === 'undefined') return null;
+
+    // Trả về raw document (không populate) — populate xử lý an toàn trong findOne
+    return this.contractModel.findOne({ transaction_id: transactionId }).exec();
+  }
+
+  /**
+   * Find a contact/contract by a provider document identifier that may be
+   * embedded in the stored document_url (e.g. SignNow document id).
+   */
+  async findByDocumentId(documentId: string): Promise<ContractDocument | null> {
+    if (!documentId || documentId === 'null' || documentId === 'undefined') return null;
+    // escape regex special chars and match substring
+    const escaped = documentId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Trả về raw document (không populate) — populate xử lý an toàn trong findOne
+    return this.contractModel.findOne({ document_url: { $regex: escaped, $options: 'i' } }).exec();
+  }
+  // ...existing code...
+  
   async update(
     id: string,
     updateContactDto: UpdateContactDto,
@@ -84,7 +110,14 @@ export class ContactsService {
         new: true,
         runValidators: true,
       })
-      .populate('transaction_id')
+      .populate({
+        path: 'transaction_id',
+        populate: [
+          { path: 'buyer_id', select: 'name email phone' },
+          { path: 'seller_id', select: 'name email phone' },
+          { path: 'listing_id', populate: { path: 'brand_id', select: 'name' } },
+        ],
+      })
       .exec();
 
     if (!contract) {
@@ -104,27 +137,41 @@ export class ContactsService {
     return contract;
   }
 
-  async findByTransaction(
-    transactionId: string,
-  ): Promise<ContractDocument | null> {
-    return this.contractModel
-      .findOne({ transaction_id: transactionId })
-      .populate('transaction_id')
-      .exec();
-  }
+  // async findByTransaction(
+  //   transactionId: string,
+  // ): Promise<ContractDocument | null> {
+  //   return this.contractModel
+  //     .findOne({ transaction_id: transactionId })
+  //     .populate({
+  //       path: 'transaction_id',
+  //       populate: [
+  //         { path: 'buyer_id', select: 'name email phone' },
+  //         { path: 'seller_id', select: 'name email phone' },
+  //         { path: 'listing_id', populate: { path: 'brand_id', select: 'name' } },
+  //       ],
+  //     })
+  //     .exec();
+  // }
 
-  /**
-   * Find a contact/contract by a provider document identifier that may be
-   * embedded in the stored document_url (e.g. SignNow document id).
-   */
-  async findByDocumentId(documentId: string): Promise<ContractDocument | null> {
-    if (!documentId) return null;
-    // match any document_url that contains the documentId substring
-    return this.contractModel
-      .findOne({ document_url: { $regex: documentId } })
-      .populate('transaction_id')
-      .exec();
-  }
+  // /**
+  //  * Find a contact/contract by a provider document identifier that may be
+  //  * embedded in the stored document_url (e.g. SignNow document id).
+  //  */
+  // async findByDocumentId(documentId: string): Promise<ContractDocument | null> {
+  //   if (!documentId) return null;
+  //   // match any document_url that contains the documentId substring
+  //   return this.contractModel
+  //     .findOne({ document_url: { $regex: documentId } })
+  //     .populate({
+  //       path: 'transaction_id',
+  //       populate: [
+  //         { path: 'buyer_id', select: 'name email phone' },
+  //         { path: 'seller_id', select: 'name email phone' },
+  //         { path: 'listing_id', populate: { path: 'brand_id', select: 'name' } },
+  //       ],
+  //     })
+  //     .exec();
+  // }
 
   /**
    * Confirm an electronic signature on a contact/contract.
@@ -190,7 +237,11 @@ export class ContactsService {
       .findByIdAndUpdate(id, { signed_document_url: url }, { new: true })
       .populate({
         path: 'transaction_id',
-        populate: [{ path: 'buyer_id' }, { path: 'seller_id' }],
+        populate: [
+          { path: 'buyer_id', select: 'name email phone' },
+          { path: 'seller_id', select: 'name email phone' },
+          { path: 'listing_id', populate: { path: 'brand_id', select: 'name' } },
+        ],
       })
       .exec();
 

@@ -135,6 +135,14 @@ export class CreateEVAuctionDto {
   @Type(() => Number)
   @Min(0)
   range?: number;
+  
+  @ApiPropertyOptional({ example: 2022 })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  @Min(1900)
+  @Max(new Date().getFullYear() + 5)
+  manufacture_year?: number;
 
   @ApiPropertyOptional({ example: 'Ho Chi Minh City' })
   @IsOptional()

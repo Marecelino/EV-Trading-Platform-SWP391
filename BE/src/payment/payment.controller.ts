@@ -9,6 +9,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Public } from '../auth/decorators/public.decorator';
 import type { Request } from 'express';
 import { PaymentService } from './payment.service';
 import {
@@ -19,13 +20,12 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Payment')
+@ApiBearerAuth()
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(private readonly paymentService: PaymentService) { }
 
   @Post('create-payment-url')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create VNPay payment URL' })
   async createPaymentUrl(
     @Body() createPaymentDto: CreatePaymentDto,
@@ -46,8 +46,6 @@ export class PaymentController {
   }
 
   @Post('auction/create-payment-url')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create VNPay payment URL for auction' })
   async createAuctionPaymentUrl(
     @Body() createAuctionPaymentDto: CreateAuctionPaymentDto,
@@ -71,6 +69,7 @@ export class PaymentController {
   }
 
   @Post('vnpay-ipn')
+  @Public()
   @ApiOperation({ summary: 'Handle VNPay IPN' })
   async handleVNPayIPN(@Body() vnpayData: VNPayIPNDto) {
     return this.paymentService.handleVNPayIPN(vnpayData);
@@ -80,6 +79,7 @@ export class PaymentController {
   // Support GET so browser redirects (and manual testing via browser) work.
   @Get('vnpay-return')
   @ApiOperation({ summary: 'Handle VNPay return (GET)' })
+  @Public()
   async handleVNPayReturnGet(
     @Query() vnpayData: Record<string, any>,
     @Req() req: Request,
@@ -99,6 +99,7 @@ export class PaymentController {
   // Also keep POST handler (some integrations may POST)
   @Post('vnpay-return')
   @ApiOperation({ summary: 'Handle VNPay return (POST)' })
+  @Public()
   async handleVNPayReturn(@Body() vnpayData: Record<string, any>) {
     return this.paymentService.verifyReturnUrl(vnpayData);
   }

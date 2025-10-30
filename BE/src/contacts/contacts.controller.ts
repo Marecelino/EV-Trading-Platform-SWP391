@@ -30,13 +30,13 @@ import * as path from 'path';
 import { ContactsPdfService } from './contacts-pdf.service';
 
 @ApiTags('contacts')
-  @ApiBearerAuth()
+@ApiBearerAuth()
 @Controller('contacts')
 export class ContactsController {
   constructor(
     private readonly contactsService: ContactsService,
     private readonly contactsPdfService: ContactsPdfService,
-  ) {}
+  ) { }
 
   @Post()
   @ApiOperation({
@@ -184,10 +184,18 @@ export class ContactsController {
       await this.contactsService.setSignedDocumentUrl(id, signedUrl);
     } catch (err) {
       // non-fatal: rendering failure shouldn't break the signature confirmation
-      console.warn(
-        'Failed to render contract PDF after signing:',
-        err?.message || err,
-      );
+      console.warn('Failed to render contract PDF after signing:', err?.message || err);
+    }
+
+    // If rendering failed and we don't have a signed URL, try to return any existing
+    // signed_document_url or fallback to the original document_url so the client has a link.
+    if (!signedUrl) {
+      try {
+        const contract = await this.contactsService.findOne(id);
+        signedUrl = (contract as any).signed_document_url || (contract as any).document_url || null;
+      } catch (err) {
+        // ignore — we already logged render error above
+      }
     }
 
     return { status: 'signed', signed_document_url: signedUrl };
