@@ -30,24 +30,22 @@ export class ReviewsService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async create(createReviewDto: CreateReviewDto) {
-    await this.validateReviewContext(createReviewDto);
+  async create(reviewerId: string, createReviewDto: CreateReviewDto) {
+    await this.validateReviewContext(reviewerId, createReviewDto);
 
-    const reviewerObjectId = new Types.ObjectId(createReviewDto.reviewer_id);
+    const reviewerObjectId = new Types.ObjectId(reviewerId);
     const revieweeObjectId = new Types.ObjectId(createReviewDto.reviewee_id);
     const transactionObjectId = new Types.ObjectId(
       createReviewDto.transaction_id,
     );
 
     const review = await this.reviewModel.create({
-      ...createReviewDto,
       reviewer_id: reviewerObjectId,
       reviewee_id: revieweeObjectId,
       transaction_id: transactionObjectId,
-      is_visible:
-        createReviewDto.is_visible === undefined
-          ? true
-          : createReviewDto.is_visible,
+      rating: createReviewDto.rating,
+      comment: createReviewDto.comment,
+      is_visible: true,
     });
 
     await this.updateUserReviewStats(revieweeObjectId.toHexString());
@@ -206,17 +204,20 @@ export class ReviewsService {
     return review;
   }
 
-  private async validateReviewContext(dto: CreateReviewDto) {
-    const { reviewer_id, reviewee_id, transaction_id } = dto;
+  private async validateReviewContext(
+    reviewerId: string,
+    dto: CreateReviewDto,
+  ) {
+    const { reviewee_id, transaction_id } = dto;
 
-    if (reviewer_id === reviewee_id) {
+    if (reviewerId === reviewee_id) {
       throw new BadRequestException('Reviewer and reviewee must be different');
     }
 
     if (!Types.ObjectId.isValid(transaction_id)) {
       throw new BadRequestException('Invalid transaction reference');
     }
-    if (!Types.ObjectId.isValid(reviewer_id)) {
+    if (!Types.ObjectId.isValid(reviewerId)) {
       throw new BadRequestException('Invalid reviewer reference');
     }
     if (!Types.ObjectId.isValid(reviewee_id)) {
@@ -224,7 +225,7 @@ export class ReviewsService {
     }
 
     const transactionObjectId = new Types.ObjectId(transaction_id);
-    const reviewerObjectId = new Types.ObjectId(reviewer_id);
+    const reviewerObjectId = new Types.ObjectId(reviewerId);
     const revieweeObjectId = new Types.ObjectId(reviewee_id);
 
     const transaction = await this.transactionModel

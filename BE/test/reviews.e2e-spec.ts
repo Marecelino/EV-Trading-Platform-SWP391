@@ -95,12 +95,10 @@ describe('ReviewsService (integration)', () => {
     id instanceof Types.ObjectId ? id.toHexString() : id;
 
   const buildReviewDto = (
-    reviewer: Types.ObjectId | string,
     reviewee: Types.ObjectId | string,
     transaction: Types.ObjectId | string,
     overrides: Partial<CreateReviewDto> = {},
   ): CreateReviewDto => ({
-    reviewer_id: normalizeId(reviewer),
     reviewee_id: normalizeId(reviewee),
     transaction_id: normalizeId(transaction),
     rating: 4,
@@ -112,8 +110,8 @@ describe('ReviewsService (integration)', () => {
     const { buyer, seller, transaction } = await seedCompletedTransaction();
 
     const review = await reviewsService.create(
+      buyer._id.toString(),
       buildReviewDto(
-        buyer._id as Types.ObjectId,
         seller._id as Types.ObjectId,
         transaction._id as Types.ObjectId,
       ),
@@ -160,16 +158,15 @@ describe('ReviewsService (integration)', () => {
   it('prevents duplicate reviews for the same transaction and reviewer', async () => {
     const { buyer, seller, transaction } = await seedCompletedTransaction();
     const dto = buildReviewDto(
-      buyer._id as Types.ObjectId,
       seller._id as Types.ObjectId,
       transaction._id as Types.ObjectId,
     );
 
-    await reviewsService.create(dto);
+    await reviewsService.create(buyer._id.toString(), dto);
 
-    await expect(reviewsService.create(dto)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      reviewsService.create(buyer._id.toString(), dto),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('rejects reviews from non-participants', async () => {
@@ -180,14 +177,13 @@ describe('ReviewsService (integration)', () => {
     })) as UserDocument;
 
     const dto = buildReviewDto(
-      outsider._id as Types.ObjectId,
       seller._id as Types.ObjectId,
       transaction._id as Types.ObjectId,
     );
 
-    await expect(reviewsService.create(dto)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      reviewsService.create(outsider._id.toString(), dto),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('filters reviews by reviewee id', async () => {
@@ -195,8 +191,8 @@ describe('ReviewsService (integration)', () => {
     const secondary = await seedCompletedTransaction();
 
     await reviewsService.create(
+      buyer._id.toString(),
       buildReviewDto(
-        buyer._id as Types.ObjectId,
         seller._id as Types.ObjectId,
         transaction._id as Types.ObjectId,
         {
@@ -206,8 +202,8 @@ describe('ReviewsService (integration)', () => {
     );
 
     await reviewsService.create(
+      secondary.buyer._id.toString(),
       buildReviewDto(
-        secondary.buyer._id as Types.ObjectId,
         secondary.seller._id as Types.ObjectId,
         secondary.transaction._id as Types.ObjectId,
         {
@@ -230,8 +226,8 @@ describe('ReviewsService (integration)', () => {
   it('updates aggregates when visibility toggles off', async () => {
     const { buyer, seller, transaction } = await seedCompletedTransaction();
     const created = await reviewsService.create(
+      buyer._id.toString(),
       buildReviewDto(
-        buyer._id as Types.ObjectId,
         seller._id as Types.ObjectId,
         transaction._id as Types.ObjectId,
         {

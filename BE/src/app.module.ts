@@ -19,6 +19,8 @@ import { ContactsModule } from './contacts/contacts.module';
 import { EvdetailsModule } from './evdetails/evdetails.module';
 import { PriceSuggestionsModule } from './pricesuggestions/pricesuggestions.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -77,8 +79,9 @@ import { FavoritesModule } from './favorites/favorites.module';
     PriceSuggestionsModule,
     FavoritesModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [
+    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

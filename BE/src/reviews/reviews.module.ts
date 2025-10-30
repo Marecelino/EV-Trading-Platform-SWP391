@@ -7,6 +7,7 @@ import { User, UserSchema } from '../model/users.schema';
 import { ReviewsController } from './reviews.controller';
 import { ReviewsService } from './reviews.service';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     NotificationsModule,
   ],
   controllers: [ReviewsController],
-  providers: [ReviewsService],
+  providers: [ReviewsService, RolesGuard],
   exports: [ReviewsService],
 })
 export class ReviewsModule {}
