@@ -7,9 +7,10 @@ import {
   NOTIFICATION_CREATED_EVENT,
   NotificationCreatedEvent,
 } from './notifications.service';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
-
+@ApiBearerAuth()
 @Controller('notifications')
 export class NotificationsStreamController {
   constructor(private readonly eventEmitter: EventEmitter2) {}

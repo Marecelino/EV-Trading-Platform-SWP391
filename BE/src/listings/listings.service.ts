@@ -23,6 +23,9 @@ import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { Brand, BrandDocument } from 'src/model/brands';
 import { EVDetail } from 'src/model/evdetails';
 import { BatteryDetail } from 'src/model/batterydetails';
+import { Favorite, FavoriteDocument } from 'src/model/favorites';
+import { NotificationType } from 'src/model/notifications';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 type NumberCondition = {
   $gte?: number;
@@ -57,7 +60,10 @@ export class ListingsService {
     private readonly evDetailModel: Model<any>,
     @InjectModel(BatteryDetail.name)
     private readonly batteryDetailModel: Model<any>,
-  ) {}
+    @InjectModel(Favorite.name)
+    private readonly favoriteModel: Model<FavoriteDocument>,
+    private readonly notificationsService: NotificationsService,
+  ) { }
   private escapeRegex(input: string) {
     return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
@@ -767,6 +773,33 @@ export class ListingsService {
       throw new NotFoundException('Listing not found');
     }
 
+    // If listing became SOLD, notify users who favorited it
+    if (status === ListingStatus.SOLD) {
+      try {
+        const listingId = String(listing._id);
+        const favorites = await this.favoriteModel
+          .find({ listing_id: listingId })
+          .lean();
+        const recipients = (favorites || []).map((f) => String(f.user_id));
+
+        if (recipients.length > 0) {
+          await Promise.all(
+            recipients.map((uid) =>
+              this.notificationsService.create({
+                user_id: uid,
+                message: `Listing \"${listing.title}\" has been sold.`,
+                type: NotificationType.FAVORITE_LISTING_SOLD as any,
+                related_id: listingId,
+                action_url: `/listings/${listingId}`,
+              }),
+            ),
+          );
+        }
+      } catch (err) {
+        console.error('Failed to create favorite notifications for listing sold', err);
+      }
+    }
+
     return listing;
   }
 
@@ -887,8 +920,8 @@ export class ListingsService {
       .sort({ createdAt: -1 })
       .limit(20)
       .lean()) as unknown as Array<
-      Listing & { _id: Types.ObjectId; createdAt?: Date }
-    >;
+        Listing & { _id: Types.ObjectId; createdAt?: Date }
+      >;
 
     if (comparableListings.length === 0) {
       return {

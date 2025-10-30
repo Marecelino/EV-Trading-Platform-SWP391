@@ -13,6 +13,8 @@ import { BatteryListingsService } from './battery-listings.service';
 import { Brand, BrandSchema } from 'src/model/brands';
 import { EVDetail, EVDetailSchema } from 'src/model/evdetails';
 import { BatteryDetail, BatteryDetailSchema } from 'src/model/batterydetails';
+import { Favorite, FavoriteSchema } from 'src/model/favorites';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -23,7 +25,9 @@ import { BatteryDetail, BatteryDetailSchema } from 'src/model/batterydetails';
       { name: Brand.name, schema: BrandSchema },
       { name: EVDetail.name, schema: EVDetailSchema },
       { name: BatteryDetail.name, schema: BatteryDetailSchema },
+      { name: Favorite.name, schema: FavoriteSchema },
     ]),
+    NotificationsModule,
   ],
   controllers: [ListingsController],
   providers: [ListingsService, EVListingsService, BatteryListingsService],

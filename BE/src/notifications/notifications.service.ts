@@ -19,7 +19,7 @@ export class NotificationsService {
     @InjectModel(Notification.name)
     private readonly notificationModel: Model<NotificationDocument>,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   async create(createNotificationDto: CreateNotificationDto) {
     const userId = new Types.ObjectId(createNotificationDto.user_id);
@@ -81,6 +81,14 @@ export class NotificationsService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async findOne(id: string) {
+    const notification = await this.notificationModel.findById(id).lean();
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
+    }
+    return notification;
   }
 
   async markAsRead(id: string) {

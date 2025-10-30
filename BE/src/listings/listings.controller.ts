@@ -33,7 +33,7 @@ export class ListingsController {
     private readonly listingsService: ListingsService,
     private readonly evListingsService: EVListingsService,
     private readonly batteryListingsService: BatteryListingsService,
-  ) {}
+  ) { }
 
   // @Post()
   // create(@Body() createListingDto: CreateListingDto) {
@@ -59,6 +59,14 @@ export class ListingsController {
   @Get()
   findAll(@Query() filters: FilterListingsDto) {
     return this.listingsService.findAll(filters);
+  }
+
+  @Get('active')
+  @ApiOperation({ summary: 'Get active listings (convenience endpoint)' })
+  active(@Query() filters: FilterListingsDto) {
+    // Ensure status is ACTIVE regardless of caller
+    const merged = { ...(filters || {}), status: ListingStatus.ACTIVE } as FilterListingsDto;
+    return this.listingsService.findAll(merged);
   }
 
   @Get('compare')

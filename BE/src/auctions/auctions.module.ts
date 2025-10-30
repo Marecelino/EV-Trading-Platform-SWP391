@@ -9,6 +9,8 @@ import { Listing, ListingSchema } from '../model/listings';
 import { Brand, BrandSchema } from '../model/brands';
 import { EVDetail, EVDetailSchema } from '../model/evdetails';
 import { BatteryDetail, BatteryDetailSchema } from '../model/batterydetails';
+import { Favorite, FavoriteSchema } from '../model/favorites';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -18,7 +20,9 @@ import { BatteryDetail, BatteryDetailSchema } from '../model/batterydetails';
       { name: Brand.name, schema: BrandSchema },
       { name: EVDetail.name, schema: EVDetailSchema },
       { name: BatteryDetail.name, schema: BatteryDetailSchema },
+      { name: Favorite.name, schema: FavoriteSchema },
     ]),
+    NotificationsModule,
   ],
   controllers: [AuctionsController],
   providers: [AuctionsService, EVAuctionService, BatteryAuctionService],

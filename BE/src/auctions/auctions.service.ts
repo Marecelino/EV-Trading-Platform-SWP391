@@ -7,6 +7,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as mongoose from 'mongoose';
 import { Auction, AuctionStatus } from '../model/auctions';
+import { Favorite, FavoriteDocument } from '../model/favorites';
+import { NotificationType } from '../model/notifications';
+import { NotificationsService } from '../notifications/notifications.service';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { CreateBidDto } from './dto/create-bid.dto';
 
@@ -16,6 +19,9 @@ export class AuctionsService {
     @InjectModel(Auction.name) private auctionModel: Model<Auction>,
     @InjectModel('EVDetail') private evDetailModel: Model<any>,
     @InjectModel('BatteryDetail') private batteryDetailModel: Model<any>,
+    @InjectModel(Favorite.name)
+    private readonly favoriteModel: Model<FavoriteDocument>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -395,12 +401,55 @@ export class AuctionsService {
         const evDetail = await this.evDetailModel
           .findOne({ auction_id: auctionId })
           .lean();
+        // notify users who favorited this auction about the new bid
+        try {
+          const favorites = await this.favoriteModel.find({ auction_id: auctionId }).lean();
+          const recipients = (favorites || []).map((f) => String(f.user_id)).filter((uid) => uid !== userId);
+
+          if (recipients.length > 0) {
+            await Promise.all(
+              recipients.map((uid) =>
+                this.notificationsService.create({
+                  user_id: uid,
+                  message: `New bid ${dto.amount} placed on auction "${updated.title}"`,
+                  type: NotificationType.FAVORITE_AUCTION_BID as any,
+                  related_id: String(auctionId),
+                  action_url: `/auctions/${auctionId}`,
+                }),
+              ),
+            );
+          }
+        } catch (err) {
+          console.error('Failed to create favorite notifications for auction bid', err);
+        }
+
         return { ...updated, auction_id: auctionId, evDetail };
       }
       if (category === 'battery') {
         const batteryDetail = await this.batteryDetailModel
           .findOne({ auction_id: auctionId })
           .lean();
+        try {
+          const favorites = await this.favoriteModel.find({ auction_id: auctionId }).lean();
+          const recipients = (favorites || []).map((f) => String(f.user_id)).filter((uid) => uid !== userId);
+
+          if (recipients.length > 0) {
+            await Promise.all(
+              recipients.map((uid) =>
+                this.notificationsService.create({
+                  user_id: uid,
+                  message: `New bid ${dto.amount} placed on auction "${updated.title}"`,
+                  type: NotificationType.FAVORITE_AUCTION_BID as any,
+                  related_id: String(auctionId),
+                  action_url: `/auctions/${auctionId}`,
+                }),
+              ),
+            );
+          }
+        } catch (err) {
+          console.error('Failed to create favorite notifications for auction bid', err);
+        }
+
         return { ...updated, auction_id: auctionId, batteryDetail };
       }
 
@@ -446,7 +495,32 @@ export class AuctionsService {
       auction.status = AuctionStatus.ENDED;
       auction.end_time = new Date();
 
-      return await auction.save();
+      const saved = await auction.save();
+
+      // Notify users who favorited this auction that it ended
+      try {
+        const auctionId = String(saved._id);
+        const favorites = await this.favoriteModel.find({ auction_id: auctionId }).lean();
+        const recipients = (favorites || []).map((f) => String(f.user_id));
+
+        if (recipients.length > 0) {
+          await Promise.all(
+            recipients.map((uid) =>
+              this.notificationsService.create({
+                user_id: uid,
+                message: `Auction "${saved.title}" has ended.`,
+                type: NotificationType.FAVORITE_AUCTION_SOLD as any,
+                related_id: auctionId,
+                action_url: `/auctions/${auctionId}`,
+              }),
+            ),
+          );
+        }
+      } catch (err) {
+        console.error('Failed to create favorite notifications for auction end', err);
+      }
+
+      return saved;
     } catch (error) {
       if (
         error instanceof NotFoundException ||
