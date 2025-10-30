@@ -19,6 +19,7 @@ import {
   ApiQuery,
   ApiResponse,
   ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { ListingsService } from './listings.service';
 import { EVListingsService } from './ev-listings.service';
@@ -28,9 +29,12 @@ import { CreateBatteryListingDto } from './dto/create-battery-listing.dto';
 import { FilterListingsDto } from './dto/filter-listings.dto';
 import { SearchListingsDto } from './dto/search-listings.dto';
 import { PriceSuggestionDto } from './dto/price-suggestion.dto';
-import { ListingStatus } from '../model/listings';
+import {
+  ListingStatus,
+  VehicleCondition,
+  CategoryEnum,
+} from '../model/listings';
 import { UpdateListingStatusDto } from './dto/update-listing-status.dto';
-import { ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { Request as ExpressRequest } from 'express';
 import { Public } from '../auth/decorators/public.decorator';
@@ -64,6 +68,157 @@ export class ListingsController {
   @Public()
   @Get('search')
   @ApiOperation({ summary: 'Search EV and battery listings' })
+  @ApiQuery({
+    name: 'keyword',
+    required: false,
+    description:
+      'Free text keyword applied to title, description, location, and brand',
+  })
+  @ApiQuery({
+    name: 'q',
+    required: false,
+    description: 'Alias of keyword for backwards compatibility',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Legacy keyword field retained for compatibility',
+  })
+  @ApiQuery({
+    name: 'brand_id',
+    required: false,
+    description: 'Filter by brand identifier',
+    schema: { type: 'string', pattern: '^[a-fA-F0-9]{24}$' },
+  })
+  @ApiQuery({
+    name: 'brandName',
+    required: false,
+    description: 'Filter by brand name (case insensitive)',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter by listing status. Defaults to ACTIVE when omitted.',
+    enum: ListingStatus,
+  })
+  @ApiQuery({
+    name: 'condition',
+    required: false,
+    description: 'Filter by vehicle condition',
+    enum: VehicleCondition,
+  })
+  @ApiQuery({
+    name: 'category',
+    required: false,
+    description: 'Restrict results to EV or battery listings',
+    enum: CategoryEnum,
+  })
+  @ApiQuery({
+    name: 'location',
+    required: false,
+    description: 'Match listings by location substring',
+  })
+  @ApiQuery({
+    name: 'minPrice',
+    required: false,
+    description: 'Minimum price filter',
+    schema: { type: 'number', minimum: 0 },
+  })
+  @ApiQuery({
+    name: 'maxPrice',
+    required: false,
+    description: 'Maximum price filter',
+    schema: { type: 'number', minimum: 0 },
+  })
+  @ApiQuery({
+    name: 'minYear',
+    required: false,
+    description: 'Minimum model year (EVs)',
+    schema: { type: 'number', minimum: 1900 },
+  })
+  @ApiQuery({
+    name: 'maxYear',
+    required: false,
+    description: 'Maximum model year (EVs)',
+    schema: { type: 'number', minimum: 1900 },
+  })
+  @ApiQuery({
+    name: 'minMileage',
+    required: false,
+    description: 'Minimum mileage in kilometers (EVs)',
+    schema: { type: 'number', minimum: 0 },
+  })
+  @ApiQuery({
+    name: 'maxMileage',
+    required: false,
+    description: 'Maximum mileage in kilometers (EVs)',
+    schema: { type: 'number', minimum: 0 },
+  })
+  @ApiQuery({
+    name: 'minRange',
+    required: false,
+    description: 'Minimum driving range in kilometers (EVs)',
+    schema: { type: 'number', minimum: 0 },
+  })
+  @ApiQuery({
+    name: 'maxRange',
+    required: false,
+    description: 'Maximum driving range in kilometers (EVs)',
+    schema: { type: 'number', minimum: 0 },
+  })
+  @ApiQuery({
+    name: 'minCapacity',
+    required: false,
+    description: 'Minimum battery capacity in kWh (EVs & batteries)',
+    schema: { type: 'number', minimum: 0 },
+  })
+  @ApiQuery({
+    name: 'maxCapacity',
+    required: false,
+    description: 'Maximum battery capacity in kWh (EVs & batteries)',
+    schema: { type: 'number', minimum: 0 },
+  })
+  @ApiQuery({
+    name: 'minSoh',
+    required: false,
+    description: 'Minimum state-of-health percentage (battery listings)',
+    schema: { type: 'number', minimum: 0, maximum: 100 },
+  })
+  @ApiQuery({
+    name: 'maxSoh',
+    required: false,
+    description: 'Maximum state-of-health percentage (battery listings)',
+    schema: { type: 'number', minimum: 0, maximum: 100 },
+  })
+  @ApiQuery({
+    name: 'batteryType',
+    required: false,
+    description: 'Filter battery listings by type',
+  })
+  @ApiQuery({
+    name: 'minManufactureYear',
+    required: false,
+    description: 'Minimum battery manufacture year',
+    schema: { type: 'number', minimum: 1900 },
+  })
+  @ApiQuery({
+    name: 'maxManufactureYear',
+    required: false,
+    description: 'Maximum battery manufacture year',
+    schema: { type: 'number', minimum: 1900 },
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Page size (1-50)',
+    schema: { type: 'number', minimum: 1, maximum: 50 },
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number (starting at 1)',
+    schema: { type: 'number', minimum: 1 },
+  })
   search(@Query() filters: SearchListingsDto) {
     return this.listingsService.searchVehicles(filters);
   }
