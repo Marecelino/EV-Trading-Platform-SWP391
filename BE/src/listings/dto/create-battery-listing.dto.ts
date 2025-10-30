@@ -66,12 +66,6 @@ export class CreateBatteryListingDto {
   @Max(100)
   soh_percent?: number;
 
-  @ApiPropertyOptional({ example: 'Lithium-Ion' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  battery_type?: string;
-
   @ApiPropertyOptional({ example: 2022 })
   @IsOptional()
   @IsNumber()
