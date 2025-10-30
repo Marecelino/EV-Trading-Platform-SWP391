@@ -8,6 +8,9 @@ import {
   Patch,
   Post,
   Query,
+  Request,
+  UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,6 +18,7 @@ import {
   ApiParam,
   ApiQuery,
   ApiResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ListingsService } from './listings.service';
 import { EVListingsService } from './ev-listings.service';
@@ -25,6 +29,14 @@ import { FilterListingsDto } from './dto/filter-listings.dto';
 import { SearchListingsDto } from './dto/search-listings.dto';
 import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { ListingStatus } from '../model/listings';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { Request as ExpressRequest } from 'express';
+
+type AuthenticatedRequest = ExpressRequest & {
+  user?: {
+    userId?: string;
+  };
+};
 
 @ApiTags('listings')
 @Controller('listings')
@@ -59,6 +71,49 @@ export class ListingsController {
   @Get()
   findAll(@Query() filters: FilterListingsDto) {
     return this.listingsService.findAll(filters);
+  }
+
+  @Get('my')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get listings created by the authenticated user' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter by listing status',
+    enum: ListingStatus,
+  })
+  findMine(
+    @Request() req: AuthenticatedRequest,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: ListingStatus,
+  ) {
+    const sellerId = req?.user?.userId;
+    if (!sellerId) {
+      throw new UnauthorizedException('Missing authenticated user context');
+    }
+
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.listingsService.findBySeller(
+      sellerId,
+      pageNum,
+      limitNum,
+      status,
+    );
   }
 
   @Get('compare')

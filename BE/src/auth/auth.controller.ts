@@ -44,6 +44,9 @@ import { User } from 'src/model/users.schema';
 import { Roles } from './decorators/roles.decorator';
 import { UserRole } from '../model/users.schema';
 import { Public } from './decorators/public.decorator';
+import { ListingsService } from '../listings/listings.service';
+import { ListingStatus } from '../model/listings';
+import { TransactionsService } from '../transactions/transactions.service';
 
 interface AuthenticatedRequest extends ExpressRequest {
   user: Omit<User, 'password'> & { userId: string };
@@ -63,6 +66,8 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly listingsService: ListingsService,
+    private readonly transactionsService: TransactionsService,
   ) {}
 
   // ✅ Đăng ký tài khoản
@@ -211,6 +216,70 @@ export class AuthController {
     }
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @Get('users/:id/listings')
+  @ApiOperation({ summary: 'Lấy danh sách tin đăng (xe/pin) của người dùng' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID người dùng',
+    example: '671234567890abcdef123456',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Trang cần lấy (bắt đầu từ 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Số bản ghi mỗi trang',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Lọc theo trạng thái tin đăng',
+    enum: ListingStatus,
+  })
+  async getUserListings(
+    @Param('id') id: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: ListingStatus,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.listingsService.findBySeller(id, pageNum, limitNum, status);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @Get('users/:id/transactions')
+  @ApiOperation({ summary: 'Lấy lịch sử giao dịch của người dùng' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID người dùng',
+    example: '671234567890abcdef123456',
+  })
+  @ApiQuery({
+    name: 'as',
+    required: false,
+    description: 'Lọc theo vai trò của người dùng trong giao dịch',
+    enum: ['buyer', 'seller'],
+  })
+  getUserTransactions(
+    @Param('id') id: string,
+    @Query('as') asRole?: 'buyer' | 'seller',
+  ) {
+    const roleFilter =
+      asRole === 'buyer' || asRole === 'seller' ? asRole : undefined;
+    return this.transactionsService.findForUser(id, roleFilter);
   }
 
   // ✅ Cập nhật thông tin người dùng theo ID (Admin only)
