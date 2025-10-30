@@ -20,6 +20,7 @@ import { EvdetailsModule } from './evdetails/evdetails.module';
 import { PriceSuggestionsModule } from './pricesuggestions/pricesuggestions.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { TransactionComplaintsModule } from './transaction-complaints/transaction-complaints.module';
+import { ReportsModule } from './reports/reports.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -81,6 +82,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     PriceSuggestionsModule,
     FavoritesModule,
     TransactionComplaintsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [
