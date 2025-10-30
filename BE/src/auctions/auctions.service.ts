@@ -22,7 +22,7 @@ export class AuctionsService {
     @InjectModel(Favorite.name)
     private readonly favoriteModel: Model<FavoriteDocument>,
     private readonly notificationsService: NotificationsService,
-  ) {}
+  ) { }
 
   /**
    * CREATE - Create new auction
@@ -172,6 +172,10 @@ export class AuctionsService {
         throw new NotFoundException('Auction not found');
       }
 
+      const oldStatus = auction.status;
+      // Preserve old price to detect price updates and notify favorites
+      const oldPrice = (auction as any).current_price;
+
       // Prevent updates to ended or cancelled auctions
       if (
         [AuctionStatus.ENDED, AuctionStatus.CANCELLED].includes(auction.status)
@@ -201,6 +205,70 @@ export class AuctionsService {
 
       if (!updatedDoc) {
         throw new NotFoundException('Auction not found after update');
+      }
+
+      // If status changed to ENDED, notify users who favorited this auction
+      try {
+        const updatedStatus = updatedDoc.status;
+        const auctionIdStr = String(updatedDoc._id);
+        if (oldStatus !== AuctionStatus.ENDED && updatedStatus === AuctionStatus.ENDED) {
+          const favorites = await this.favoriteModel.find({ auction_id: auctionIdStr }).lean();
+          const recipients = (favorites || []).map((f) => String(f.user_id));
+
+          if (recipients.length > 0) {
+            await Promise.all(
+              recipients.map((uid) =>
+                this.notificationsService.create({
+                  user_id: uid,
+                  message: `Auction "${updatedDoc.title}" has ended.`,
+                  type: NotificationType.FAVORITE_AUCTION_SOLD as any,
+                  related_id: auctionIdStr,
+                  action_url: `/auctions/${auctionIdStr}`,
+                }),
+              ),
+            );
+          }
+        }
+      } catch (err) {
+        console.error('Failed to create favorite notifications for auction status update', err);
+      }
+
+      // If price changed as part of this update, notify favorites
+      try {
+        const newPrice = (updatedDoc as any).current_price;
+        const auctionIdStr = String(updatedDoc._id);
+        if (typeof oldPrice !== 'undefined' && typeof newPrice !== 'undefined' && oldPrice !== newPrice) {
+          // Build selectors to match favorites by auction_id (ObjectId or string)
+          // and also by listing_id if this auction is tied to a listing.
+          const selectors: any[] = [];
+          if (mongoose.Types.ObjectId.isValid(auctionIdStr)) selectors.push({ auction_id: new mongoose.Types.ObjectId(auctionIdStr) });
+          selectors.push({ auction_id: auctionIdStr });
+
+          const listingId = ((updatedDoc as any).listing_id && String(((updatedDoc as any).listing_id as any)?._id ?? (updatedDoc as any).listing_id)) || null;
+          if (listingId) {
+            if (mongoose.Types.ObjectId.isValid(listingId)) selectors.push({ listing_id: new mongoose.Types.ObjectId(listingId) });
+            selectors.push({ listing_id: listingId });
+          }
+
+          const favorites = await this.favoriteModel.find({ $or: selectors }).lean();
+          const recipients = (favorites || []).map((f) => String(f.user_id));
+
+          if (recipients.length > 0) {
+            await Promise.all(
+              recipients.map((uid) =>
+                this.notificationsService.create({
+                  user_id: uid,
+                  message: `Price updated to ${newPrice} on auction "${updatedDoc.title}".`,
+                  type: NotificationType.FAVORITE_AUCTION_BID as any,
+                  related_id: auctionIdStr,
+                  action_url: `/auctions/${auctionIdStr}`,
+                }),
+              ),
+            );
+          }
+        }
+      } catch (err) {
+        console.error('Failed to create favorite notifications for auction price update', err);
       }
 
       const updated = updatedDoc.toObject
@@ -233,6 +301,75 @@ export class AuctionsService {
       throw new BadRequestException(
         'Failed to update auction: ' + error.message,
       );
+    }
+  }
+
+  /**
+   * UPDATE STATUS - Update auction status and notify favorites (best-effort)
+   */
+  async updateStatus(id: string, status: AuctionStatus) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid auction ID');
+    }
+
+    try {
+      const updatedDoc = await this.auctionModel
+        .findByIdAndUpdate(id, { status }, { new: true })
+        .populate('seller_id', 'name email phone')
+        .populate('bids.user_id', 'name email phone')
+        .exec();
+
+      if (!updatedDoc) {
+        throw new NotFoundException('Auction not found');
+      }
+
+      // Notify favorites (match by auction_id and listing_id if present)
+      try {
+        const auctionIdStr = String(updatedDoc._id);
+        const selectors: any[] = [];
+        if (mongoose.Types.ObjectId.isValid(auctionIdStr)) selectors.push({ auction_id: new mongoose.Types.ObjectId(auctionIdStr) });
+        selectors.push({ auction_id: auctionIdStr });
+
+        const listingId = ((updatedDoc as any).listing_id && String(((updatedDoc as any).listing_id as any)?._id ?? (updatedDoc as any).listing_id)) || null;
+        if (listingId) {
+          if (mongoose.Types.ObjectId.isValid(listingId)) selectors.push({ listing_id: new mongoose.Types.ObjectId(listingId) });
+          selectors.push({ listing_id: listingId });
+        }
+
+        const favorites = await this.favoriteModel.find({ $or: selectors }).lean();
+        const recipients = (favorites || []).map((f) => String((f as any).user_id));
+
+        if (recipients.length > 0) {
+          const message = status === AuctionStatus.ENDED
+            ? `Auction "${(updatedDoc as any).title}" has ended.`
+            : `Auction "${(updatedDoc as any).title}" status changed to ${String(status)}.`;
+
+          const type = status === AuctionStatus.ENDED
+            ? NotificationType.FAVORITE_AUCTION_SOLD
+            : NotificationType.SYSTEM_ANNOUNCEMENT;
+
+          await Promise.all(
+            recipients.map((uid) =>
+              this.notificationsService.create({
+                user_id: uid,
+                message,
+                type: type as any,
+                related_id: auctionIdStr,
+                action_url: `/auctions/${auctionIdStr}`,
+              }),
+            ),
+          );
+        }
+      } catch (err) {
+        console.error('Failed to create favorite notifications for auction status update', err);
+      }
+
+      return updatedDoc.toObject ? updatedDoc.toObject() : (updatedDoc as any);
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to update auction status: ' + error.message);
     }
   }
 
@@ -363,6 +500,9 @@ export class AuctionsService {
         throw new BadRequestException(`Minimum bid is ${minBid}`);
       }
 
+      // Save old price for notification logic
+      const oldPrice = auction.current_price;
+
       // Create bid record
       const bidRecord = {
         user_id: new mongoose.Types.ObjectId(userId),
@@ -397,63 +537,22 @@ export class AuctionsService {
         ? updatedDoc.toObject()
         : (updatedDoc as any);
       const category = String(updated.category || '').toLowerCase();
+
+      // attach detail document if available
+      let result: any = { ...updated, auction_id: auctionId };
       if (category === 'ev') {
-        const evDetail = await this.evDetailModel
-          .findOne({ auction_id: auctionId })
-          .lean();
-        // notify users who favorited this auction about the new bid
-        try {
-          const favorites = await this.favoriteModel.find({ auction_id: auctionId }).lean();
-          const recipients = (favorites || []).map((f) => String(f.user_id)).filter((uid) => uid !== userId);
-
-          if (recipients.length > 0) {
-            await Promise.all(
-              recipients.map((uid) =>
-                this.notificationsService.create({
-                  user_id: uid,
-                  message: `New bid ${dto.amount} placed on auction "${updated.title}"`,
-                  type: NotificationType.FAVORITE_AUCTION_BID as any,
-                  related_id: String(auctionId),
-                  action_url: `/auctions/${auctionId}`,
-                }),
-              ),
-            );
-          }
-        } catch (err) {
-          console.error('Failed to create favorite notifications for auction bid', err);
-        }
-
-        return { ...updated, auction_id: auctionId, evDetail };
-      }
-      if (category === 'battery') {
-        const batteryDetail = await this.batteryDetailModel
-          .findOne({ auction_id: auctionId })
-          .lean();
-        try {
-          const favorites = await this.favoriteModel.find({ auction_id: auctionId }).lean();
-          const recipients = (favorites || []).map((f) => String(f.user_id)).filter((uid) => uid !== userId);
-
-          if (recipients.length > 0) {
-            await Promise.all(
-              recipients.map((uid) =>
-                this.notificationsService.create({
-                  user_id: uid,
-                  message: `New bid ${dto.amount} placed on auction "${updated.title}"`,
-                  type: NotificationType.FAVORITE_AUCTION_BID as any,
-                  related_id: String(auctionId),
-                  action_url: `/auctions/${auctionId}`,
-                }),
-              ),
-            );
-          }
-        } catch (err) {
-          console.error('Failed to create favorite notifications for auction bid', err);
-        }
-
-        return { ...updated, auction_id: auctionId, batteryDetail };
+        const evDetail = await this.evDetailModel.findOne({ auction_id: auctionId }).lean();
+        result = { ...result, evDetail };
+      } else if (category === 'battery') {
+        const batteryDetail = await this.batteryDetailModel.findOne({ auction_id: auctionId }).lean();
+        result = { ...result, batteryDetail };
       }
 
-      return { ...updated, auction_id: auctionId };
+      // Notifications to favorites from placeBid have been disabled.
+      // If favorite notifications are needed for bids, handle them via a dedicated
+      // background job or elsewhere to avoid duplicate/undesired sends.
+
+      return result;
     } catch (error) {
       console.error('Place bid error:', error);
       if (
@@ -499,8 +598,18 @@ export class AuctionsService {
 
       // Notify users who favorited this auction that it ended
       try {
-        const auctionId = String(saved._id);
-        const favorites = await this.favoriteModel.find({ auction_id: auctionId }).lean();
+        // include favorites by auction_id and by listing_id (if the auction references a listing)
+        const auctionIdStr = String(saved._id);
+        const selectors: any[] = [];
+        if (mongoose.Types.ObjectId.isValid(auctionIdStr)) selectors.push({ auction_id: new mongoose.Types.ObjectId(auctionIdStr) });
+        selectors.push({ auction_id: auctionIdStr });
+        const listingId = ((saved as any).listing_id && String(((saved as any).listing_id as any)?._id ?? (saved as any).listing_id)) || null;
+        if (listingId) {
+          if (mongoose.Types.ObjectId.isValid(listingId)) selectors.push({ listing_id: new mongoose.Types.ObjectId(listingId) });
+          selectors.push({ listing_id: listingId });
+        }
+
+        const favorites = await this.favoriteModel.find({ $or: selectors }).lean();
         const recipients = (favorites || []).map((f) => String(f.user_id));
 
         if (recipients.length > 0) {
@@ -510,8 +619,8 @@ export class AuctionsService {
                 user_id: uid,
                 message: `Auction "${saved.title}" has ended.`,
                 type: NotificationType.FAVORITE_AUCTION_SOLD as any,
-                related_id: auctionId,
-                action_url: `/auctions/${auctionId}`,
+                related_id: auctionIdStr,
+                action_url: `/auctions/${auctionIdStr}`,
               }),
             ),
           );
@@ -595,5 +704,11 @@ export class AuctionsService {
         'Database connection failed: ' + error.message,
       );
     }
+  }
+
+  async adjustFavoriteCount(id: string, delta: number) {
+    await this.auctionModel
+      .findByIdAndUpdate(id, { $inc: { favorite_count: delta } })
+      .exec();
   }
 }

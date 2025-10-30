@@ -33,4 +33,4 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
   providers: [ListingsService, EVListingsService, BatteryListingsService],
   exports: [ListingsService, EVListingsService, BatteryListingsService],
 })
-export class ListingsModule {}
+export class ListingsModule { }

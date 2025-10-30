@@ -28,4 +28,4 @@ import { NotificationsModule } from '../notifications/notifications.module';
   providers: [AuctionsService, EVAuctionService, BatteryAuctionService],
   exports: [AuctionsService, EVAuctionService, BatteryAuctionService],
 })
-export class AuctionsModule {}
+export class AuctionsModule { }

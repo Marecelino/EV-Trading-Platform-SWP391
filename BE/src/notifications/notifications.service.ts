@@ -22,7 +22,11 @@ export class NotificationsService {
   ) { }
 
   async create(createNotificationDto: CreateNotificationDto) {
-    const userId = new Types.ObjectId(createNotificationDto.user_id);
+    // Allow user_id to be either a valid ObjectId string or a plain string
+    const userId = Types.ObjectId.isValid(createNotificationDto.user_id)
+      ? new Types.ObjectId(createNotificationDto.user_id)
+      : createNotificationDto.user_id;
+
     const payload = {
       ...createNotificationDto,
       user_id: userId,
@@ -30,7 +34,7 @@ export class NotificationsService {
 
     const notification = await new this.notificationModel(payload).save();
     const serialized = notification.toObject();
-    const normalizedUserId = userId.toHexString();
+    const normalizedUserId = typeof userId === 'string' ? userId : userId.toHexString();
 
     const eventPayload: NotificationCreatedEvent = {
       userId: normalizedUserId,

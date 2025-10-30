@@ -12,6 +12,7 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
+import { ParseEnumPipe } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -28,8 +29,11 @@ import { EVAuctionService } from './ev-auction.service';
 import { BatteryAuctionService } from './battery-auction.service';
 import { CreateBatteryAuctionDto } from './dto/create-battery-auction';
 import { CreateEVAuctionDto } from './dto/create-ev-auction';
+import { AuctionStatus } from '../model/auctions';
+import { UpdateAuctionStatusDto } from './dto/update-auction-status.dto';
 
 @ApiTags('Auctions')
+@ApiBearerAuth()
 @Controller('auctions')
 export class AuctionsController {
   constructor(
@@ -440,6 +444,26 @@ export class AuctionsController {
       statusCode: HttpStatus.OK,
       message: 'Auction activated',
       data: await this.auctionsService.activateAuction(id),
+    };
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Update auction status' })
+  @ApiParam({ name: 'id', description: 'Auction ID' })
+  @ApiBody({
+    type: UpdateAuctionStatusDto,
+    examples: {
+      Scheduled: { summary: 'Mark auction scheduled', value: { status: AuctionStatus.SCHEDULED } },
+      Live: { summary: 'Mark auction live', value: { status: AuctionStatus.LIVE } },
+      Ended: { summary: 'Mark auction ended', value: { status: AuctionStatus.ENDED } },
+      Cancelled: { summary: 'Cancel auction', value: { status: AuctionStatus.CANCELLED } },
+    },
+  })
+  async updateStatus(@Param('id') id: string, @Body() dto: UpdateAuctionStatusDto) {
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Auction status updated',
+      data: await this.auctionsService.updateStatus(id, dto.status),
     };
   }
 }

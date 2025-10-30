@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  ParseEnumPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,6 +16,7 @@ import {
   ApiParam,
   ApiQuery,
   ApiResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ListingsService } from './listings.service';
 import { EVListingsService } from './ev-listings.service';
@@ -25,20 +27,18 @@ import { FilterListingsDto } from './dto/filter-listings.dto';
 import { SearchListingsDto } from './dto/search-listings.dto';
 import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { ListingStatus } from '../model/listings';
+import { UpdateListingStatusDto } from './dto/update-listing-status.dto';
+import { ApiBody } from '@nestjs/swagger';
 
 @ApiTags('listings')
+@ApiBearerAuth()
 @Controller('listings')
 export class ListingsController {
   constructor(
     private readonly listingsService: ListingsService,
     private readonly evListingsService: EVListingsService,
     private readonly batteryListingsService: BatteryListingsService,
-  ) { }
-
-  // @Post()
-  // create(@Body() createListingDto: CreateListingDto) {
-  //   return this.listingsService.create(createListingDto);
-  // }
+  ) {}
 
   @Post('ev')
   createEV(@Body() dto: CreateEVListingDto) {
@@ -100,10 +100,18 @@ export class ListingsController {
   //   return this.listingsService.update(id, updateListingDto);
   // }
 
-  // @Patch(':id/status')
-  // updateStatus(@Param('id') id: string, @Body('status') status: ListingStatus) {
-  //   return this.listingsService.updateStatus(id, status);
-  // }
+  @Patch(':id/status')
+  @ApiBody({
+    type: UpdateListingStatusDto,
+    examples: {
+      Active: { summary: 'Set listing active', value: { status: ListingStatus.ACTIVE } },
+      Sold: { summary: 'Set listing sold', value: { status: ListingStatus.SOLD } },
+      Removed: { summary: 'Remove listing', value: { status: ListingStatus.REMOVED } },
+    },
+  })
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateListingStatusDto) {
+    return this.listingsService.updateStatus(id, dto.status);
+  }
 
   // @Post(':id/views')
   // incrementView(@Param('id') id: string) {
