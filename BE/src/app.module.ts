@@ -22,6 +22,7 @@ import { FavoritesModule } from './favorites/favorites.module';
 import { TransactionComplaintsModule } from './transaction-complaints/transaction-complaints.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -87,6 +88,10 @@ import { AppService } from './app.service';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
   ],
 })

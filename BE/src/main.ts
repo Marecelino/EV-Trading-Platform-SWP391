@@ -10,6 +10,7 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument, UserRole, UserStatus } from './model/users.schema';
+import { RequestLoggingInterceptor } from './common/interceptors/request-logging.interceptor';
 dotenv.config();
 
 async function ensureDetailIndexes(app: any) {
@@ -135,6 +136,8 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  app.useGlobalInterceptors(new RequestLoggingInterceptor());
 
   const config = new DocumentBuilder()
     .setTitle('EV Trading Platform API')

@@ -47,7 +47,6 @@ export class Brand extends Document {
 export const BrandSchema = SchemaFactory.createForClass(Brand);
 
 // Indexes
-BrandSchema.index({ name: 1 });
 BrandSchema.index({ is_active: 1, name: 1 });
 BrandSchema.index({ country: 1 });
 

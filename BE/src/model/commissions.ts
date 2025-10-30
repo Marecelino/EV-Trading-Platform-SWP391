@@ -61,7 +61,6 @@ export class Commission extends Document {
 export const CommissionSchema = SchemaFactory.createForClass(Commission);
 
 // Indexes
-CommissionSchema.index({ transaction_id: 1 });
 CommissionSchema.index({ status: 1, createdAt: -1 });
 CommissionSchema.index({ config_id: 1 });
 CommissionSchema.index({ paid_at: 1 });

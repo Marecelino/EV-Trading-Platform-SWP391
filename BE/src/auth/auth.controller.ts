@@ -43,6 +43,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { User } from 'src/model/users.schema';
 import { Roles } from './decorators/roles.decorator';
 import { UserRole } from '../model/users.schema';
+import { Public } from './decorators/public.decorator';
 
 interface AuthenticatedRequest extends ExpressRequest {
   user: Omit<User, 'password'> & { userId: string };
@@ -65,6 +66,7 @@ export class AuthController {
   ) {}
 
   // ✅ Đăng ký tài khoản
+  @Public()
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60 } })
   @ApiOperation({ summary: 'Đăng ký tài khoản mới' })
@@ -77,6 +79,7 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
+  @Public()
   @Post('register/complete')
   @ApiOperation({ summary: 'Hoàn tất thông tin cá nhân sau khi đăng ký' })
   @ApiResponse({ status: 200, description: 'Hoàn tất đăng ký thành công' })
@@ -85,6 +88,7 @@ export class AuthController {
   }
 
   // ✅ Đăng nhập
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Đăng nhập' })
@@ -246,12 +250,14 @@ export class AuthController {
   }
 
   @Get('google')
+  @Public()
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
     return;
   }
 
   @Get('google/callback')
+  @Public()
   @UseGuards(AuthGuard('google'))
   async googleCallback(
     @Request() req: ExpressRequest & { user: OAuthPassportUser },
@@ -261,12 +267,14 @@ export class AuthController {
   }
 
   @Get('facebook')
+  @Public()
   @UseGuards(AuthGuard('facebook'))
   async facebookAuth() {
     return;
   }
 
   @Get('facebook/callback')
+  @Public()
   @UseGuards(AuthGuard('facebook'))
   async facebookCallback(
     @Request() req: ExpressRequest & { user: OAuthPassportUser },
