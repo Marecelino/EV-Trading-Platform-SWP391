@@ -23,6 +23,8 @@ import { PriceSuggestionDto } from './dto/price-suggestion.dto';
 import { Brand, BrandDocument } from 'src/model/brands';
 import { EVDetail } from 'src/model/evdetails';
 import { BatteryDetail } from 'src/model/batterydetails';
+import type { ComparisonResponse, ListingWithDetails } from './comparison.util';
+import { buildComparisonResponse } from './comparison.util';
 
 type NumberCondition = {
   $gte?: number;
@@ -713,7 +715,7 @@ export class ListingsService {
       .filter((item): item is (typeof enriched)[number] => Boolean(item));
   }
 
-  async compareListings(ids: string[]) {
+  async compareListings(ids: string[]): Promise<ComparisonResponse> {
     const normalizedIds = Array.from(
       new Set((ids || []).map((id) => (id ? String(id) : '')).filter(Boolean)),
     );
@@ -722,6 +724,10 @@ export class ListingsService {
       throw new BadRequestException(
         'At least two listing IDs are required for comparison',
       );
+    }
+
+    if (normalizedIds.length > 3) {
+      throw new BadRequestException('You can compare up to 3 listings at once');
     }
 
     const listings = await this.findManyByIds(normalizedIds);
@@ -734,13 +740,21 @@ export class ListingsService {
       );
     }
 
-    return {
-      data: listings,
-      meta: {
-        total: listings.length,
-        missingIds,
-      },
-    };
+    const categorySet = new Set(listings.map((item) => item.category));
+    if (categorySet.size !== 1) {
+      throw new BadRequestException(
+        'Listings must share the same category (EV or battery) for comparison',
+      );
+    }
+
+    const [category] = Array.from(categorySet);
+
+    return buildComparisonResponse({
+      category,
+      listings: listings as unknown as ListingWithDetails[],
+      missingIds,
+      requestedOrder: normalizedIds,
+    });
   }
 
   async findOne(id: string) {
