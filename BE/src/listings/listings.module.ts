@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { Listing, ListingSchema } from '../model/listings';
@@ -15,6 +15,9 @@ import { EVDetail, EVDetailSchema } from 'src/model/evdetails';
 import { BatteryDetail, BatteryDetailSchema } from 'src/model/batterydetails';
 import { Favorite, FavoriteSchema } from 'src/model/favorites';
 import { NotificationsModule } from 'src/notifications/notifications.module';
+import { PaymentModule } from '../payment/payment.module';
+import { Payment, PaymentSchema } from '../payment/schemas/payment.schema';
+import { User, UserSchema } from '../model/users.schema';
 
 @Module({
   imports: [
@@ -27,7 +30,9 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
       { name: BatteryDetail.name, schema: BatteryDetailSchema },
       { name: Favorite.name, schema: FavoriteSchema },
     ]),
+    MongooseModule.forFeature([{ name: Payment.name, schema: PaymentSchema }, { name: User.name, schema: UserSchema }]),
     NotificationsModule,
+    forwardRef(() => PaymentModule),
   ],
   controllers: [ListingsController],
   providers: [ListingsService, EVListingsService, BatteryListingsService],

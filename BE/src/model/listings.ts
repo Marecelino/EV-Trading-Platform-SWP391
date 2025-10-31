@@ -6,6 +6,8 @@ export enum ListingStatus {
   DRAFT = 'draft',
   ACTIVE = 'active',
   SOLD = 'sold',
+  PAYMENT_PENDING = 'payment_pending',
+  PAYMENT_COMPLETED = 'payment_completed',
   EXPIRED = 'expired',
   REMOVED = 'removed',
 }

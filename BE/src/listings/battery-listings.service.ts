@@ -9,6 +9,14 @@ import {
 } from '../model/listings';
 import { BatteryDetail } from '../model/batterydetails';
 import { Brand, BrandDocument } from '../model/brands';
+import {
+  Payment,
+  PaymentDocument,
+  PaymentStatus,
+  PaymentMethod,
+} from '../payment/schemas/payment.schema';
+import { PaymentService } from '../payment/payment.service';
+import { User, UserDocument } from '../model/users.schema';
 
 @Injectable()
 export class BatteryListingsService {
@@ -19,13 +27,16 @@ export class BatteryListingsService {
     private readonly batteryDetailModel: Model<any>,
     @InjectModel(Brand.name)
     private readonly brandModel: Model<BrandDocument>,
-  ) {}
+    @InjectModel(Payment.name) private readonly paymentModel: Model<PaymentDocument>,
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    private readonly paymentService: PaymentService,
+  ) { }
 
   private escapeRegex(input: string) {
     return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
-  async create(dto: any) {
+  async create(dto: any, authUserId?: string, ipAddress?: string) {
     const { brand_name, model_name, category, status, ...rest } = dto;
 
     const payload: Record<string, unknown> = { ...rest };
@@ -59,10 +70,49 @@ export class BatteryListingsService {
     }
 
     payload['category'] = CategoryEnum.BATTERY;
-    payload['status'] = status ?? ListingStatus.DRAFT;
+    // New listings default to payment_pending so seller can pay listing fee
+    payload['status'] = status ?? ListingStatus.PAYMENT_PENDING;
 
     const listing = new this.listingModel(payload);
     const saved = await listing.save();
+
+    // Create listing fee payment record
+    try {
+      const listingFeeAmount = 15000; // VND
+      const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@example.com';
+      let platformSellerId: any = (saved as any).seller_id;
+      try {
+        const admin = await this.userModel.findOne({ email: adminEmail }).lean();
+        if (admin && admin._id) platformSellerId = admin._id;
+      } catch (e) {
+        // ignore — fallback to listing's seller_id
+      }
+
+      const requestBuyer = authUserId ?? String((saved as any).seller_id);
+
+      const payment = await this.paymentModel.create({
+        buyer_id: requestBuyer,
+        seller_id: platformSellerId,
+        listing_id: saved._id,
+        amount: listingFeeAmount,
+        payment_method: PaymentMethod.VNPAY,
+        status: PaymentStatus.PENDING,
+      } as any);
+      (saved as any)._listingFeePayment = payment;
+      try {
+        const ip = ipAddress ?? '127.0.0.1';
+        const { paymentUrl } = await this.paymentService.createVNPayUrlForPayment(
+          (payment._id as any).toString(),
+          requestBuyer,
+          ip,
+        );
+        (saved as any)._listingFeePayment.paymentUrl = paymentUrl;
+      } catch (err) {
+        console.warn('Failed to build VNPay URL for listing fee payment', err?.message || err);
+      }
+    } catch (err) {
+      console.warn('Failed to create listing fee payment record', err?.message || err);
+    }
 
     // create BatteryDetail
     const batteryPayload: any = {
@@ -77,10 +127,14 @@ export class BatteryListingsService {
     );
     const batteryDetail = await this.batteryDetailModel.create(batteryPayload);
 
-    // Trả về cả listing và batteryDetail
+    // Trả về cả listing and batteryDetail (include payment info if present)
+    const listingObj: any = saved.toObject();
+    if ((saved as any)._listingFeePayment) listingObj._listingFeePayment = (saved as any)._listingFeePayment;
     return {
-      listing: saved.toObject(),
+      listing: listingObj,
       batteryDetail: batteryDetail.toObject(),
+      payment: (saved as any)._listingFeePayment ?? null,
+      paymentUrl: (saved as any)._listingFeePayment?.paymentUrl ?? null,
     };
   }
 

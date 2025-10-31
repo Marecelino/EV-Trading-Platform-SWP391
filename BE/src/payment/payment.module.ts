@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
 import { Payment, PaymentSchema } from './schemas/payment.schema';
+import { forwardRef } from '@nestjs/common';
 import { ListingsModule } from '../listings/listings.module';
 import { AuctionsModule } from '../auctions/auctions.module';
 import { TransactionsModule } from '../transactions/transactions.module';
@@ -19,8 +20,8 @@ import { User, UserSchema } from '../model/users.schema';
       { name: User.name, schema: UserSchema },
     ]),
     ConfigModule,
-    ListingsModule,
-    AuctionsModule,
+    forwardRef(() => ListingsModule),
+    forwardRef(() => AuctionsModule),
     TransactionsModule,
     ContactsModule,
     CommissionsModule,
@@ -30,4 +31,4 @@ import { User, UserSchema } from '../model/users.schema';
   providers: [PaymentService],
   exports: [PaymentService],
 })
-export class PaymentModule {}
+export class PaymentModule { }

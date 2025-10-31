@@ -17,7 +17,6 @@ import {
   VNPayIPNDto,
   CreateAuctionPaymentDto,
 } from './dto/payment.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Payment')
 @ApiBearerAuth()

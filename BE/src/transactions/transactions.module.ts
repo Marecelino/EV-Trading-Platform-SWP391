@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Transaction, TransactionSchema } from '../model/transactions';
 import { User, UserSchema } from '../model/users.schema';
@@ -12,7 +12,7 @@ import { TransactionsController } from './transactions.controller';
       { name: Transaction.name, schema: TransactionSchema },
       { name: User.name, schema: UserSchema },
     ]),
-    ListingsModule,
+  forwardRef(() => ListingsModule),
   ],
   providers: [TransactionsService],
   exports: [TransactionsService],

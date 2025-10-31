@@ -209,6 +209,76 @@ export class PaymentService {
   }
 
   /**
+   * Build a VNPay URL for an existing payment record. Useful when payment
+   * record already exists (e.g., listing fee) and frontend requests the
+   * redirect URL.
+   */
+  async createVNPayUrlForPayment(
+    paymentId: string,
+    userId: string,
+    ipAddress = '127.0.0.1',
+  ) {
+    if (!paymentId || !Types.ObjectId.isValid(String(paymentId))) {
+      throw new BadRequestException('Invalid payment identifier');
+    }
+
+    const payment = await this.paymentModel.findById(paymentId).lean();
+    if (!payment) throw new NotFoundException('Payment not found');
+
+    // Only the buyer (payer) should be able to request the payment URL.
+    // Normalize several shapes: ObjectId, populated object, or string.
+    const normalize = (v: any) => {
+      if (!v && v !== 0) return '';
+      if (typeof v === 'string') return v;
+      if (v instanceof Types.ObjectId) return v.toString();
+      if (typeof v === 'object') {
+        if (v._id) return String(v._id);
+        if (v.id) return String(v.id);
+        if (typeof v.toString === 'function') return v.toString();
+        return JSON.stringify(v);
+      }
+      return String(v);
+    };
+
+    const buyerId = normalize(payment.buyer_id);
+    const normalizedUserId = normalize(userId);
+    if (buyerId !== normalizedUserId) {
+      // Helpful debug log to diagnose why auth mismatch happens during auction create
+      this.logger.warn('Unauthorized attempt to build payment URL', {
+        paymentId,
+        buyerId,
+        userId: normalizedUserId,
+      });
+      throw new BadRequestException('Unauthorized to create payment URL for this payment');
+    }
+
+    const amount = payment.amount;
+    if (typeof amount !== 'number' || !Number.isFinite(amount)) {
+      throw new BadRequestException('Invalid payment amount');
+    }
+    if (amount < 5000 || amount >= 1000000000) {
+      throw new BadRequestException(
+        'Số tiền giao dịch không hợp lệ. Số tiền hợp lệ từ 5,000 đến dưới 1 tỷ đồng',
+      );
+    }
+
+    const orderId = String(payment._id);
+    const vnpayResponse = this.vnpay.buildPaymentUrl({
+      vnp_Amount: Math.round(amount),
+      vnp_IpAddr: ipAddress,
+      vnp_OrderInfo: `Thanh toan cho payment #${orderId}`,
+      vnp_TxnRef: orderId,
+      vnp_OrderType: ProductCode.Other,
+      vnp_ReturnUrl: this.returnUrl,
+      vnp_Locale: VnpLocale.VN,
+      vnp_CreateDate: dateFormat(new Date()),
+      vnp_ExpireDate: dateFormat(new Date(Date.now() + 30 * 60 * 1000)),
+    });
+
+    return { payment, paymentUrl: vnpayResponse };
+  }
+
+  /**
    * Create new payment record
    */
   private async createPayment(dto: CreatePaymentDto, buyerId: string) {
@@ -232,7 +302,7 @@ export class PaymentService {
       listing.seller_id instanceof Types.ObjectId
         ? listing.seller_id.toString()
         : (listing.seller_id as any)?._id?.toString() ||
-          String(listing.seller_id);
+        String(listing.seller_id);
 
     if (listingSellerId === buyerId) {
       throw new BadRequestException('Buyer cannot be the seller');
@@ -485,7 +555,8 @@ export class PaymentService {
 
     if (listingId) {
       try {
-        await this.listingsService.updateStatus(listingId, ListingStatus.SOLD);
+        // Mark listing as payment completed (do not create contract here)
+        await this.listingsService.updateStatus(listingId, ListingStatus.PAYMENT_COMPLETED);
       } catch (error) {
         console.warn('Failed to update listing status after payment', {
           listingId,
@@ -494,92 +565,27 @@ export class PaymentService {
       }
     }
 
-    // Create a contact/contract record linked to this transaction/payment.
-    // Contacts schema differs from the previous Contracts model; create a minimal
-    // contact record with a generated contract_no and document_url placeholder.
-    const contractNo = `CONTRACT-${new Date().toISOString().replace(/[:.]/g, '-')}-${String(
-      transaction._id,
-    ).slice(-6)}`;
-    const documentUrl = `${process.env.FRONTEND_URL?.replace(/\/$/, '') || 'http://localhost:5173'}/contracts/${contractNo}.pdf`;
-
-    const contract = await this.contactsService.create({
-      transaction_id: (transaction._id as Types.ObjectId).toString(),
-      contract_no: contractNo,
-      document_url: documentUrl,
-      // Use an existing, valid status value from the ContractStatus enum.
-      // Previously we attempted to set 'PENDING_SIGNATURE' which is not
-      // accepted by the Contract schema; defaulting to DRAFT here.
-      status: ContractStatus.DRAFT,
-      terms_and_conditions: `Auto-generated contract for transaction ${transaction._id}`,
-      notes: `Created from payment ${payment._id}`,
-    } as any);
-
-    if (contract) {
-      const contractId = (
-        (contract as any)?._id as Types.ObjectId | undefined
-      )?.toString();
-      const contractNo = (contract as any)?.contract_no as string | undefined;
-
-      if (contractId) {
-        transaction.contract_id = new Types.ObjectId(contractId);
-        payment.contract_id = new Types.ObjectId(contractId);
-      }
-      await transaction.save();
-      await payment.save();
-
-      try {
-        // Instead of relying on a populated transaction (which may fail
-        // if buyer_id/seller_id are invalid in DB), fetch buyer/seller
-        // directly and validate before calling SignNow.
-        let buyer: any = null;
-        let seller: any = null;
-        try {
-          const buyerId =
-            payment.buyer_id?.toString?.() ?? String(payment.buyer_id || '');
-          const sellerId =
-            payment.seller_id?.toString?.() ?? String(payment.seller_id || '');
-
-          if (buyerId && Types.ObjectId.isValid(buyerId)) {
-            buyer = await this.userModel.findById(buyerId).lean();
+    // Do not create a contract record or trigger SignNow.
+    // Instead: if the payment is related to an auction, mark the auction as
+    // PAYMENT_COMPLETED; if it's related to a listing, the listing was already
+    // updated to SOLD above. Return the transaction and commission info only.
+    try {
+      if ((payment as any).auction_id) {
+        const auctionId = (payment as any).auction_id?.toString?.() ?? String((payment as any).auction_id);
+        if (auctionId) {
+          try {
+            await this.auctionsService.updateStatus(auctionId, AuctionStatus.PAYMENT_COMPLETED);
+          } catch (err) {
+            console.warn('Failed to update auction status to PAYMENT_COMPLETED', { auctionId, error: err?.message || err });
           }
-          if (sellerId && Types.ObjectId.isValid(sellerId)) {
-            seller = await this.userModel.findById(sellerId).lean();
-          }
-
-          if (buyer?.email && seller?.email) {
-            if (!contractId) {
-              throw new Error('Missing contract identifier for SignNow');
-            }
-            await this.signnowService.createContractAndInvite({
-              contract_id: contractId,
-              buyer_name: buyer?.name || 'Buyer',
-              buyer_email: buyer.email,
-              seller_name: seller?.name || 'Seller',
-              seller_email: seller.email,
-              amount: payment.amount,
-              subject: contractNo
-                ? `Ký hợp đồng ${contractNo}`
-                : 'Ký hợp đồng giao dịch',
-            });
-          } else {
-            console.warn('Missing buyer/seller email for SignNow invitation', {
-              buyerId: payment.buyer_id,
-              sellerId: payment.seller_id,
-              buyer,
-              seller,
-            });
-          }
-        } catch (err) {
-          console.error('Failed to trigger SignNow contract invite', err);
         }
-      } catch (error) {
-        console.error('Failed to trigger SignNow contract invite', error);
       }
+    } catch (err) {
+      console.warn('Error while updating auction/listing status after payment', err?.message || err);
     }
 
     return {
       transaction,
-      contract,
       commission: { rate, platformFee, sellerPayout },
     };
   }

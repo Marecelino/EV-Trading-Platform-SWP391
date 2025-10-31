@@ -7,6 +7,8 @@ export enum AuctionStatus {
   LIVE = 'live',
   ENDED = 'ended',
   CANCELLED = 'cancelled',
+  PAYMENT_PENDING = 'payment_pending',
+  PAYMENT_COMPLETED = 'payment_completed',
 }
 
 // Bid subdocument

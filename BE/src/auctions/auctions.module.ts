@@ -11,6 +11,10 @@ import { EVDetail, EVDetailSchema } from '../model/evdetails';
 import { BatteryDetail, BatteryDetailSchema } from '../model/batterydetails';
 import { Favorite, FavoriteSchema } from '../model/favorites';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { forwardRef } from '@nestjs/common';
+import { PaymentModule } from 'src/payment/payment.module';
+import { Payment, PaymentSchema } from 'src/payment/schemas/payment.schema';
+import { User, UserSchema } from 'src/model/users.schema';
 
 @Module({
   imports: [
@@ -21,8 +25,11 @@ import { NotificationsModule } from '../notifications/notifications.module';
       { name: EVDetail.name, schema: EVDetailSchema },
       { name: BatteryDetail.name, schema: BatteryDetailSchema },
       { name: Favorite.name, schema: FavoriteSchema },
+      { name: Payment.name, schema: PaymentSchema },
+      { name: User.name, schema: UserSchema },
     ]),
     NotificationsModule,
+    forwardRef(() => PaymentModule),
   ],
   controllers: [AuctionsController],
   providers: [AuctionsService, EVAuctionService, BatteryAuctionService],

@@ -56,13 +56,19 @@ export class ListingsController {
   ) { }
 
   @Post('ev')
-  createEV(@Body() dto: CreateEVListingDto) {
-    return this.evListingsService.create(dto);
+  @UseGuards(JwtAuthGuard)
+  createEV(@Body() dto: CreateEVListingDto, @Request() req: AuthenticatedRequest) {
+    const userId = req.user?.userId;
+    const ip = req.ip || '127.0.0.1';
+    return this.evListingsService.create(dto, userId, ip);
   }
 
   @Post('battery')
-  createBattery(@Body() dto: CreateBatteryListingDto) {
-    return this.batteryListingsService.create(dto);
+  @UseGuards(JwtAuthGuard)
+  createBattery(@Body() dto: CreateBatteryListingDto, @Request() req: AuthenticatedRequest) {
+    const userId = req.user?.userId;
+    const ip = req.ip || '127.0.0.1';
+    return this.batteryListingsService.create(dto, userId, ip);
   }
 
   @Public()

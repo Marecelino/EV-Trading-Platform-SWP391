@@ -23,6 +23,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { AuctionsService } from './auctions.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { CreateBidDto } from './dto/create-bid.dto';
 import { EVAuctionService } from './ev-auction.service';
@@ -98,22 +99,26 @@ export class AuctionsController {
   }
 
   @Post('ev')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create EV auction' })
   @ApiBody({ type: CreateEVAuctionDto })
   @HttpCode(HttpStatus.CREATED)
-  async createEvAuction(@Body() dto: CreateEVAuctionDto) {
-    const result = await this.evAuctionService.create(dto);
-    // Return data only as requested
+  async createEvAuction(@Body() dto: CreateEVAuctionDto, @Request() req: any) {
+    const userId = req.user?.userId ?? req.user?.id;
+    const ip = req.ip || '127.0.0.1';
+    const result = await this.evAuctionService.create(dto, userId, ip);
     return result;
   }
 
   @Post('battery')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create Battery auction' })
   @ApiBody({ type: CreateBatteryAuctionDto })
   @HttpCode(HttpStatus.CREATED)
-  async createBatteryAuction(@Body() dto: CreateBatteryAuctionDto) {
-    const result = await this.batteryAuctionService.create(dto);
-    // Return data only for consistency with EV create
+  async createBatteryAuction(@Body() dto: CreateBatteryAuctionDto, @Request() req: any) {
+    const userId = req.user?.userId ?? req.user?.id;
+    const ip = req.ip || '127.0.0.1';
+    const result = await this.batteryAuctionService.create(dto, userId, ip);
     return result;
   }
 
