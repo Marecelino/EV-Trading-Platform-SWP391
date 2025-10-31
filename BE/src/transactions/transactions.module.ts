@@ -12,10 +12,10 @@ import { TransactionsController } from './transactions.controller';
       { name: Transaction.name, schema: TransactionSchema },
       { name: User.name, schema: UserSchema },
     ]),
-  forwardRef(() => ListingsModule),
+    forwardRef(() => ListingsModule),
   ],
   providers: [TransactionsService],
   exports: [TransactionsService],
   controllers: [TransactionsController],
 })
-export class TransactionsModule {}
+export class TransactionsModule { }

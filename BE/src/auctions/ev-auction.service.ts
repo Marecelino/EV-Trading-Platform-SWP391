@@ -54,9 +54,9 @@ export class EVAuctionService {
       payload['brand_id'] = brand._id;
     }
 
-  payload['category'] = CategoryEnum.EV;
-  // New auctions default to PAYMENT_PENDING so seller must pay the listing fee
-  payload['status'] = status ?? AuctionStatus.PAYMENT_PENDING;
+    payload['category'] = CategoryEnum.EV;
+    // New auctions default to PAYMENT_PENDING so seller must pay the listing fee
+    payload['status'] = status ?? AuctionStatus.PAYMENT_PENDING;
     if (payload['starting_price'] === undefined) {
       throw new BadRequestException('starting_price is required for auction');
     }
