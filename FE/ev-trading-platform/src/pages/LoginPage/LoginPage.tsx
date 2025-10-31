@@ -23,9 +23,16 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // CRITICAL FIX: Login response structure is { access_token, token_type, expires_in, user }
+      // NOT nested in response.data.data
       const response = await authApi.login({ email, password });
-      const { user, token } = response.data.data;
-      login(token, user);
+      const { access_token, user } = response.data;
+      
+      if (!access_token || !user) {
+        throw new Error('Invalid response from server');
+      }
+
+      login(access_token, user);
 
       if (user.role === "admin") {
         navigate("/admin/dashboard");
@@ -33,14 +40,20 @@ const LoginPage: React.FC = () => {
         navigate("/dashboard/profile");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Đăng nhập thất bại");
+      // Handle both axios errors and ApiErrorResponse structure
+      const errorMessage = err?.message || err?.response?.data?.message || "Đăng nhập thất bại";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSocialLogin = (provider: "google" | "facebook") => {
-    window.location.href = `http://localhost:3000/api/auth/${provider}`;
+    // OAuth endpoints redirect, so use window.location
+    const authUrl = provider === "google" 
+      ? authApi.googleAuth() 
+      : authApi.facebookAuth();
+    window.location.href = authUrl;
   };
 
   return (

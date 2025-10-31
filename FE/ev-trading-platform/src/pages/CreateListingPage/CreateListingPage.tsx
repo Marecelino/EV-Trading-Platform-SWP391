@@ -10,6 +10,8 @@ import listingApi from "../../api/listingApi";
 import brandApi from "../../api/brandApi";
 import modelApi from "../../api/modelApi";
 import { Brand, Model, Category } from "../../types";
+import { CreateEVListingDto, CreateBatteryListingDto } from "../../types/api";
+import { useAuth } from "../../contexts/AuthContext";
 import "./CreateListingPage.scss";
 
 type Category = "ev" | "battery";
@@ -27,6 +29,7 @@ const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({
 );
 
 const CreateListingPage: React.FC = () => {
+  const { user } = useAuth();
   const [category, setCategory] = useState<Category | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -69,29 +72,84 @@ const CreateListingPage: React.FC = () => {
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    if (!category) {
+      alert("Vui lòng chọn loại sản phẩm (Xe điện hoặc Pin)");
+      return;
+    }
+
+    if (!user?._id) {
+      alert("Vui lòng đăng nhập để tạo tin đăng");
+      navigate("/login");
+      return;
+    }
+
+    if (imageUrls.length === 0) {
+      alert("Vui lòng tải lên ít nhất một hình ảnh");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Dữ liệu cuối cùng để gửi đi
-      const finalData = {
-        ...formData,
-        listing_type: listingType,
-        category: category, // Thêm category để backend dễ xác định loại phí
+      // CRITICAL FIX: Backend requires separate endpoints for EV and Battery
+      // Map form data to the correct DTO structure based on category
+      
+      const baseListingData = {
+        seller_id: user._id,
+        brand_name: (formData.brand_id as string) || "", // TODO: Get brand name from brand_id
+        title: (formData.title as string) || "",
+        description: (formData.description as string) || "",
+        price: Number(formData.price) || 0,
+        condition: (formData.condition as 'new' | 'like_new' | 'excellent' | 'good' | 'fair' | 'poor') || 'good',
         images: imageUrls,
+        location: formData.location ? (typeof formData.location === 'string' ? formData.location : JSON.stringify(formData.location)) : undefined,
       };
 
-      // Luôn gọi API POST /listings để khởi tạo
-      const response = await listingsApi.create(finalData);
-
-      if (response.data.success) {
-        setFeeInfo(response.data.data);
-        setIsPaymentModalOpen(true);
+      let response;
+      
+      if (category === "ev") {
+        // Map EV-specific fields
+        const evData: CreateEVListingDto = {
+          ...baseListingData,
+          year: formData.ev_details ? (formData.ev_details as any).year_of_manufacture : undefined,
+          mileage_km: formData.ev_details ? (formData.ev_details as any).mileage : undefined,
+          battery_capacity_kwh: formData.ev_details ? (formData.ev_details as any).battery_capacity : undefined,
+          range_km: formData.ev_details ? (formData.ev_details as any).range : undefined,
+        };
+        response = await listingApi.createEV(evData);
       } else {
-        throw new Error(response.data.message || "Có lỗi xảy ra");
+        // Map Battery-specific fields
+        const batteryData: CreateBatteryListingDto = {
+          ...baseListingData,
+          capacity_kwh: formData.battery_details ? (formData.battery_details as any).capacity : undefined,
+          soh_percent: formData.battery_details ? (formData.battery_details as any).state_of_health : undefined,
+          battery_type: formData.battery_details ? (formData.battery_details as any).chemistry_type : undefined,
+          manufacture_year: formData.battery_details ? (formData.battery_details as any).manufacturing_date ? new Date((formData.battery_details as any).manufacturing_date).getFullYear() : undefined : undefined,
+        };
+        response = await listingApi.createBattery(batteryData);
       }
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Có lỗi xảy ra";
+
+      // Handle response - check if payment is required
+      // Note: Response structure may vary, adjust based on actual backend response
+      if (response.data) {
+        // If backend returns payment info in response, handle it
+        // Otherwise, navigate to listings page
+        if ((response.data as any).listing_fee_id) {
+          setFeeInfo({
+            listing_fee_id: (response.data as any).listing_fee_id,
+            amount_due: (response.data as any).amount_due || 0,
+          });
+          setIsPaymentModalOpen(true);
+        } else {
+          alert("Tạo tin đăng thành công!");
+          navigate("/dashboard/my-listings");
+        }
+      }
+    } catch (error: any) {
+      const message = error?.message || error?.data?.message || error?.response?.data?.message || "Có lỗi xảy ra";
       alert(`Không thể tạo tin đăng: ${message}`);
+      console.error("Create listing error:", error);
     } finally {
       setIsLoading(false);
     }

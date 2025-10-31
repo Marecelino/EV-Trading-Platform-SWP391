@@ -306,41 +306,29 @@ export interface Payment {
   status: "pending" | "success" | "failed";
 }
 
-// Auth DTOs from Swagger
-export interface RegisterDto {
-  name?: string;
-  email: string;
-  password?: string;
-  phone?: string;
-  address?: string;
-  role?: 'user' | 'admin' | 'seller';
-}
-
-export interface LoginDto {
-  email: string;
-  password?: string;
-}
-
-export interface UpdateUserDto {
-  name?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  role?: 'user' | 'admin' | 'seller';
-}
-
-export interface ChangePasswordDto {
-  currentPassword?: string;
-  newPassword?: string;
-}
-
-export interface CompleteRegistrationDto {
-  userId: string;
-  fullName: string;
-  phone: string;
-  address: string;
-  dateOfBirth: string;
-}
+// Re-export API types from api.ts
+export type {
+  RegisterDto,
+  LoginDto,
+  LoginResponse,
+  RegisterResponse,
+  UpdateUserDto,
+  ChangePasswordDto,
+  CompleteRegistrationDto,
+  CreateEVListingDto,
+  CreateBatteryListingDto,
+  UpdateListingStatusDto,
+  SearchListingsParams,
+  PriceSuggestionDto,
+  CompareListingsParams,
+  CreateAuctionDto,
+  PlaceBidDto,
+  CreateTransactionDto,
+  CreateReviewDto,
+  CreateFavoriteDto,
+  ApiErrorResponse,
+  PaginatedResponse,
+} from './api';
 
 export interface ListingBase {
   _id: string;
