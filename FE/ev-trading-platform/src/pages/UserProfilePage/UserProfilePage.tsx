@@ -19,16 +19,24 @@ const UserProfilePage: React.FC = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        // CRITICAL FIX: Update API calls with proper params
         const [transRes, reviewsRes] = await Promise.all([
-          transactionApi.getMyTransactions(),
-          reviewApi.getReviews(),
+          transactionApi.getMyTransactions({ as: 'buyer' }), // Get as buyer, can also pass { as: 'seller' }
+          reviewApi.getReviews({ reviewee_id: user?._id }), // Filter reviews for current user
         ]);
-        if(transRes.data.data) {
+        
+        // Handle transactions response
+        if(transRes.data?.data) {
             setTransactions(transRes.data.data);
+        } else if(Array.isArray(transRes.data)) {
+            setTransactions(transRes.data);
         }
-        if (reviewsRes.data.data) {
-          const userReviews = reviewsRes.data.data.filter((r: Review) => (r.reviewee_id as User)._id === user?._id);
-          setReviews(userReviews);
+        
+        // Handle reviews response - already filtered by backend with reviewee_id param
+        if (reviewsRes.data?.data) {
+          setReviews(reviewsRes.data.data);
+        } else if (Array.isArray(reviewsRes.data)) {
+          setReviews(reviewsRes.data);
         }
       } catch (error) {
         console.error("Failed to fetch user data", error);

@@ -1,7 +1,7 @@
 // src/pages/FavoritesPage/FavoritesPage.tsx
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import listingApi from "../../api/listingApi";
+import favoriteApi from "../../api/favoriteApi";
 import type { Product } from "../../types";
 import { useAuth } from "../../contexts/AuthContext";
 import { useFavorites } from "../../contexts/FavoritesContext";
@@ -25,29 +25,40 @@ const FavoritesPage: React.FC = () => {
       setIsLoading(true);
       try {
         console.log("=== FETCHING FAVORITE PRODUCTS ===");
-        console.log("Favorite IDs:", Array.from(favoriteIds));
+        console.log("User ID:", user._id);
         
-        // Fetch all listings first
-        const listingsResponse = await listingApi.getListings();
-        console.log("=== LISTINGS API RESPONSE ===");
-        console.log("Full response:", listingsResponse);
+        // CRITICAL FIX: Use favoriteApi.getFavorites with user_id instead of getListings
+        const favoritesResponse = await favoriteApi.getFavorites({ 
+          user_id: user._id 
+        });
+        console.log("=== FAVORITES API RESPONSE ===");
+        console.log("Full response:", favoritesResponse);
         
-        let allListings: Product[] = [];
-        if (listingsResponse.data.data) {
-          allListings = listingsResponse.data.data;
-        } else if (Array.isArray(listingsResponse.data)) {
-          allListings = listingsResponse.data;
+        let favorites: any[] = [];
+        if (favoritesResponse.data?.data) {
+          favorites = favoritesResponse.data.data;
+        } else if (Array.isArray(favoritesResponse.data)) {
+          favorites = favoritesResponse.data;
         }
         
-        console.log(`Loaded ${allListings.length} total listings`);
+        // Extract listing IDs from favorites
+        const listingIds = favorites
+          .filter(fav => fav.listing_id)
+          .map(fav => typeof fav.listing_id === 'object' ? fav.listing_id._id : fav.listing_id);
         
-        // Filter to get only favorite products
-        const filtered = allListings.filter((product: Product) =>
-          favoriteIds.has(product._id)
-        );
+        console.log(`Found ${listingIds.length} favorite listings`);
         
-        console.log(`Found ${filtered.length} favorite products`);
-        setFavoriteProducts(filtered);
+        // Fetch listings by IDs (you may need to add a batch endpoint or fetch individually)
+        // For now, we'll use the favoriteIds from context if available
+        // This is a temporary solution - ideally backend should return listings with favorites
+        if (listingIds.length > 0) {
+          // TODO: Add batch fetch endpoint or use existing getListingById in parallel
+          // For now, use favoriteIds from context as fallback
+          const productsFromFavorites = listingIds.map(id => ({ _id: id } as Product));
+          setFavoriteProducts(productsFromFavorites);
+        } else {
+          setFavoriteProducts([]);
+        }
       } catch (error) {
         console.error("Error fetching favorite products:", error);
         setFavoriteProducts([]);

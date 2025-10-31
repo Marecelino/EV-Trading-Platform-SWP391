@@ -160,9 +160,13 @@ const ProductDetailPage: React.FC = () => {
               console.log("No price suggestion available:", suggestionError);
             }
 
-            if (user) {
+            if (user && id) {
               try {
-                const favoriteRes = await favoriteApi.checkFavorite(user._id, id);
+                // CRITICAL FIX: checkFavorite now requires params object
+                const favoriteRes = await favoriteApi.checkFavorite({ 
+                  user_id: user._id, 
+                  listing_id: id 
+                });
                 console.log("Favorite check result:", favoriteRes.data);
               } catch (favoriteError) {
                 console.log("Favorite check failed:", favoriteError);

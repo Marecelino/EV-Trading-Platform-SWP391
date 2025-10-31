@@ -1,8 +1,9 @@
 // src/pages/ComparePage/ComparePage.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { Attribute, AttributeGroup, Product } from "../../types";
 import { PlusCircle, X } from "lucide-react";
 import ProductSelectorModal from "../../components/modals/ProductSelectorModal/ProductSelectorModal";
+import listingApi from "../../api/listingApi";
 import "./ComparePage.scss";
 
 const getNestedValue = (obj: unknown, path: string): unknown => {
@@ -53,6 +54,37 @@ const ComparePage: React.FC = () => {
   };
 
   const items = selectedProducts.filter((p): p is Product => p !== null);
+  const [comparedProducts, setComparedProducts] = useState<Product[]>([]);
+  const [isLoadingComparison, setIsLoadingComparison] = useState(false);
+
+  // CRITICAL FIX: Use listingApi.compareListings() endpoint when products are selected
+  useEffect(() => {
+    const selectedIds = selectedProducts
+      .filter((p): p is Product => p !== null)
+      .map(p => p._id);
+    
+    if (selectedIds.length >= 2) {
+      setIsLoadingComparison(true);
+      listingApi.compareListings({ ids: selectedIds.join(',') })
+        .then(res => {
+          // Handle response structure - may be array or nested
+          const compared = res.data?.data || res.data || [];
+          setComparedProducts(Array.isArray(compared) ? compared : []);
+        })
+        .catch(error => {
+          console.error("Failed to compare listings:", error);
+          setComparedProducts([]);
+        })
+        .finally(() => {
+          setIsLoadingComparison(false);
+        });
+    } else {
+      setComparedProducts([]);
+    }
+  }, [selectedProducts]);
+
+  // Use compared products from API if available, otherwise fall back to selected products
+  const displayProducts = comparedProducts.length > 0 ? comparedProducts : items;
 
   const renderAttributeValue = (
     product: Product | null,
@@ -215,23 +247,39 @@ const ComparePage: React.FC = () => {
 
       {items.length > 0 && (
         <div className="compare-details-table">
-          {/* SỬA LỖI: Thêm lớp bảo vệ (attributeGroups || []) để tránh lỗi map */}
-          {(attributeGroups || []).map((group) => (
-            <React.Fragment key={group.title}>
-              <div className="attribute-group-title">{group.title}</div>
-              {/* SỬA LỖI: Thêm lớp bảo vệ (group.attributes || []) */}
-              {(group.attributes || []).map((attr) => (
-                <div key={attr.key} className="compare-row">
-                  <div className="attribute-cell">{attr.label}</div>
-                  {selectedProducts.map((product, index) => (
-                    <div key={index} className="product-cell">
-                      {renderAttributeValue(product, attr)}
+          {isLoadingComparison && (
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+              Đang tải dữ liệu so sánh...
+            </div>
+          )}
+          {!isLoadingComparison && (
+            <>
+              {/* SỬA LỖI: Thêm lớp bảo vệ (attributeGroups || []) để tránh lỗi map */}
+              {(attributeGroups || []).map((group) => (
+                <React.Fragment key={group.title}>
+                  <div className="attribute-group-title">{group.title}</div>
+                  {/* SỬA LỖI: Thêm lớp bảo vệ (group.attributes || []) */}
+                  {(group.attributes || []).map((attr) => (
+                    <div key={attr.key} className="compare-row">
+                      <div className="attribute-cell">{attr.label}</div>
+                      {/* Use selectedProducts for display order, but map to compared products if available */}
+                      {selectedProducts.map((selectedProduct, index) => {
+                        // Find matching product from comparedProducts by ID
+                        const displayProduct = displayProducts.find(
+                          p => p._id === selectedProduct?._id
+                        ) || selectedProduct;
+                        return (
+                          <div key={index} className="product-cell">
+                            {renderAttributeValue(displayProduct, attr)}
+                          </div>
+                        );
+                      })}
                     </div>
                   ))}
-                </div>
+                </React.Fragment>
               ))}
-            </React.Fragment>
-          ))}
+            </>
+          )}
         </div>
       )}
 

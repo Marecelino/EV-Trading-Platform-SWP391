@@ -14,14 +14,39 @@ const MyListingsPage: React.FC = () => {
 
   const fetchMyListings = useCallback((status: ListingStatus) => {
     setIsLoading(true);
-    // API thật có thể không có status 'expired', chúng ta sẽ xử lý sau
-    const apiStatus = status === "expired" ? "active" : status;
+    // CRITICAL FIX: getMyListings() doesn't accept status param
+    // Filter client-side based on status instead
     listingApi
-      .getMyListings(apiStatus)
+      .getMyListings()
       .then((response) => {
-        if (response.data.success) {
-          setListings(response.data.data);
+        let fetchedListings: Product[] = [];
+        if (response.data?.data) {
+          fetchedListings = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          fetchedListings = response.data;
         }
+        
+        // Map frontend status to backend status
+        const statusMap: Record<ListingStatus, string> = {
+          active: 'active',
+          pending: 'draft',
+          rejected: 'removed',
+          expired: 'expired'
+        };
+        
+        // Filter client-side by status
+        const apiStatus = statusMap[status] || status;
+        const filtered = fetchedListings.filter((listing: Product) => {
+          return listing.status === apiStatus || 
+                 (status === 'expired' && listing.status === 'expired') ||
+                 (status === 'pending' && listing.status === 'draft');
+        });
+        
+        setListings(filtered);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch listings:", error);
+        setListings([]);
       })
       .finally(() => setIsLoading(false));
   }, []);

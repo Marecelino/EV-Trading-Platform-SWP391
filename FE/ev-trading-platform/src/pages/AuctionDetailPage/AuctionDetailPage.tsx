@@ -28,23 +28,35 @@ const AuctionDetailPage: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await auctionApi.getAuctionById(id);
-      if (res.data.success) {
-        const { listing, ...auctionDetails } = res.data.data;
-
-        if (!listing) {
-          console.warn(
-            "AuctionDetailPage: Missing listing data for auction",
-            id
-          );
-          setAuctionData(null);
-          return;
-        }
-
-        setAuctionData({
-          auction: auctionDetails as Auction,
-          listing,
-        });
+      
+      // CRITICAL FIX: Verify response structure handling
+      // Handle both res.data.success format and direct data format
+      let auctionResponseData;
+      if (res.data?.success && res.data?.data) {
+        auctionResponseData = res.data.data;
+      } else if (res.data) {
+        auctionResponseData = res.data;
+      } else {
+        console.warn("AuctionDetailPage: Invalid response structure", res);
+        setAuctionData(null);
+        return;
       }
+
+      const { listing, ...auctionDetails } = auctionResponseData;
+
+      if (!listing) {
+        console.warn(
+          "AuctionDetailPage: Missing listing data for auction",
+          id
+        );
+        setAuctionData(null);
+        return;
+      }
+
+      setAuctionData({
+        auction: auctionDetails as Auction,
+        listing,
+      });
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu đấu giá:", error);
       setAuctionData(null);
@@ -61,7 +73,8 @@ const AuctionDetailPage: React.FC = () => {
   const handleBidPlaced = async (amount: number) => {
     if (!id) return;
     try {
-      await auctionApi.placeBid(id, amount);
+      // CRITICAL FIX: placeBid expects { amount: number } object, not just number
+      await auctionApi.placeBid(id, { amount });
 
       await fetchAuctionData(); // Tải lại để có giá mới nhất
     } catch (error) {
