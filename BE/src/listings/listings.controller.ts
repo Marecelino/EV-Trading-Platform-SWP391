@@ -209,7 +209,7 @@ export class ListingsController {
     examples: {
       Active: { summary: 'Set listing active', value: { status: ListingStatus.ACTIVE } },
       Sold: { summary: 'Set listing sold', value: { status: ListingStatus.SOLD } },
-      Removed: { summary: 'Remove listing', value: { status: ListingStatus.REMOVED } },
+      Rejected: { summary: 'Remove listing', value: { status: ListingStatus.REJECTED } },
     },
   })
   updateStatus(@Param('id') id: string, @Body() dto: UpdateListingStatusDto) {

@@ -7,6 +7,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as mongoose from 'mongoose';
 import { Auction, AuctionStatus } from '../model/auctions';
+import { PaymentListingStatus } from '../model/listings';
 import { Favorite, FavoriteDocument } from '../model/favorites';
 import { NotificationType } from '../model/notifications';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -371,6 +372,26 @@ export class AuctionsService {
       }
       throw new BadRequestException('Failed to update auction status: ' + error.message);
     }
+  }
+
+  /**
+   * Update only the payment_status of an auction (e.g., PENDING -> COMPLETED).
+   * Mirrors ListingsService.updatePaymentStatus for consistency.
+   */
+  async updatePaymentStatus(id: string, paymentStatus: PaymentListingStatus) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid auction ID');
+    }
+
+    const updated = await this.auctionModel
+      .findByIdAndUpdate(id, { payment_status: paymentStatus }, { new: true })
+      .populate('seller_id', 'name email phone')
+      .populate('bids.user_id', 'name email phone')
+      .lean();
+
+    if (!updated) throw new NotFoundException('Auction not found');
+
+    return updated as any;
   }
 
   /**

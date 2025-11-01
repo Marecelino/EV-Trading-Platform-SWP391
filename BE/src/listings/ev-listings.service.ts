@@ -71,8 +71,10 @@ export class EVListingsService {
     }
 
     payload['category'] = CategoryEnum.EV;
-    // New listings default to payment_pending so the seller can pay the listing fee
-    payload['status'] = status ?? ListingStatus.PAYMENT_PENDING;
+    // New listings default to DRAFT; a separate listing-fee payment is created
+    // with status PENDING. After payment completes, the listing will be moved
+    // to PAYMENT_PENDING (published/pending state).
+    payload['status'] = status ?? ListingStatus.DRAFT;
 
     const listing = new this.listingModel(payload);
     const saved = await listing.save();

@@ -25,7 +25,7 @@ import { ContactsService } from '../contacts/contacts.service';
 import { ContractStatus } from '../model/contacts';
 import { CommissionsService } from '../commissions/commissions.service';
 import { SignnowService } from '../signnow/signnow.service';
-import { ListingStatus } from '../model/listings';
+import { ListingStatus, PaymentListingStatus } from '../model/listings';
 import { TransactionStatus } from '../model/transactions';
 import { User, UserDocument } from '../model/users.schema';
 @Injectable()
@@ -108,7 +108,7 @@ export class PaymentService {
     }
 
     const vnpayResponse = this.vnpay.buildPaymentUrl({
-      vnp_Amount: Math.round(amount * 100), // Amount in smallest currency unit (integer)
+      vnp_Amount: Math.round(amount), // Amount in smallest currency unit (integer)
       vnp_IpAddr: ipAddress,
       vnp_OrderInfo: `Thanh toan cho đơn hàng #${createPaymentDto.listing_id}`,
       vnp_TxnRef: orderId, // Use payment._id as transaction reference
@@ -194,7 +194,7 @@ export class PaymentService {
 
     const vnpayResponse = this.vnpay.buildPaymentUrl({
       // VNPay expects amount in smallest currency unit (e.g., VND * 100)
-      vnp_Amount: Math.round(amount * 100),
+      vnp_Amount: Math.round(amount),
       vnp_IpAddr: ipAddress,
       vnp_OrderInfo: `Thanh toan cho auction #${auctionId}`,
       vnp_TxnRef: orderId,
@@ -555,10 +555,20 @@ export class PaymentService {
 
     if (listingId) {
       try {
-        // Mark listing as payment completed (do not create contract here)
-        await this.listingsService.updateStatus(listingId, ListingStatus.PAYMENT_COMPLETED);
+        // Mark listing as pending publication/processing
+        await this.listingsService.updateStatus(listingId, ListingStatus.PENDING);
       } catch (error) {
         console.warn('Failed to update listing status after payment', {
+          listingId,
+          error,
+        });
+      }
+
+      try {
+        // Also update the listing.payment_status to COMPLETED
+        await this.listingsService.updatePaymentStatus(listingId, PaymentListingStatus.COMPLETED);
+      } catch (error) {
+        console.warn('Failed to update listing payment_status after payment', {
           listingId,
           error,
         });
@@ -574,9 +584,11 @@ export class PaymentService {
         const auctionId = (payment as any).auction_id?.toString?.() ?? String((payment as any).auction_id);
         if (auctionId) {
           try {
-            await this.auctionsService.updateStatus(auctionId, AuctionStatus.PAYMENT_COMPLETED);
+            // After listing-fee payment completes, move auction from DRAFT to PENDING
+            await this.auctionsService.updateStatus(auctionId, AuctionStatus.PENDING);
+            await this.auctionsService.updatePaymentStatus(auctionId, PaymentListingStatus.COMPLETED);
           } catch (err) {
-            console.warn('Failed to update auction status to PAYMENT_COMPLETED', { auctionId, error: err?.message || err });
+            console.warn('Failed to update auction status to PENDING', { auctionId, error: err?.message || err });
           }
         }
       }

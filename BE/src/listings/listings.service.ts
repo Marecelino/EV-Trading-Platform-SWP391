@@ -10,6 +10,7 @@ import {
   Listing,
   ListingDocument,
   ListingStatus,
+  PaymentListingStatus,
 } from '../model/listings';
 
 import {
@@ -42,6 +43,13 @@ const buildNumberCondition = (
   if (min !== undefined) {
     condition.$gte = min;
   }
+
+  /**
+   * Update only the payment_status of a listing (e.g., PENDING -> COMPLETED).
+   * This is kept separate from updateStatus so notifications behavior remains
+   * focused on status changes handled by updateStatus.
+   */
+
   if (max !== undefined) {
     condition.$lte = max;
   }
@@ -274,6 +282,15 @@ export class ListingsService {
     return evListingIds ?? batteryListingIds ?? null;
   }
 
+  async updatePaymentStatus(id: string, paymentStatus: PaymentListingStatus) {
+    const listing = await this.listingModel
+      .findByIdAndUpdate(id, { payment_status: paymentStatus }, { new: true })
+      .lean<Listing & { _id: any }>();
+
+    if (!listing) throw new NotFoundException('Listing not found');
+
+    return listing;
+  }
   private async hydrateListings<T extends Listing & { _id: any }>(
     listings: T[],
   ): Promise<Array<T & { evDetail?: any; batteryDetail?: any }>> {
@@ -799,7 +816,7 @@ export class ListingsService {
             return NotificationType.FAVORITE_LISTING_SOLD;
           case ListingStatus.ACTIVE:
             return NotificationType.LISTING_APPROVED;
-          case ListingStatus.REMOVED:
+          case ListingStatus.REJECTED:
           case ListingStatus.EXPIRED:
             return NotificationType.LISTING_REJECTED;
           default:
@@ -818,7 +835,7 @@ export class ListingsService {
         [ListingStatus.ACTIVE]: 'đang hoạt động',
         [ListingStatus.SOLD]: 'đã bán',
         [ListingStatus.EXPIRED]: 'hết hạn',
-        [ListingStatus.REMOVED]: 'đã gỡ',
+        [ListingStatus.REJECTED]: 'đã từ chối',
       };
 
       const humanStatus = finalStatus

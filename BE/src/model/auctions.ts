@@ -1,14 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { CategoryEnum, VehicleCondition } from './listings';
+import { CategoryEnum, PaymentListingStatus, VehicleCondition } from './listings';
 
 export enum AuctionStatus {
+  DRAFT = 'draft',
+  PENDING = 'pending',
   SCHEDULED = 'scheduled',
   LIVE = 'live',
   ENDED = 'ended',
   CANCELLED = 'cancelled',
-  PAYMENT_PENDING = 'payment_pending',
-  PAYMENT_COMPLETED = 'payment_completed',
 }
 
 // Bid subdocument
@@ -91,9 +91,16 @@ export class Auction extends Document {
   @Prop({
     type: String,
     enum: AuctionStatus,
-    default: AuctionStatus.SCHEDULED,
+    default: AuctionStatus.DRAFT,
   })
   status: AuctionStatus;
+
+  @Prop({
+    type: String,
+    enum: PaymentListingStatus,
+    default: PaymentListingStatus.PENDING,
+  })
+  payment_status: PaymentListingStatus;
   @Prop({
     type: Types.ObjectId,
     ref: 'Brand',

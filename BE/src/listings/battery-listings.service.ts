@@ -70,8 +70,8 @@ export class BatteryListingsService {
     }
 
     payload['category'] = CategoryEnum.BATTERY;
-    // New listings default to payment_pending so seller can pay listing fee
-    payload['status'] = status ?? ListingStatus.PAYMENT_PENDING;
+    // New listings default to DRAFT; create payment record separately with status=PENDING
+    payload['status'] = status ?? ListingStatus.DRAFT;
 
     const listing = new this.listingModel(payload);
     const saved = await listing.save();
