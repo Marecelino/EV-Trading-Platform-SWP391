@@ -1,0 +1,180 @@
+// src/pages/PaymentCallbackPage/PaymentCallbackPage.scss
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.payment-callback-page {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-6;
+  background: linear-gradient(135deg, 
+    lighten($primary-color, 48%) 0%, 
+    $white-color 50%,
+    lighten($success-color, 48%) 100%);
+
+  .callback-content {
+    background-color: $white-color;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-2xl;
+    padding: $spacing-8;
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+    animation: slideUp 0.3s ease-out;
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .status-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto $spacing-5;
+      display: block;
+
+      &.loading {
+        color: $info-color;
+        animation: spin 1s linear infinite;
+      }
+
+      &.success {
+        color: $success-color;
+      }
+
+      &.error {
+        color: $error-color;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @include mobile {
+        width: 64px;
+        height: 64px;
+      }
+    }
+
+    .status-title {
+      font-size: $font-size-2xl;
+      font-weight: $font-weight-bold;
+      color: $text-primary;
+      margin: 0 0 $spacing-6 0;
+      line-height: 1.4;
+
+      @include mobile {
+        font-size: $font-size-xl;
+      }
+    }
+
+    .payment-details {
+      background-color: lighten($primary-color, 48%);
+      border: 2px solid $primary-color;
+      border-radius: $radius-md;
+      padding: $spacing-5;
+      margin: $spacing-6 0;
+      text-align: left;
+
+      .detail-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: $spacing-3 0;
+        border-bottom: 1px solid rgba($primary-color, 0.1);
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .label {
+          font-size: $font-size-base;
+          font-weight: $font-weight-medium;
+          color: $text-secondary;
+        }
+
+        .value {
+          font-size: $font-size-lg;
+          font-weight: $font-weight-semibold;
+          color: $text-primary;
+          font-family: $monospace-font;
+        }
+      }
+    }
+
+    .status-hint {
+      font-size: $font-size-base;
+      color: $text-secondary;
+      margin: $spacing-4 0;
+    }
+
+    .callback-actions {
+      margin-top: $spacing-6;
+
+      .redirect-hint {
+        font-size: $font-size-sm;
+        color: $text-muted;
+        margin: 0 0 $spacing-4 0;
+      }
+
+      .redirect-button {
+        width: 100%;
+        padding: $spacing-4;
+        font-size: $font-size-base;
+        font-weight: $font-weight-semibold;
+        color: $white-color;
+        background: linear-gradient(135deg, $primary-color, darken($primary-color, 10%));
+        border: none;
+        border-radius: $radius-md;
+        cursor: pointer;
+        transition: all $duration-base $ease-in-out;
+        box-shadow: $shadow-md;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: $shadow-lg;
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
+
+        @include mobile {
+          padding: $spacing-3;
+          font-size: $font-size-sm;
+        }
+      }
+    }
+  }
+
+  @include mobile {
+    padding: $spacing-4;
+
+    .callback-content {
+      padding: $spacing-6 $spacing-4;
+    }
+  }
+}
+
+// Accessibility
+@media (prefers-reduced-motion: reduce) {
+  .payment-callback-page {
+    .callback-content,
+    .status-icon {
+      animation: none !important;
+    }
+  }
+}
+

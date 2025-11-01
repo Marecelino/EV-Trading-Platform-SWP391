@@ -1,5 +1,7 @@
 // src/pages/MyListingsPage/MyListingsPage.tsx
 import React, { useState, useEffect, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { CheckCircle, X } from "lucide-react";
 import listingApi from "../../api/listingApi";
 import type { Product } from "../../types";
 import "./MyListingsPage.scss";
@@ -10,10 +12,13 @@ type ListingStatus = "active" | "pending" | "rejected" | "expired";
 
 const MyListingsPage: React.FC = () => {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [listings, setListings] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ListingStatus>("active");
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Helper function to extract listings from response
   const extractListings = (responseData: unknown): Product[] => {
@@ -101,9 +106,37 @@ const MyListingsPage: React.FC = () => {
     fetchMyListings(activeTab);
   }, [activeTab, fetchMyListings]);
 
+  // Check for payment success message from navigation state
+  useEffect(() => {
+    const state = location.state as { paymentSuccess?: boolean; message?: string } | null;
+    if (state?.paymentSuccess && state?.message) {
+      setSuccessMessage(state.message);
+      // Clear state to prevent showing message on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+      // Auto-hide message after 5 seconds
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state, navigate, location.pathname]);
+
   return (
     <div className="my-listings-page container">
       <h1 className="page-title">Quản lý tin đăng</h1>
+      {successMessage && (
+        <div className="success-notification">
+          <CheckCircle size={20} />
+          <span>{successMessage}</span>
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="close-notification"
+            aria-label="Đóng thông báo"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
       <div className="content-card">
         <div className="admin-tabs">
           <button
