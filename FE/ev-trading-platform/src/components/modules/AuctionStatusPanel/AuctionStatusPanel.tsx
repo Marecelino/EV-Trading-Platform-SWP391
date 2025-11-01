@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import type { Auction } from "../../../types";
+import { ApiErrorResponse } from "../../../types/api";
 import Button from "../../common/Button/Button";
 import "./AuctionStatusPanel.scss";
 
@@ -144,11 +145,25 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
     try {
       await onBidPlaced(amount);
       setBidAmount("");
-    } catch (err: any) {
-      // Enhanced error handling
-      switch (err.response?.data?.code) {
+    } catch (err: unknown) {
+      // CRITICAL FIX: Use proper error types instead of 'any'
+      // Enhanced error handling with type-safe error structure
+      const axiosError = err as {
+        response?: {
+          data?: ApiErrorResponse & {
+            code?: string;
+            data?: { currentPrice?: number };
+          };
+        };
+      };
+      
+      const errorData = axiosError.response?.data;
+      const errorCode = errorData?.code;
+      
+      switch (errorCode) {
         case "BID_TOO_LOW":
-          const newMinBid = err.response.data.data.currentPrice + auction.min_increment;
+          const currentPrice = errorData?.data?.currentPrice || auction.current_price;
+          const newMinBid = currentPrice + auction.min_increment;
           setError(
             `Giá đã tăng lên. Mức tối thiểu mới là ${newMinBid.toLocaleString("vi-VN")} ₫`
           );
@@ -160,7 +175,7 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
           setError("Số dư tài khoản không đủ.");
           break;
         default:
-          setError(err.response?.data?.message || "Đã có lỗi xảy ra. Vui lòng thử lại.");
+          setError(errorData?.message || errorData?.error || "Đã có lỗi xảy ra. Vui lòng thử lại.");
       }
     } finally {
       setIsSubmitting(false);

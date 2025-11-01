@@ -6,13 +6,12 @@ import TopFilterBar, {
   type Filters,
 } from "../../components/modules/TopFilterBar/TopFilterBar";
 import listingApi from "../../api/listingApi";
-import brandApi from "../../api/brandApi";
-import type { Product, Brand } from "../../types";
-import { SearchListingsParams, PaginatedResponse } from "../../types/api";
+import type { Product } from "../../types";
 import "./ProductListPage.scss";
 
 const ProductListPage: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]); // Store all fetched products
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]); // Filtered products for display
   const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -20,68 +19,143 @@ const ProductListPage: React.FC = () => {
     total: 0,
     pages: 1
   });
-  const [brands, setBrands] = useState<Brand[]>([]);
-
   // State trung tâm cho tất cả bộ lọc
   const [filters, setFilters] = useState<Filters>({
     category: "xe-dien", // Mặc định là xe điện
   });
 
-  // Fetch brands for brand name mapping
+  // CRITICAL FIX: Use getListings() to fetch all data once, then filter client-side
   useEffect(() => {
-    brandApi.getActiveBrands().then(res => {
-      const brandsData = res.data?.data || res.data || [];
-      setBrands(Array.isArray(brandsData) ? brandsData : []);
-    }).catch(error => {
-      console.error("Failed to fetch brands:", error);
-    });
-  }, []);
-
-  // CRITICAL FIX: Use searchListings API instead of getListings
-  useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchAllProducts = async () => {
       setIsLoading(true);
       try {
-        // Map frontend filters to SearchListingsParams
-        const selectedBrand = filters.brand ? brands.find(b => b._id === filters.brand) : null;
+        // Fetch all listings without filters
+        const response = await listingApi.getListings();
+        console.log("GetListings API Response:", response.data);
+
+        // Parse response - can be array or { data: [], meta: {} } or PaginatedResponse { data: [], pagination: {} }
+        let productsData: Product[] = [];
+        const responseData = response.data;
         
-        const searchParams: SearchListingsParams = {
-          keyword: filters.searchTerm,
-          brandName: selectedBrand?.name,
-          category: filters.category === 'xe-dien' ? 'ev' : filters.category === 'pin-xe-dien' ? 'battery' : undefined,
-          page: pagination.page,
-          limit: pagination.limit,
-        };
-
-        const response = await listingApi.searchListings(searchParams);
-        console.log("Search API Response:", response.data);
-
-        // Handle both direct array and PaginatedResponse
-        if (Array.isArray(response.data)) {
-          setProducts(response.data);
-        } else if ((response.data as PaginatedResponse<Product>).data) {
-          const paginatedData = response.data as PaginatedResponse<Product>;
-          setProducts(paginatedData.data);
-          if (paginatedData.pagination) {
-            setPagination(prev => ({
-              ...prev,
-              ...paginatedData.pagination!,
-            }));
+        if (Array.isArray(responseData)) {
+          productsData = responseData;
+        } else if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+          // Handle { data: [], meta: {} } or { data: [], pagination: {} } structure
+          const dataField = (responseData as { data: unknown }).data;
+          if (Array.isArray(dataField)) {
+            productsData = dataField;
           }
-        } else if (response.data?.data) {
-          setProducts(response.data.data);
-        } else {
-          setProducts([]);
         }
+
+        console.log("Parsed productsData:", productsData);
+        console.log("Products count:", productsData.length);
+        setAllProducts(productsData);
       } catch (error) {
         console.error("Failed to fetch products:", error);
-        setProducts([]);
+        setAllProducts([]);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchProducts();
-  }, [filters, pagination.page, brands]); // Re-fetch when filters or page change
+    fetchAllProducts();
+  }, []); // Only fetch once on mount
+
+  // Client-side filtering and pagination
+  useEffect(() => {
+    const applyFilters = () => {
+      let filtered = [...allProducts];
+      
+      console.log("=== APPLYING FILTERS ===");
+      console.log("allProducts count:", allProducts.length);
+      console.log("filters:", filters);
+
+      // Filter by category (map frontend category to backend category)
+      if (filters.category) {
+        const categoryMap: Record<string, 'ev' | 'battery' | undefined> = {
+          'xe-dien': 'ev',
+          'pin-xe-dien': 'battery',
+        };
+        const backendCategory = categoryMap[filters.category];
+        if (backendCategory) {
+          filtered = filtered.filter(p => p.category === backendCategory);
+          console.log("After category filter:", filtered.length);
+        }
+      }
+
+      // Filter by keyword/searchTerm (enhanced search)
+      if (filters.searchTerm) {
+        const searchTerm = filters.searchTerm.toLowerCase().trim();
+        if (searchTerm) {
+          filtered = filtered.filter(p => {
+            // Search in title
+            const titleMatch = p.title.toLowerCase().includes(searchTerm);
+            // Search in description
+            const descMatch = p.description.toLowerCase().includes(searchTerm);
+            // Search in brand name (if populated)
+            let brandMatch = false;
+            if (typeof p.brand_id === 'object' && p.brand_id) {
+              brandMatch = (p.brand_id as { name?: string }).name?.toLowerCase().includes(searchTerm) || false;
+            }
+            return titleMatch || descMatch || brandMatch;
+          });
+          console.log("After search filter:", filtered.length);
+        }
+      }
+
+      // Filter by brand
+      if (filters.brand) {
+        const brandId = filters.brand;
+        filtered = filtered.filter(p => {
+          const brand = typeof p.brand_id === 'object' ? p.brand_id : null;
+          return brand?._id === brandId || p.brand_id === brandId;
+        });
+      }
+
+      // Filter by model
+      if (filters.model) {
+        const modelId = filters.model;
+        filtered = filtered.filter(p => {
+          const model = typeof p.model_id === 'object' ? p.model_id : null;
+          return model?._id === modelId || p.model_id === modelId;
+        });
+      }
+
+      // Filter by status - show all active/sellable listings (exclude draft, rejected)
+      // Show: active, pending_payment, payment_completed, sold (for display)
+      // Hide: draft, rejected
+      filtered = filtered.filter(p => {
+        const hideStatuses = ['draft', 'rejected'];
+        return !hideStatuses.includes(p.status);
+      });
+
+      // Filter by condition if available in filters (for future use)
+      // if (filters.condition) {
+      //   filtered = filtered.filter(p => p.condition === filters.condition);
+      // }
+
+      // Update pagination based on filtered results
+      const total = filtered.length;
+      const pages = Math.ceil(total / pagination.limit);
+      setPagination(prev => ({
+        ...prev,
+        total,
+        pages
+      }));
+
+      // Apply pagination
+      const startIndex = (pagination.page - 1) * pagination.limit;
+      const endIndex = startIndex + pagination.limit;
+      const paginatedResults = filtered.slice(startIndex, endIndex);
+
+      console.log("Final filtered count:", filtered.length);
+      console.log("Paginated results count:", paginatedResults.length);
+      setFilteredProducts(paginatedResults);
+    };
+
+    if (allProducts.length > 0) {
+      applyFilters();
+    }
+  }, [allProducts, filters, pagination.page, pagination.limit]);
 
   const handleFilterChange = (newFilters: Partial<Filters>) => {
     setFilters((prevFilters) => ({
@@ -103,7 +177,7 @@ const ProductListPage: React.FC = () => {
       <div className="page-header">
         <h1>Danh sách sản phẩm</h1>
         <p className="results-count">
-          Hiển thị {products.length} sản phẩm
+          Hiển thị {filteredProducts.length} sản phẩm
           {pagination.total > 0 && ` (tổng ${pagination.total} sản phẩm)`}
           {pagination.pages > 1 && ` - Trang ${pagination.page}/${pagination.pages}`}
         </p>
@@ -113,10 +187,10 @@ const ProductListPage: React.FC = () => {
         <div className="product-grid">
           {isLoading ? (
             <p>Đang tải...</p>
-          ) : products.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <p>Không tìm thấy sản phẩm nào phù hợp với bộ lọc của bạn.</p>
           ) : (
-            products.map((product) => (
+            filteredProducts.map((product) => (
               <ProductCard
                 key={product._id}
                 product={product}

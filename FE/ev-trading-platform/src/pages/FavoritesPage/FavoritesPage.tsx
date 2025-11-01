@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import favoriteApi from "../../api/favoriteApi";
+import listingApi from "../../api/listingApi";
 import type { Product } from "../../types";
 import { useAuth } from "../../contexts/AuthContext";
 import { useFavorites } from "../../contexts/FavoritesContext";
@@ -34,28 +35,50 @@ const FavoritesPage: React.FC = () => {
         console.log("=== FAVORITES API RESPONSE ===");
         console.log("Full response:", favoritesResponse);
         
-        let favorites: any[] = [];
-        if (favoritesResponse.data?.data) {
-          favorites = favoritesResponse.data.data;
-        } else if (Array.isArray(favoritesResponse.data)) {
-          favorites = favoritesResponse.data;
+        // CRITICAL FIX: Fix response structure parsing
+        type FavoriteItem = { listing_id?: string | Product; auction_id?: string };
+        type ResponseData = FavoriteItem[] | { data: FavoriteItem[] } | unknown;
+        let favorites: FavoriteItem[] = [];
+        
+        const responseData = favoritesResponse.data as ResponseData;
+        if (Array.isArray(responseData)) {
+          favorites = responseData as FavoriteItem[];
+        } else if (responseData && typeof responseData === 'object' && 'data' in responseData && Array.isArray((responseData as { data: FavoriteItem[] }).data)) {
+          favorites = (responseData as { data: FavoriteItem[] }).data;
         }
         
         // Extract listing IDs from favorites
         const listingIds = favorites
           .filter(fav => fav.listing_id)
-          .map(fav => typeof fav.listing_id === 'object' ? fav.listing_id._id : fav.listing_id);
+          .map(fav => {
+            if (typeof fav.listing_id === 'object' && fav.listing_id !== null) {
+              return (fav.listing_id as Product)._id;
+            }
+            return fav.listing_id as string;
+          })
+          .filter((id): id is string => !!id);
         
         console.log(`Found ${listingIds.length} favorite listings`);
         
-        // Fetch listings by IDs (you may need to add a batch endpoint or fetch individually)
-        // For now, we'll use the favoriteIds from context if available
-        // This is a temporary solution - ideally backend should return listings with favorites
+        // Fetch listings by IDs using Promise.all
         if (listingIds.length > 0) {
-          // TODO: Add batch fetch endpoint or use existing getListingById in parallel
-          // For now, use favoriteIds from context as fallback
-          const productsFromFavorites = listingIds.map(id => ({ _id: id } as Product));
-          setFavoriteProducts(productsFromFavorites);
+          try {
+            const listingPromises = listingIds.map(id => listingApi.getListingById(id));
+            const listingResponses = await Promise.allSettled(listingPromises);
+            
+            const products: Product[] = [];
+            listingResponses.forEach((result) => {
+              if (result.status === 'fulfilled' && result.value.data) {
+                products.push(result.value.data);
+              }
+            });
+            
+            console.log(`Successfully loaded ${products.length} favorite products`);
+            setFavoriteProducts(products);
+          } catch (error) {
+            console.error("Error fetching favorite listings:", error);
+            setFavoriteProducts([]);
+          }
         } else {
           setFavoriteProducts([]);
         }

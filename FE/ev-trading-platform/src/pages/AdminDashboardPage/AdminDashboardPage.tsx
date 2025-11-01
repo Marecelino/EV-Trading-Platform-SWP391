@@ -7,6 +7,7 @@ import auctionApi from '../../api/auctionApi';
 import contactApi from '../../api/contactApi';
 import reviewApi from '../../api/reviewApi';
 import commissionApi from '../../api/commissionApi';
+import { SearchListingsParams } from '../../types/api';
 import './AdminDashboardPage.scss';
 
 interface Stats {
@@ -29,6 +30,7 @@ const AdminDashboardPage: React.FC = () => {
             setIsLoading(true);
             try {
                 // Gọi song song tất cả API để tăng tốc
+                // CRITICAL FIX: Fix API calls to match correct formats
                 const [
                     usersRes,
                     listingsRes,
@@ -38,8 +40,8 @@ const AdminDashboardPage: React.FC = () => {
                     reviewsRes,
                     commissionsRes
                 ] = await Promise.allSettled([
-                    authApi.getUsers(1, 1000), // Lấy tối đa 1000 users để đếm
-                    listingApi.getListings(),
+                    authApi.getUsers(), // FIX: getUsers() doesn't accept params
+                    listingApi.searchListings({ status: 'draft' } as SearchListingsParams), // FIX: Use searchListings with status filter for pending listings
                     transactionApi.getTransactions(),
                     auctionApi.getAllAuctions(),
                     contactApi.getContacts(),
@@ -90,8 +92,9 @@ const AdminDashboardPage: React.FC = () => {
                 };
 
                 // Tính toán thống kê từ các response với fallback paths
+                // FIX: Updated paths for new API response structures
                 const usersData = extractData(usersRes, ['data', 'data.data']);
-                const listingsData = extractData(listingsRes, ['data', 'data.data']);
+                const listingsData = extractData(listingsRes, ['data', 'data.data']); // searchListings returns same structure
                 const transactionsData = extractData(transactionsRes, ['data', 'data.data']);
                 const auctionsData = extractData(auctionsRes, ['data', 'data.data']);
                 const contactsData = extractData(contactsRes, ['data', 'data.data']);
@@ -110,9 +113,8 @@ const AdminDashboardPage: React.FC = () => {
                 const calculatedStats: Stats = {
                     totalUsers: Array.isArray(usersData) ? usersData.length : 0,
                     
-                    pendingListings: Array.isArray(listingsData) 
-                        ? listingsData.filter((listing: Record<string, unknown>) => listing.status === 'pending').length
-                        : 0,
+                    // FIX: listingsData from searchListings({ status: 'draft' }) already filtered, just count them
+                    pendingListings: Array.isArray(listingsData) ? listingsData.length : 0,
                     
                     totalTransactions: Array.isArray(transactionsData) ? transactionsData.length : 0,
                     
@@ -208,7 +210,7 @@ const AdminDashboardPage: React.FC = () => {
                 <p>Dữ liệu được tính toán từ các API hiện có:</p>
                 <ul>
                     <li><strong>Users:</strong> authApi.getUsers() - {stats?.totalUsers || 0} users</li>
-                    <li><strong>Listings:</strong> listingApi.getListings() (filter status='pending') - {stats?.pendingListings || 0} pending</li>
+                    <li><strong>Listings:</strong> listingApi.searchListings({'{'} status: 'draft' {'}'}) - {stats?.pendingListings || 0} pending</li>
                     <li><strong>Transactions:</strong> transactionApi.getTransactions() - {stats?.totalTransactions || 0} transactions</li>
                     <li><strong>Revenue:</strong> Tổng amount từ transactions completed - {stats?.totalRevenue?.toLocaleString('vi-VN') || 0} ₫</li>
                     <li><strong>Auctions:</strong> auctionApi.getAllAuctions() - {stats?.totalAuctions || 0} auctions</li>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import type { Product } from "../../../types";
 import listingApi from "../../../api/listingApi";
+import { PaginatedResponse } from "../../../types/api";
 import { X, Search } from "lucide-react";
 import "./ProductSelectorModal.scss";
 
@@ -27,34 +28,38 @@ const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
       setIsLoading(true);
       setSearchQuery(""); // Reset search khi mở modal
 
+      // CRITICAL FIX: Use getListings() and filter client-side by category (like HomePage and ProductListPage)
       listingApi
         .getListings()
         .then((res) => {
           console.log("ProductSelectorModal API Response:", res.data);
-          if (res.data.data) {
-            // Filter products by brand names since API doesn't have ev_details/battery_details
-            const filtered = res.data.data.filter((p: Product) => {
-              if (!currentCategory) return true;
-              
-              if (currentCategory === "ev") {
-                // Filter by EV brand names
-                if (typeof p.brand_id === 'object') {
-                  const brandName = (p.brand_id as any).name.toLowerCase();
-                  return brandName.includes('tesla') || brandName.includes('vinfast') || brandName.includes('byd');
-                }
-                return false;
-              } else {
-                // Filter by battery brand names or products with "pin" in title
-                if (typeof p.brand_id === 'object') {
-                  const brandName = (p.brand_id as any).name.toLowerCase();
-                  return brandName.includes('catl') || p.title.toLowerCase().includes('pin');
-                }
-                return false;
-              }
-            });
-            console.log("Filtered products for category", currentCategory, ":", filtered.length);
-            setProducts(filtered);
+          
+          // Handle both direct array and PaginatedResponse
+          let allProducts: Product[] = [];
+          if (Array.isArray(res.data)) {
+            allProducts = res.data;
+          } else if ((res.data as PaginatedResponse<Product>).data) {
+            allProducts = (res.data as PaginatedResponse<Product>).data;
+          } else if (res.data && typeof res.data === 'object' && 'data' in res.data && Array.isArray((res.data as { data: unknown }).data)) {
+            allProducts = (res.data as { data: Product[] }).data;
           }
+          
+          // Filter by category client-side
+          const filteredProducts = allProducts.filter((product: Product) => {
+            if (currentCategory === "ev") {
+              return product.category === "ev";
+            } else if (currentCategory === "battery") {
+              return product.category === "battery";
+            }
+            return true; // Show all if no category selected
+          });
+          
+          console.log(`Loaded ${filteredProducts.length} products for category ${currentCategory} (from ${allProducts.length} total)`);
+          setProducts(filteredProducts);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch products:", error);
+          setProducts([]);
         })
         .finally(() => setIsLoading(false));
     }

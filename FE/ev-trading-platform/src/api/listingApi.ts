@@ -56,6 +56,10 @@ const listingApi = {
     return axiosClient.patch<Product>(`/listings/${id}/status`, data);
   },
 
+  updateListingVerification: (id: string, isVerified: boolean) => {
+    return axiosClient.patch<Product>(`/listings/${id}/verification`, { is_verified: isVerified });
+  },
+
   activateListing: (id: string) => {
     return axiosClient.patch<Product>(`/listings/${id}/activate`);
   },
@@ -87,11 +91,12 @@ const listingApi = {
   createListing: (data: Partial<Product>) => {
     console.warn('createListing is deprecated. Use createEV or createBattery instead.');
     // Try to infer category from data, but this is not reliable
-    const category = (data as any).category || 'ev';
+    // CRITICAL FIX: Use proper type instead of 'as any'
+    const category = (data as Partial<Product> & { category?: string }).category || 'ev';
     if (category === 'battery') {
-      return listingApi.createBattery(data as any);
+      return listingApi.createBattery(data as CreateBatteryListingDto);
     }
-    return listingApi.createEV(data as any);
+    return listingApi.createEV(data as CreateEVListingDto);
   },
 
   /** @deprecated Use updateEV or updateBattery instead */

@@ -20,16 +20,34 @@ export interface LoginDto {
 }
 
 export interface LoginResponse {
-  access_token: string;
-  token_type: 'Bearer';
-  expires_in: number;
+  token: string; // Backend returns 'token' not 'access_token'
   user: {
     _id: string;
     email: string;
     name?: string;
     role: 'user' | 'admin';
     status: string;
+    profileCompleted?: boolean;
+    isEmailVerified?: boolean;
+    review_average?: number;
+    review_count?: number;
+    lastLogin?: string;
+    oauthProviders?: unknown[];
+    createdAt?: string;
+    updatedAt?: string;
+    id?: string;
+    full_name?: string;
   };
+  // Optional fields that might be in response
+  token_type?: 'Bearer';
+  expires_in?: number;
+  access_token?: string; // Keep for backward compatibility
+}
+
+export interface LoginApiResponse {
+  success: boolean;
+  message: string;
+  data: LoginResponse;
 }
 
 export interface RegisterResponse {
@@ -76,11 +94,11 @@ export interface CreateEVListingDto {
   condition: 'new' | 'like_new' | 'excellent' | 'good' | 'fair' | 'poor';
   images: string[]; // minItems: 1, maxItems: 10
   location?: string; // maxLength: 255
-  // EV-specific fields (if required by backend)
-  year?: number;
-  mileage_km?: number;
-  battery_capacity_kwh?: number;
-  range_km?: number;
+  // EV-specific fields (optional)
+  year?: number; // 1990 - currentYear+2
+  mileage?: number; // >= 0 (km)
+  battery_capacity?: number; // >= 0 (kWh)
+  range?: number; // >= 0 (km)
 }
 
 export interface CreateBatteryListingDto {
@@ -92,11 +110,10 @@ export interface CreateBatteryListingDto {
   condition: 'new' | 'like_new' | 'excellent' | 'good' | 'fair' | 'poor';
   images: string[]; // minItems: 1, maxItems: 10
   location?: string; // maxLength: 255
-  // Battery-specific fields (if required by backend)
-  capacity_kwh?: number;
-  soh_percent?: number; // min: 0, max: 100
-  battery_type?: string;
-  manufacture_year?: number;
+  // Battery-specific fields (optional)
+  capacity_kwh?: number; // >= 0 (kWh)
+  soh_percent?: number; // 0-100 (%)
+  manufacture_year?: number; // 1900 - currentYear+5
 }
 
 export interface UpdateListingStatusDto {
@@ -130,6 +147,50 @@ export interface CompareListingsParams {
 // AUCTION DTOs
 // ============================================================================
 
+// EV Auction DTO - POST /api/auctions/ev
+export interface CreateEVAuctionDto {
+  seller_id: string;
+  brand_name: string; // 1-100 chars
+  start_time: string; // ISO 8601 date-time, required
+  end_time: string; // ISO 8601 date-time, required
+  starting_price: number; // >= 0, required
+  min_increment: number; // >= 0, required
+  title: string; // 5-100 chars, required
+  description: string; // 20-2000 chars, required
+  condition: 'new' | 'like_new' | 'excellent' | 'good' | 'fair' | 'poor';
+  images: string[]; // 1-10 items, required
+  // Optional fields
+  buy_now_price?: number; // >= 0
+  year?: number; // 1990 - currentYear+2
+  mileage?: number; // >= 0 (km)
+  battery_capacity?: number; // >= 0 (kWh)
+  range?: number; // >= 0 (km)
+  manufacture_year?: number; // 1900 - currentYear+5
+  location?: string;
+}
+
+// Battery Auction DTO - POST /api/auctions/battery
+export interface CreateBatteryAuctionDto {
+  seller_id: string;
+  brand_name: string; // 1-100 chars
+  start_time: string; // ISO 8601 date-time, required
+  end_time: string; // ISO 8601 date-time, required
+  starting_price: number; // >= 0, required
+  min_increment: number; // >= 0, required
+  title: string; // 5-100 chars, required
+  description: string; // 20-2000 chars, required
+  condition: 'new' | 'like_new' | 'excellent' | 'good' | 'fair' | 'poor';
+  images: string[]; // 1-10 items, required
+  // Optional fields
+  buy_now_price?: number; // >= 0
+  capacity_kwh?: number; // >= 0 (kWh)
+  soh_percent?: number; // 0-100 (%)
+  manufacture_year?: number; // 1900 - currentYear+5
+  location?: string;
+}
+
+// Legacy - deprecated, use CreateEVAuctionDto or CreateBatteryAuctionDto instead
+/** @deprecated Use CreateEVAuctionDto or CreateBatteryAuctionDto instead */
 export interface CreateAuctionDto {
   seller_id: string;
   brand_id: string;
@@ -185,6 +246,75 @@ export interface CreateFavoriteDto {
   user_id: string;
   listing_id?: string;
   auction_id?: string;
+}
+
+// ============================================================================
+// CONTACT DTOs
+// ============================================================================
+
+export interface CreateContactDto {
+  transaction_id: string;
+  contract_content: string;
+  buyer_signature?: string;
+  seller_signature?: string;
+  buyer_signed_at?: string; // ISO date string
+  seller_signed_at?: string; // ISO date string
+  contract_url?: string;
+  status?: 'completed' | 'pending' | 'cancelled';
+}
+
+export interface UpdateContactDto {
+  contract_content?: string;
+  buyer_signature?: string;
+  seller_signature?: string;
+  buyer_signed_at?: string; // ISO date string
+  seller_signed_at?: string; // ISO date string
+  contract_url?: string;
+  status?: 'completed' | 'pending' | 'cancelled';
+}
+
+// ============================================================================
+// PRICE SUGGESTION DTOs
+// ============================================================================
+
+export interface CreatePriceSuggestionDto {
+  listing_id: string;
+  suggested_price: number; // min: 0
+  model_confidence: number; // min: 0, max: 1
+  model_name?: string;
+  notes?: string;
+}
+
+export interface UpdatePriceSuggestionDto {
+  suggested_price?: number; // min: 0
+  model_confidence?: number; // min: 0, max: 1
+  model_name?: string;
+  notes?: string;
+}
+
+// ============================================================================
+// COMMISSION CONFIG DTOs
+// ============================================================================
+
+export interface CalculateCommissionDto {
+  transaction_amount: number; // min: 0
+  category_id?: string;
+  effective_date?: string; // ISO date string
+}
+
+// ============================================================================
+// COMMISSION DTOs
+// ============================================================================
+
+export interface CreateCommissionDto {
+  transaction_id: string;
+  config_id?: string;
+  percentage: number; // min: 0, max: 100
+  amount: number; // min: 0
+  status?: 'pending' | 'paid' | 'cancelled';
+  paid_at?: string; // ISO date string
+  payment_reference?: string;
+  notes?: string;
 }
 
 // ============================================================================

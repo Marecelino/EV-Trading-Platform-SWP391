@@ -46,7 +46,7 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({ title, products, to
 
       <div className="view-more-container">
         <Link to="/products">
-          <Button variant="outline">
+          <Button >
             Xem thêm {totalProducts.toLocaleString('vi-VN')} tin đăng
           </Button>
         </Link>

@@ -27,40 +27,48 @@ export interface Category {
 
 export interface EVDetail {
   _id: string;
-  listing_id: Product | string;
-  mileage: number;
-  year_of_manufacture: number;
-  battery_capacity: number;
-  range: number;
-  charging_time: number;
-  motor_power: number;
-  transmission: string;
-  color: string;
-  seats: number;
-  doors: number;
-  features: string[];
-  registration_status: string;
-  warranty_remaining: string;
+  listing_id?: Product | string;
+  auction_id?: string;
+  // Backend fields (from API_DOCUMENTATION.json)
+  year: number; // 1990 - currentYear+2
+  mileage_km: number; // >= 0
+  battery_capacity_kwh: number; // >= 0
+  range_km: number; // >= 0
+  // Optional fields that may be added later
+  charging_time?: number;
+  motor_power?: number;
+  transmission?: string;
+  color?: string;
+  seats?: number;
+  doors?: number;
+  features?: string[];
+  registration_status?: string;
+  warranty_remaining?: string;
 }
 
 export interface BatteryDetail {
   _id: string;
-  listing_id: Product | string;
-  capacity: number;
-  voltage: number;
-  chemistry_type: string;
-  state_of_health: number;
-  cycle_count: number;
-  manufacturing_date: string;
-  warranty_remaining: string;
-  compatible_models: string[];
-  dimensions: {
-    length: number;
-    width: number;
-    height: number;
+  listing_id?: Product | string;
+  auction_id?: string;
+  // Backend fields (from API_DOCUMENTATION.json)
+  capacity_kwh: number; // >= 0 (kWh)
+  soh_percent: number; // 0-100 (%)
+  battery_type?: string; // maxLength: 100
+  manufacture_year?: number; // 1900 - currentYear+5
+  // Optional fields that may be added later
+  voltage?: number;
+  chemistry_type?: string;
+  cycle_count?: number;
+  manufacturing_date?: string;
+  warranty_remaining?: string;
+  compatible_models?: string[];
+  dimensions?: {
+    length?: number;
+    width?: number;
+    height?: number;
   };
-  weight: number;
-  certification: string[];
+  weight?: number;
+  certification?: string[];
 }
 
 export interface Brand {
@@ -108,16 +116,32 @@ export interface Product {
   price: number;
   condition: "new" | "like_new" | "good" | "fair";
   status: "pending_payment" | "pending" | "active" | "sold" | "rejected";
-  location: ILocation;
+  category?: "ev" | "battery"; // Added from API response - required by backend
+  location: ILocation | string; // Can be object or string
   images: string[];
   views: number;
   is_verified: boolean;
   is_featured: boolean;
-  created_at: string;
+  // Support both snake_case and camelCase for date fields
+  created_at?: string;
+  createdAt?: string; // Backend may return camelCase
+  updated_at?: string;
+  updatedAt?: string; // Backend may return camelCase
   listing_type: "direct_sale" | "auction";
   auction_id?: string;
-  ev_details?: EVDetail;
-  battery_details?: BatteryDetail;
+  ev_details?: EVDetail; 
+  evDetail?: EVDetail; 
+  battery_details?: BatteryDetail; 
+  batteryDetail?: BatteryDetail; 
+  year?: number;
+  mileage?: number; 
+    battery_capacity?: number; // Backend may return this instead of battery_capacity_kwh
+  range?: number; // Backend may return this instead of range_km
+  // Battery flat fields
+  capacity_kwh?: number;
+  soh_percent?: number;
+  battery_type?: string;
+  manufacture_year?: number;
 }
 
 export interface PriceSuggestion {
@@ -311,6 +335,7 @@ export type {
   RegisterDto,
   LoginDto,
   LoginResponse,
+  LoginApiResponse,
   RegisterResponse,
   UpdateUserDto,
   ChangePasswordDto,
@@ -321,11 +346,19 @@ export type {
   SearchListingsParams,
   PriceSuggestionDto,
   CompareListingsParams,
-  CreateAuctionDto,
+  CreateEVAuctionDto,
+  CreateBatteryAuctionDto,
+  CreateAuctionDto, // Deprecated
   PlaceBidDto,
   CreateTransactionDto,
   CreateReviewDto,
   CreateFavoriteDto,
+  CreateContactDto,
+  UpdateContactDto,
+  CreatePriceSuggestionDto,
+  UpdatePriceSuggestionDto,
+  CalculateCommissionDto,
+  CreateCommissionDto,
   ApiErrorResponse,
   PaginatedResponse,
 } from './api';

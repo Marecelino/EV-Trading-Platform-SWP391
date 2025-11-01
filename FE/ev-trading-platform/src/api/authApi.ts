@@ -2,7 +2,7 @@ import axiosClient from './axiosClient';
 import {
   RegisterDto,
   LoginDto,
-  LoginResponse,
+  LoginApiResponse,
   RegisterResponse,
   UpdateUserDto,
   ChangePasswordDto,
@@ -16,11 +16,26 @@ const authApi = {
     return axiosClient.post<RegisterResponse>('/auth/register', data);
   },
 
-  login: async (data: LoginDto): Promise<{ data: LoginResponse }> => {
-    // Login response structure: { access_token, token_type, expires_in, user }
-    // NOT nested in data.data
-    const response = await axiosClient.post<LoginResponse>('/auth/login', data);
-    return response;
+  login: async (data: LoginDto): Promise<{ data: LoginApiResponse }> => {
+    // DEBUG: Log request details
+    console.log("=== AUTH API - LOGIN REQUEST ===");
+    console.log("Endpoint: /auth/login");
+    console.log("Request data:", { email: data.email, password: data.password ? "***" : undefined });
+    console.log("Base URL:", axiosClient.defaults.baseURL);
+    
+    try {
+      // CRITICAL FIX: Backend returns wrapped response: {success, message, data: {access_token, user, ...}}
+      const response = await axiosClient.post<LoginApiResponse>('/auth/login', data);
+      console.log("=== AUTH API - LOGIN SUCCESS ===");
+      console.log("Response status:", response.status);
+      console.log("Response headers:", response.headers);
+      console.log("Response data:", response.data);
+      return response;
+    } catch (error) {
+      console.error("=== AUTH API - LOGIN ERROR ===");
+      console.error("Error in authApi.login:", error);
+      throw error;
+    }
   },
 
   completeRegistration: (data: CompleteRegistrationDto) => {
@@ -91,12 +106,14 @@ const authApi = {
   // Note: OAuth endpoints redirect, so they should be used with window.location
   googleAuth: () => {
     // Returns redirect URL, should use window.location.href instead of axios
-    return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/auth/google`;
+    const baseURL = (import.meta.env as { VITE_API_BASE_URL?: string }).VITE_API_BASE_URL || 'http://localhost:3000/api';
+    return `${baseURL}/auth/google`;
   },
 
   facebookAuth: () => {
     // Returns redirect URL, should use window.location.href instead of axios
-    return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/auth/facebook`;
+    const baseURL = (import.meta.env as { VITE_API_BASE_URL?: string }).VITE_API_BASE_URL || 'http://localhost:3000/api';
+    return `${baseURL}/auth/facebook`;
   },
 };
 

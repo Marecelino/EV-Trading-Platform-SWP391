@@ -3,7 +3,7 @@ import React from "react";
 import { Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import StarRating from "../../common/StarRating/StarRating";
-import type { Product, User } from "../../../types"; // Import type đã cập nhật
+import type { Product, User, Brand, Model } from "../../../types"; // Import type đã cập nhật
 //import Button from '../../common/Button/Button';
 import "./ProductCard.scss";
 import { useFavorites } from "../../../contexts/FavoritesContext";
@@ -40,10 +40,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
     toggleFavorite(product._id);
   };
   if (variant === "detailed") {
+    // CRITICAL FIX: Use proper type assertions instead of 'as any'
     // Handle seller data from API - API only returns _id, email, phone
-    const seller = typeof product.seller_id === 'object' ? product.seller_id as any : null;
-    const brand = typeof product.brand_id === 'object' ? product.brand_id as any : null;
-    const model = typeof product.model_id === 'object' ? product.model_id as any : null;
+    const seller = typeof product.seller_id === 'object' ? product.seller_id as User : null;
+    const brand = typeof product.brand_id === 'object' ? product.brand_id as Brand : null;
+    const model = typeof product.model_id === 'object' ? product.model_id as Model : null;
 
     return (
       <div className="product-card--detailed">
@@ -137,10 +138,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <h3 className="product-card__name">{product.title}</h3>
         <p className="product-card__price">{formatPrice(product.price)}</p>
         <div className="product-card__specs">
+          {/* CRITICAL FIX: Use proper type assertions instead of 'as any' */}
           {/* Handle brand and model from API */}
           {typeof product.brand_id === 'object' && typeof product.model_id === 'object' && (
             <>
-              <span>{(product.brand_id as any).name} {(product.model_id as any).name}</span>
+              <span>{(product.brand_id as Brand).name} {(product.model_id as Model).name}</span>
               <span>•</span>
               <span>{product.condition === 'new' ? 'Mới' : product.condition === 'like_new' ? 'Như mới' : 'Đã sử dụng'}</span>
             </>

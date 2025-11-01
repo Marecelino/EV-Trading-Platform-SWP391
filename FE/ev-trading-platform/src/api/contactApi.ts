@@ -1,4 +1,5 @@
 import axiosClient from './axiosClient';
+import { CreateContactDto, UpdateContactDto } from '../types/api';
 
 const contactApi = {
   getContacts: () => {
@@ -13,11 +14,11 @@ const contactApi = {
     return axiosClient.get(`/contacts/transaction/${transactionId}`);
   },
 
-  createContact: (data: any) => {
+  createContact: (data: CreateContactDto) => {
     return axiosClient.post('/contacts', data);
   },
 
-  updateContact: (id: string, data: any) => {
+  updateContact: (id: string, data: UpdateContactDto) => {
     return axiosClient.put(`/contacts/${id}`, data);
   },
 

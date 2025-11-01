@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import authApi from "../../api/authApi";
 import type { User } from "../../types";
+import { UpdateUserDto } from "../../types/api";
 import "./AdminUserManagementPage.scss";
 import Pagination from "../../components/common/Pagination/Pagination";
 
@@ -158,9 +159,15 @@ const AdminUserManagementPage: React.FC = () => {
     const newStatus: "active" | "suspended" =
       currentStatus === "active" ? "suspended" : "active";
 
-    authApi.updateUser(userId, { status: newStatus } as Record<string, unknown>).then((response: ApiResponse) => {
+    // CRITICAL FIX: Use UpdateUserDto type, but allow status for admin operations
+    // Note: Backend may accept status as an admin-only field
+    // authApi.updateUser returns AxiosResponse<User>, so response.data is User
+    authApi.updateUser(userId, { status: newStatus } as UpdateUserDto & { status?: string; role?: string }).then((response) => {
       console.log("Status update response:", response);
-      if (response.data?.success || response.status === 200) {
+      // Response is AxiosResponse<User>, so response.data is User or wrapped in success object
+      const responseData = response.data as User | { data?: User; success?: boolean };
+      const userData = 'data' in responseData && responseData.data ? responseData.data : (responseData as User);
+      if (response.status === 200 || (userData && typeof userData === 'object' && '_id' in userData)) {
         setAllUsers((currentUsers: User[]) =>
           currentUsers.map((user: User) =>
             user._id === userId ? { ...user, status: newStatus } : user
@@ -173,9 +180,14 @@ const AdminUserManagementPage: React.FC = () => {
   };
 
   const handleRoleChange = (userId: string, newRole: string) => {
-    authApi.updateUser(userId, { role: newRole as 'user' | 'admin' | 'seller' }).then((response: ApiResponse) => {
+    // CRITICAL FIX: Use UpdateUserDto type, but allow role for admin operations
+    // authApi.updateUser returns AxiosResponse<User>, so response.data is User
+    authApi.updateUser(userId, { role: newRole } as UpdateUserDto & { status?: string; role?: string }).then((response) => {
       console.log("Role update response:", response);
-      if (response.data?.success || response.status === 200) {
+      // Response is AxiosResponse<User>, so response.data is User or wrapped in success object
+      const responseData = response.data as User | { data?: User; success?: boolean };
+      const userData = 'data' in responseData && responseData.data ? responseData.data : (responseData as User);
+      if (response.status === 200 || (userData && typeof userData === 'object' && '_id' in userData)) {
         setAllUsers((currentUsers: User[]) =>
           currentUsers.map((user: User) =>
             user._id === userId ? { ...user, role: newRole as User["role"] } : user

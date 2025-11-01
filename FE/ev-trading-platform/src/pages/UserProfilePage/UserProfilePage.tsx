@@ -3,21 +3,25 @@ import { useAuth } from '../../contexts/AuthContext';
 import transactionApi from '../../api/transactionApi';
 import reviewApi from '../../api/reviewApi';
 import authApi from '../../api/authApi';
-import type { ITransaction, UpdateUserDto, Review, User } from '../../types';
+import type { ITransaction, Review, User, Product } from '../../types';
+import { UpdateUserDto, ChangePasswordDto } from '../../types/api';
 import { Edit } from 'lucide-react';
 import './UserProfilePage.scss';
 import EditProfileModal from '../../components/modals/EditProfileModal/EditProfileModal';
+
+// CRITICAL FIX: Type guard function to properly narrow the union type
+function isChangePasswordDto(data: UpdateUserDto | ChangePasswordDto): data is ChangePasswordDto {
+  return 'currentPassword' in data && 'newPassword' in data;
+}
 
 const UserProfilePage: React.FC = () => {
   const { user, loading, login } = useAuth(); // Use login to update context after profile update
   const [transactions, setTransactions] = useState<ITransaction[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true);
       try {
         // CRITICAL FIX: Update API calls with proper params
         const [transRes, reviewsRes] = await Promise.all([
@@ -25,23 +29,29 @@ const UserProfilePage: React.FC = () => {
           reviewApi.getReviews({ reviewee_id: user?._id }), // Filter reviews for current user
         ]);
         
-        // Handle transactions response
-        if(transRes.data?.data) {
-            setTransactions(transRes.data.data);
-        } else if(Array.isArray(transRes.data)) {
-            setTransactions(transRes.data);
+        // CRITICAL FIX: Handle transactions response properly
+        // getMyTransactions returns AxiosResponse<ITransaction[]>, so response.data is ITransaction[]
+        const transResponseData = transRes.data as ITransaction[] | { data?: ITransaction[] };
+        let transData: ITransaction[] = [];
+        if (Array.isArray(transResponseData)) {
+          transData = transResponseData;
+        } else if (transResponseData && typeof transResponseData === 'object' && 'data' in transResponseData && Array.isArray(transResponseData.data)) {
+          transData = transResponseData.data;
         }
+        setTransactions(transData);
         
-        // Handle reviews response - already filtered by backend with reviewee_id param
-        if (reviewsRes.data?.data) {
-          setReviews(reviewsRes.data.data);
-        } else if (Array.isArray(reviewsRes.data)) {
-          setReviews(reviewsRes.data);
+        // CRITICAL FIX: Handle reviews response properly
+        // getReviews returns AxiosResponse<Review[]>, so response.data is Review[]
+        const reviewsResponseData = reviewsRes.data as Review[] | { data?: Review[] };
+        let reviewsData: Review[] = [];
+        if (Array.isArray(reviewsResponseData)) {
+          reviewsData = reviewsResponseData;
+        } else if (reviewsResponseData && typeof reviewsResponseData === 'object' && 'data' in reviewsResponseData && Array.isArray(reviewsResponseData.data)) {
+          reviewsData = reviewsResponseData.data;
         }
+        setReviews(reviewsData);
       } catch (error) {
         console.error("Failed to fetch user data", error);
-      } finally {
-        setIsLoading(false);
       }
     };
     if (user) {
@@ -49,19 +59,38 @@ const UserProfilePage: React.FC = () => {
     }
   }, [user]);
 
-  const handleUpdateProfile = async (updatedData: Partial<UpdateUserDto>) => {
+  // CRITICAL FIX: Update function signature to match EditProfileModal's onSave prop
+  // Handle both UpdateUserDto and ChangePasswordDto
+  const handleUpdateProfile = async (updatedData: UpdateUserDto | ChangePasswordDto) => {
     try {
-      const response = await authApi.updateProfile(updatedData);
-      const updatedUser = response.data.data;
-      const token = localStorage.getItem('token');
-      if (token) {
-        login(token, updatedUser); // Update context
+      // CRITICAL FIX: Use type guard to properly narrow the union type
+      if (isChangePasswordDto(updatedData)) {
+        // Call changePassword API for password changes
+        await authApi.changePassword(updatedData);
+        setIsEditModalOpen(false);
+        alert('Đổi mật khẩu thành công!');
+      } else {
+        // Call updateProfile API for profile updates
+        const response = await authApi.updateProfile(updatedData);
+        // CRITICAL FIX: updateProfile returns AxiosResponse<User>, so response.data is User
+        const responseData = response.data as User | { data?: User };
+        const updatedUser = ('data' in responseData && responseData.data) 
+          ? responseData.data 
+          : (responseData as User);
+        
+        const token = localStorage.getItem('token');
+        if (token) {
+          login(token, updatedUser); // Update context
+        }
+        setIsEditModalOpen(false);
+        alert('Cập nhật thành công!');
       }
-      setIsEditModalOpen(false);
-      alert('Cập nhật thành công!');
     } catch (error) {
       console.error("Lỗi khi cập nhật profile:", error);
-      alert('Cập nhật thất bại, vui lòng thử lại.');
+      const errorMessage = isChangePasswordDto(updatedData) 
+        ? 'Đổi mật khẩu thất bại, vui lòng thử lại.' 
+        : 'Cập nhật thất bại, vui lòng thử lại.';
+      alert(errorMessage);
     }
   };
 
@@ -107,15 +136,25 @@ const UserProfilePage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map(tx => (
-                  <tr key={tx._id}>
-                    <td>{tx.listing_id.title}</td>
-                    <td>{tx.buyer_id._id === user._id ? 'Người mua' : 'Người bán'}</td>
-                    <td>{tx.amount.toLocaleString('vi-VN')} ₫</td>
-                    <td>{new Date(tx.created_at).toLocaleDateString('vi-VN')}</td>
-                    <td><span className={`status-badge status--${tx.status}`}>{tx.status}</span></td>
-                  </tr>
-                ))}
+                {transactions.map(tx => {
+                  // CRITICAL FIX: Add type guards for listing_id and buyer_id
+                  const listingTitle = typeof tx.listing_id === 'object' && tx.listing_id 
+                    ? (tx.listing_id as Product).title || (tx.listing_id as Product).name || 'N/A'
+                    : 'N/A';
+                  const buyerId = typeof tx.buyer_id === 'object' && tx.buyer_id 
+                    ? (tx.buyer_id as User)._id 
+                    : (tx.buyer_id as string);
+                  
+                  return (
+                    <tr key={tx._id}>
+                      <td>{listingTitle}</td>
+                      <td>{buyerId === user._id ? 'Người mua' : 'Người bán'}</td>
+                      <td>{tx.amount.toLocaleString('vi-VN')} ₫</td>
+                      <td>{new Date(tx.created_at).toLocaleDateString('vi-VN')}</td>
+                      <td><span className={`status-badge status--${tx.status}`}>{tx.status}</span></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
