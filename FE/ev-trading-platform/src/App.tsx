@@ -27,6 +27,7 @@ import AuctionDetailPage from "./pages/AuctionDetailPage/AuctionDetailPage";
 import AuctionListPage from "./pages/AuctionListPage/AuctionListPage";
 import AdminAuctionManagementPage from "./pages/AdminAuctionManagementPage/AdminAuctionManagementPage";
 import SocialCallbackPage from "./pages/SocialCallbackPage/SocialCallbackPage";
+import PaymentCallbackPage from "./pages/PaymentCallbackPage/PaymentCallbackPage";
 import AdminContactManagementPage from "./pages/AdminContactManagementPage/AdminContactManagementPage";
 import ContactDetailPage from "./pages/ContactDetailPage/ContactDetailPage";
 import AdminReviewManagementPage from "./pages/AdminReviewManagementPage/AdminReviewManagementPage";
@@ -42,6 +43,10 @@ function App() {
               <Route
                 path="/auth/social/callback"
                 element={<SocialCallbackPage />}
+              />
+              <Route
+                path="/payment/callback"
+                element={<PaymentCallbackPage />}
               />
               {/* Tất cả các Route bên trong đây sẽ sử dụng chung UserLayout */}
               <Route path="/" element={<UserLayout />}>

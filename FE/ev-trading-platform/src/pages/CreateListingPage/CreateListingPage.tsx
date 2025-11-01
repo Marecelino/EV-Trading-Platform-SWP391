@@ -10,7 +10,7 @@ import listingApi from "../../api/listingApi";
 import auctionApi from "../../api/auctionApi";
 import brandApi from "../../api/brandApi";
 import { Brand } from "../../types";
-import { CreateEVListingDto, CreateBatteryListingDto, CreateEVAuctionDto, CreateBatteryAuctionDto } from "../../types/api";
+import { CreateEVListingDto, CreateBatteryListingDto, CreateEVAuctionDto, CreateBatteryAuctionDto, CreateListingResponse, CreateAuctionResponse } from "../../types/api";
 import { useAuth } from "../../contexts/AuthContext";
 import "./CreateListingPage.scss";
 
@@ -41,11 +41,7 @@ interface BatteryDetailsFormData {
   manufacturing_date?: string; // maps to manufacture_year
 }
 
-interface CreateListingResponse {
-  listing_fee_id?: string;
-  amount_due?: number;
-  [key: string]: unknown;
-}
+// CreateListingResponse and CreateAuctionResponse are now imported from types/api
 
 // Validation errors state
 type ValidationErrors = {
@@ -77,8 +73,9 @@ const CreateListingPage: React.FC = () => {
   const [formData, setFormData] = useState<FormState>({});
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [feeInfo, setFeeInfo] = useState<{
-    listing_fee_id: string;
-    amount_due: number;
+    paymentId: string;
+    amount: number;
+    paymentUrl: string;
   } | null>(null);
   
   // CRITICAL FIX: Fetch brands for brand_name mapping
@@ -324,33 +321,33 @@ const CreateListingPage: React.FC = () => {
         }
       }
 
-      // Handle response - check if payment is required
-      // Note: Response structure may vary, adjust based on actual backend response
+      // Handle response - backend returns { listing/auction, payment, paymentUrl }
       if (response.data) {
-        // CRITICAL FIX: Use proper type instead of 'as any'
-        const responseData = response.data as CreateListingResponse | { data?: CreateListingResponse };
+        // Extract response data - backend may wrap in 'data' property or return directly
+        let responseData: CreateListingResponse | CreateAuctionResponse | null = null;
+        const rawData = response.data as CreateListingResponse | CreateAuctionResponse | { data?: CreateListingResponse | CreateAuctionResponse };
         
-        // Extract payment data based on response structure
-        let paymentData: CreateListingResponse | null = null;
-        
-        if (typeof responseData === 'object' && responseData !== null) {
-          if ('data' in responseData && responseData.data && typeof responseData.data === 'object') {
-            paymentData = responseData.data as CreateListingResponse;
-          } else {
-            paymentData = responseData as CreateListingResponse;
+        if (typeof rawData === 'object' && rawData !== null) {
+          if ('data' in rawData && rawData.data && typeof rawData.data === 'object') {
+            responseData = rawData.data as CreateListingResponse | CreateAuctionResponse;
+          } else if ('paymentUrl' in rawData || 'payment' in rawData) {
+            responseData = rawData as CreateListingResponse | CreateAuctionResponse;
           }
         }
-        
 
-        if (paymentData && typeof paymentData === 'object' && 'listing_fee_id' in paymentData && paymentData.listing_fee_id) {
+        // Check if payment is required (paymentUrl should always be present for new listings/auctions)
+        if (responseData && responseData.paymentUrl && responseData.payment) {
+          // Successfully created listing/auction, now need to pay
           setFeeInfo({
-            listing_fee_id: paymentData.listing_fee_id,
-            amount_due: paymentData.amount_due || 0,
+            paymentId: responseData.payment._id,
+            amount: responseData.payment.amount,
+            paymentUrl: responseData.paymentUrl,
           });
           setIsPaymentModalOpen(true);
         } else {
-          // Success - show message and navigate
-          alert("Tạo tin đăng thành công!");
+          // Unexpected response structure - show success anyway and navigate
+          console.warn("Unexpected response structure:", response.data);
+          alert("Tạo tin đăng thành công! Vui lòng kiểm tra trong mục quản lý tin đăng.");
           navigate("/dashboard/my-listings");
         }
       }
@@ -368,12 +365,12 @@ const CreateListingPage: React.FC = () => {
       setIsLoading(false);
     }
   };
+  // Note: Payment success is now handled by PaymentCallbackPage
+  // This function is kept for backward compatibility but won't be called
   const handlePaymentSuccess = () => {
     setIsPaymentModalOpen(false);
-    alert(
-      "Thanh toán thành công! Tin của bạn sẽ được duyệt trong thời gian sớm nhất."
-    );
-    navigate("/dashboard/my-listings"); // Chuyển trang đến quản lý tin đăng
+    // User will be redirected to VNPay, then to PaymentCallbackPage
+    // No need to navigate here
   };
   const renderDetailedForm = () => (
     <form onSubmit={handleFormSubmit} className="detailed-form">

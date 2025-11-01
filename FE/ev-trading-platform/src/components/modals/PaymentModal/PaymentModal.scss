@@ -417,6 +417,25 @@
         }
       }
     }
+
+    .cancel-btn {
+      width: 100%;
+      padding: $spacing-3;
+      margin-top: $spacing-2;
+      font-size: $font-size-base;
+      font-weight: $font-weight-medium;
+      color: $text-secondary;
+      background-color: transparent;
+      border: 1px solid $border-color;
+      border-radius: $radius-md;
+      cursor: pointer;
+      transition: all $duration-base $ease-in-out;
+      
+      &:hover {
+        background-color: $gray-100;
+        border-color: $text-secondary;
+      }
+    }
   }
 }
 

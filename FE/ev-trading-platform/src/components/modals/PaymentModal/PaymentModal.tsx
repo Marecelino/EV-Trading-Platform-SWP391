@@ -8,32 +8,31 @@ interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   feeInfo: {
-    listing_fee_id: string;
-    amount_due: number;
+    paymentId: string;
+    amount: number;
+    paymentUrl: string;
   };
-  onPaymentSuccess: () => void;
+  onPaymentSuccess?: () => void;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, feeInfo, onPaymentSuccess }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const handlePayment = async () => {
-    setIsLoading(true);
-    // Gọi API để xử lý thanh toán
-    try {
-        // Tạm thời, chúng ta sẽ tạo một API service cho payment
-        // const response = await paymentApi.processListingFee(feeInfo.listing_fee_id);
-        
-        // Mô phỏng API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        alert("Thanh toán thành công!");
-        onPaymentSuccess();
-    } catch (error) {
-        alert("Thanh toán thất bại!");
-    } finally {
-        setIsLoading(false);
+  const handlePayment = () => {
+    if (!feeInfo.paymentUrl) {
+      alert("Không tìm thấy link thanh toán. Vui lòng thử lại.");
+      return;
     }
+
+    // Set redirecting state
+    setIsRedirecting(true);
+    
+    // Redirect to VNPay payment URL
+    // VNPay will handle the payment and redirect back to our callback URL
+    window.location.href = feeInfo.paymentUrl;
+    
+    // Note: onPaymentSuccess will be called from PaymentCallbackPage after payment
+    // This modal will close when user redirects to VNPay
   };
 
   if (!isOpen) return null;
@@ -46,20 +45,40 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, feeInfo, o
           <button onClick={onClose} className="close-btn"><X /></button>
         </div>
         <div className="modal-body">
-          <p>Để hoàn tất đăng tin, bạn cần thanh toán một khoản phí.</p>
+          <p>Để hoàn tất đăng tin, bạn cần thanh toán phí đăng tin. Sau khi thanh toán thành công, tin đăng của bạn sẽ được kích hoạt.</p>
           <div className="fee-details">
-            <span>Phí đăng tin</span>
-            <span className="amount">{feeInfo.amount_due.toLocaleString('vi-VN')} ₫</span>
+            <div className="fee-row">
+              <span className="label">Phí đăng tin</span>
+              <span className="amount">{feeInfo.amount.toLocaleString('vi-VN')} ₫</span>
+            </div>
           </div>
           <div className="payment-methods">
-            {/* Trong tương lai có thể thêm các phương thức thanh toán khác ở đây */}
+            <h4>Phương thức thanh toán</h4>
+            <div className="method-list">
+              <div className="method-item selected">
+                <div className="method-icon">🏦</div>
+                <div className="method-info">
+                  <div className="method-name">VNPay</div>
+                  <div className="method-desc">Thanh toán qua cổng VNPay (ngân hàng, ví điện tử)</div>
+                </div>
+                <div className="radio-indicator"></div>
+              </div>
+            </div>
+          </div>
+          <div className="security-notice">
+            <p>🔒 Thanh toán được bảo mật bởi VNPay. Thông tin thanh toán của bạn được mã hóa và an toàn.</p>
           </div>
         </div>
         <div className="modal-footer">
-          <Button variant="primary" onClick={handlePayment} disabled={isLoading}>
+          <Button variant="primary" onClick={handlePayment} disabled={isRedirecting || !feeInfo.paymentUrl}>
             <CreditCard size={18} />
-            {isLoading ? 'Đang xử lý...' : `Thanh toán ${feeInfo.amount_due.toLocaleString('vi-VN')} ₫`}
+            {isRedirecting ? 'Đang chuyển hướng...' : `Thanh toán ${feeInfo.amount.toLocaleString('vi-VN')} ₫`}
           </Button>
+          {!isRedirecting && (
+            <button type="button" onClick={onClose} className="cancel-btn">
+              Thanh toán sau
+            </button>
+          )}
         </div>
       </div>
     </div>

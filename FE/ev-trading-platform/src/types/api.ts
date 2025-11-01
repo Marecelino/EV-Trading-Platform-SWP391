@@ -318,6 +318,35 @@ export interface CreateCommissionDto {
 }
 
 // ============================================================================
+// PAYMENT TYPES
+// ============================================================================
+
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
+
+export interface Payment {
+  _id: string;
+  buyer_id: string;
+  seller_id: string;
+  listing_id?: string;
+  auction_id?: string;
+  amount: number;
+  payment_method: string;
+  status: PaymentStatus | string;
+  vnp_TransactionNo?: string;
+  vnp_PayDate?: string;
+  vnp_ResponseCode?: string;
+  payment_response?: unknown;
+  transaction_id?: string;
+  commission_id?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// ============================================================================
 // RESPONSE TYPES
 // ============================================================================
 
@@ -337,5 +366,19 @@ export interface PaginatedResponse<T> {
     total: number;
     pages: number;
   };
+}
+
+// Response from creating a listing (EV or Battery)
+export interface CreateListingResponse {
+  listing: unknown; // Product object
+  payment: Payment;
+  paymentUrl: string;
+}
+
+// Response from creating an auction (EV or Battery)
+export interface CreateAuctionResponse {
+  auction: unknown; // Auction object
+  payment: Payment;
+  paymentUrl: string;
 }
 

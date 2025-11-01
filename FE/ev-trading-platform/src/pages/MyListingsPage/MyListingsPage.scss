@@ -9,6 +9,60 @@
   .page-title {
     margin-bottom: 30px;
   }
+
+  .success-notification {
+    display: flex;
+    align-items: center;
+    gap: $spacing-3;
+    padding: $spacing-4 $spacing-5;
+    margin-bottom: $spacing-5;
+    background: linear-gradient(135deg, lighten($success-color, 48%) 0%, lighten($success-color, 45%) 100%);
+    border: 2px solid $success-color;
+    border-radius: $radius-md;
+    color: darken($success-color, 15%);
+    font-weight: $font-weight-medium;
+    animation: slideDown 0.3s ease-out;
+    position: relative;
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    svg:first-child {
+      flex-shrink: 0;
+      color: $success-color;
+    }
+
+    span {
+      flex: 1;
+    }
+
+    .close-notification {
+      background: transparent;
+      border: none;
+      color: darken($success-color, 20%);
+      cursor: pointer;
+      padding: $spacing-1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: $radius-base;
+      transition: all $duration-base $ease-in-out;
+      flex-shrink: 0;
+
+      &:hover {
+        background-color: rgba($success-color, 0.2);
+        color: darken($success-color, 30%);
+      }
+    }
+  }
 }
 
 .listings-list {
