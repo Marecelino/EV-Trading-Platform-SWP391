@@ -10,14 +10,18 @@ import Pagination from '../../components/common/Pagination/Pagination';
 type ListingStatus = 'pending' | 'active' | 'rejected';
 
 // Map frontend status to API status
-const mapStatusToApi = (status: ListingStatus): 'draft' | 'active' | 'removed' | undefined => {
+// According to backend documentation:
+// - 'pending': listings that have been paid and are waiting for admin approval
+// - 'active': listings that have been approved and are displayed publicly
+// - 'rejected': listings that have been rejected by admin
+const mapStatusToApi = (status: ListingStatus): 'pending' | 'active' | 'rejected' | undefined => {
   switch (status) {
     case 'pending':
-      return 'draft'; // API uses 'draft' for pending listings
+      return 'pending'; // Listings that have been paid, waiting for admin approval
     case 'active':
-      return 'active';
+      return 'active'; // Approved listings displayed publicly
     case 'rejected':
-      return 'removed'; // API uses 'removed' for rejected listings
+      return 'rejected'; // Rejected listings
     default:
       return undefined;
   }
@@ -53,21 +57,53 @@ const AdminListingManagementPage: React.FC = () => {
       console.log("=== LISTINGS API RESPONSE ===");
       console.log("Full response:", response);
       console.log("Response data:", response.data);
+      console.log("Response data type:", typeof response.data);
+      console.log("Is array?", Array.isArray(response.data));
       
       // Handle both direct array and PaginatedResponse
       let listingsData: Product[] = [];
+      
+      // Check if response.data is directly an array
       if (Array.isArray(response.data)) {
         listingsData = response.data;
-      } else if ((response.data as PaginatedResponse<Product>).data) {
-        listingsData = (response.data as PaginatedResponse<Product>).data;
-      } else if (response.data?.data) {
-        listingsData = response.data.data;
+        console.log("Response is direct array, length:", listingsData.length);
+      } 
+      // Check if response.data has a 'data' property (PaginatedResponse)
+      else if (response.data && typeof response.data === 'object') {
+        // Try PaginatedResponse format: { data: Product[], meta: {...} }
+        if ((response.data as PaginatedResponse<Product>).data && Array.isArray((response.data as PaginatedResponse<Product>).data)) {
+          listingsData = (response.data as PaginatedResponse<Product>).data;
+          console.log("Response is PaginatedResponse, length:", listingsData.length);
+        }
+        // Try wrapped format: { success: true, data: Product[] }
+        else if ('data' in response.data && Array.isArray((response.data as { data: unknown }).data)) {
+          listingsData = (response.data as { data: Product[] }).data;
+          console.log("Response is wrapped format, length:", listingsData.length);
+        }
+        // Try direct object with listings array property
+        else if ('listings' in response.data && Array.isArray((response.data as { listings: unknown }).listings)) {
+          listingsData = (response.data as { listings: Product[] }).listings;
+          console.log("Response has listings property, length:", listingsData.length);
+        }
+        else {
+          console.warn("Unknown response structure:", response.data);
+        }
       }
       
+      // Validate and clean data
+      listingsData = listingsData.filter((listing): listing is Product => {
+        if (!listing || !listing._id) {
+          console.warn("Invalid listing found:", listing);
+          return false;
+        }
+        return true;
+      });
+      
       setAllListings(listingsData);
-      console.log(`Loaded ${listingsData.length} listings with status ${activeTab}`);
+      console.log(`Loaded ${listingsData.length} valid listings with status ${activeTab} (API status: ${apiStatus})`);
     }).catch(error => {
       console.error("Error fetching listings:", error);
+      console.error("Error details:", error.response?.data || error.message);
       setAllListings([]);
     }).finally(() => setIsLoading(false));
   }, [activeTab]);
@@ -98,8 +134,8 @@ const AdminListingManagementPage: React.FC = () => {
       return;
     }
 
-    // CRITICAL FIX: Map frontend status to API status and use UpdateListingStatusDto
-    const apiStatus: UpdateListingStatusDto['status'] = newStatus === 'active' ? 'active' : 'removed'; // 'rejected' → 'removed'
+    // Map frontend status to API status (direct mapping - no conversion needed)
+    const apiStatus: UpdateListingStatusDto['status'] = newStatus; // 'active' or 'rejected'
     const statusDto: UpdateListingStatusDto = { status: apiStatus };
 
     listingApi.updateListingStatus(id, statusDto).then((response) => {
@@ -156,12 +192,20 @@ const AdminListingManagementPage: React.FC = () => {
       <h1>Quản lý tin đăng</h1>
       
       {/* Debug Info */}
-      <div className="debug-info" style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '5px' }}>
+      <div className="debug-info" style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '5px', fontSize: '14px' }}>
         <h4>Debug Info:</h4>
-        <p>Đang hiển thị {allListings.length} tin đăng (tất cả đã được filter bởi API)</p>
-        <p>Trang hiện tại: {pagination.currentPage} / {totalPages}</p>
-        <p>Tab hiện tại: {activeTab}</p>
-        <p><strong>Lưu ý:</strong> Kiểm tra Console để xem chi tiết API responses.</p>
+        <p><strong>Status filter:</strong> {activeTab} → API: {mapStatusToApi(activeTab) || 'N/A'}</p>
+        <p><strong>Tổng số listings:</strong> {allListings.length} (sau khi filter)</p>
+        <p><strong>Đang hiển thị:</strong> {paginatedListings.length} listings (trang {pagination.currentPage} / {totalPages})</p>
+        <p><strong>Lưu ý:</strong> Kiểm tra Console để xem chi tiết API responses và data structure.</p>
+        {allListings.length > 0 && (
+          <details style={{ marginTop: '10px' }}>
+            <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>Xem sample listing data (click để mở)</summary>
+            <pre style={{ marginTop: '10px', padding: '10px', backgroundColor: '#fff', borderRadius: '4px', overflow: 'auto', maxHeight: '200px' }}>
+              {JSON.stringify(allListings[0], null, 2)}
+            </pre>
+          </details>
+        )}
       </div>
       
       <div className="admin-tabs">
@@ -191,18 +235,41 @@ const AdminListingManagementPage: React.FC = () => {
                 <tr key={listing._id}>
                   <td>
                     <div className="product-cell">
-                      <img src={listing.images[0]} alt={listing.title} />
+                      <img 
+                        src={listing.images?.[0] || '/placeholder-image.jpg'} 
+                        alt={listing.title || 'No title'} 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
+                        }}
+                      />
                       <div className="product-info">
-                        <Link to={`/products/${listing._id}`} target="_blank" title="Xem chi tiết tin đăng">{listing.title}</Link>
-                        <span>Người đăng: {(listing.seller_id as { full_name?: string })?.full_name || 'N/A'}</span>
+                        <Link to={`/products/${listing._id}`} target="_blank" title="Xem chi tiết tin đăng">
+                          {listing.title || 'Không có tiêu đề'}
+                        </Link>
+                        <span>
+                          Người đăng: {
+                            listing.seller_id && typeof listing.seller_id === 'object' 
+                              ? (listing.seller_id as { full_name?: string })?.full_name || 'N/A'
+                              : 'N/A'
+                          }
+                        </span>
                       </div>
                     </div>
                   </td>
-                  <td>{listing.price.toLocaleString('vi-VN')} ₫</td>
-                  <td>{new Date(listing.created_at).toLocaleDateString('vi-VN')}</td>
+                  <td>{listing.price ? listing.price.toLocaleString('vi-VN') + ' ₫' : 'N/A'}</td>
+                  <td>
+                    {listing.created_at || listing.createdAt
+                      ? new Date(listing.created_at || listing.createdAt || '').toLocaleDateString('vi-VN')
+                      : 'N/A'
+                    }
+                  </td>
                   <td>
                     <label className="switch" title={listing.is_verified ? "Bỏ nhãn kiểm định" : "Gắn nhãn đã kiểm định"}>
-                      <input type="checkbox" checked={listing.is_verified} onChange={() => handleToggleVerification(listing._id, listing.is_verified)} />
+                      <input 
+                        type="checkbox" 
+                        checked={listing.is_verified || false} 
+                        onChange={() => handleToggleVerification(listing._id, listing.is_verified || false)} 
+                      />
                       <span className="slider round"></span>
                     </label>
                   </td>

@@ -1,12 +1,33 @@
 // src/layouts/AdminLayout.scss
+@import '../styles/variables';
+@import '../styles/mixins';
+
 .admin-layout {
   display: flex;
+  width: 100%;
+  min-height: 100vh;
+  
+  // Sidebar is fixed, so we don't need flex for it
+  // Just ensure content has proper margin
   
   .admin-content {
     margin-left: 260px; // Bằng chiều rộng của sidebar
+    width: calc(100% - 260px); // Ensure content takes remaining width
     flex-grow: 1;
-    padding: 30px;
-    background-color: #f0f2f5;
+    padding: $spacing-8;
+    background-color: $background-color;
     min-height: 100vh;
+    box-sizing: border-box;
+  }
+}
+
+// Responsive: on mobile, sidebar might collapse or content should take full width
+@include mobile {
+  .admin-layout {
+    .admin-content {
+      margin-left: 0;
+      width: 100%;
+      padding: $spacing-4;
+    }
   }
 }

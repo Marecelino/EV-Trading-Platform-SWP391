@@ -43,8 +43,14 @@ interface AuctionCardProps {
 }
 
 const AuctionCard: React.FC<AuctionCardProps> = ({ auction }) => {
-  // Kiểm tra an toàn phòng trường hợp `listing` không tồn tại
-  if (!auction.listing) {
+  // Use flattened auction data (backend returns listing fields directly on auction object)
+  // Fallback to auction.listing for backward compatibility
+  const title = auction.title || auction.listing?.title || "Không có tiêu đề";
+  const images = auction.images || auction.listing?.images || [];
+  const firstImage = images[0] || "/placeholder-image.jpg";
+  
+  // Validate auction has required data
+  if (!title || !firstImage) {
     return (
       <div className="auction-card--error">
         Lỗi: Không có thông tin sản phẩm.
@@ -52,14 +58,19 @@ const AuctionCard: React.FC<AuctionCardProps> = ({ auction }) => {
     );
   }
 
-  const { listing } = auction;
   const timeLeft = useCountdown(auction.end_time);
 
   return (
     <div className="auction-card">
       <Link to={`/auctions/${auction._id}`}>
         <div className="auction-card__image">
-          <img src={listing.images[0]} alt={listing.title} />
+          <img 
+            src={firstImage} 
+            alt={title}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder-image.jpg";
+            }}
+          />
           <div className={`timer-overlay ${timeLeft.isOver ? "ended" : ""}`}>
             <Timer size={16} />
             {/* SỬA LỖI: Hiển thị "Đã kết thúc" nếu thời gian đã hết */}
@@ -71,14 +82,14 @@ const AuctionCard: React.FC<AuctionCardProps> = ({ auction }) => {
           </div>
         </div>
         <div className="auction-card__info">
-          <h3 className="title">{listing.title}</h3>
+          <h3 className="title">{title}</h3>
           <p className="price-label">Giá cao nhất hiện tại</p>
           <p className="current-price">
-            {auction.current_price.toLocaleString("vi-VN")} ₫
+            {auction.current_price ? auction.current_price.toLocaleString("vi-VN") + " ₫" : "N/A"}
           </p>
           <div className="bid-info">
             <Hammer size={16} />
-            <span>{auction.bids.length} lượt đấu giá</span>
+            <span>{auction.bids ? auction.bids.length : 0} lượt đấu giá</span>
           </div>
         </div>
       </Link>

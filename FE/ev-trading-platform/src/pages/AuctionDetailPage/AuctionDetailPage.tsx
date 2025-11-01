@@ -29,7 +29,10 @@ const AuctionDetailPage: React.FC = () => {
     try {
       const res = await auctionApi.getAuctionById(id);
       
-      // CRITICAL FIX: Verify response structure handling
+      console.log("=== AUCTION DETAIL API RESPONSE ===");
+      console.log("Full response:", res);
+      console.log("Response data:", res.data);
+      
       // Handle both res.data.success format and direct data format
       let auctionResponseData;
       if (res.data?.success && res.data?.data) {
@@ -42,19 +45,63 @@ const AuctionDetailPage: React.FC = () => {
         return;
       }
 
-      const { listing, ...auctionDetails } = auctionResponseData;
+      // Check if backend returns flattened auction data (with title, images, etc. directly on auction)
+      // Or nested listing object
+      const hasNestedListing = auctionResponseData.listing && typeof auctionResponseData.listing === 'object';
+      const hasFlattenedData = auctionResponseData.title || auctionResponseData.images;
 
-      if (!listing) {
+      let listing: ListingData;
+      let auction: Auction;
+
+      if (hasNestedListing) {
+        // Backend returns nested listing object
+        const { listing: nestedListing, ...auctionDetails } = auctionResponseData;
+        listing = nestedListing;
+        auction = auctionDetails as Auction;
+      } else if (hasFlattenedData) {
+        // Backend returns flattened data - construct listing from auction data
+        listing = {
+          _id: auctionResponseData._id,
+          title: auctionResponseData.title || "Không có tiêu đề",
+          description: auctionResponseData.description || "",
+          images: auctionResponseData.images || [],
+          price: auctionResponseData.current_price || auctionResponseData.starting_price || 0,
+          condition: auctionResponseData.condition || "new",
+          status: "active",
+          category: auctionResponseData.category || "ev",
+          location: auctionResponseData.location || "",
+          seller_id: auctionResponseData.seller_id || "",
+          brand_id: auctionResponseData.brand_id || "",
+          model_id: "" as any,
+          views: 0,
+          is_verified: auctionResponseData.is_verified || false,
+          is_featured: auctionResponseData.is_featured || false,
+          listing_type: "auction",
+          auction_id: auctionResponseData._id,
+          ev_details: auctionResponseData.evDetail || undefined,
+          evDetail: auctionResponseData.evDetail || undefined,
+          battery_details: auctionResponseData.batteryDetail || undefined,
+          batteryDetail: auctionResponseData.batteryDetail || undefined,
+        } as ListingData;
+        
+        // Extract auction details (exclude listing fields)
+        const { title: _title, description: _desc, images: _images, category: _cat, 
+                condition: _cond, location: _loc, brand_id: _brand, is_verified: _verified, 
+                is_featured: _featured, evDetail: _evDetail, batteryDetail: _batteryDetail, ...auctionDetails } = auctionResponseData;
+        auction = auctionDetails as Auction;
+      } else {
         console.warn(
           "AuctionDetailPage: Missing listing data for auction",
-          id
+          id,
+          "Response:",
+          auctionResponseData
         );
         setAuctionData(null);
         return;
       }
 
       setAuctionData({
-        auction: auctionDetails as Auction,
+        auction,
         listing,
       });
     } catch (error) {

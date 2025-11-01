@@ -235,19 +235,47 @@ export interface ITransaction {
   _id: string;
   buyer_id: User | string;
   seller_id: User | string;
-  listing_id: Product | string;
-  amount: number;
-  status: "pending" | "completed" | "cancelled";
-  payment_method: string;
-  transaction_date: string;
-  notes: string;
-  created_at: string;
-  updated_at: string;
+  listing_id?: Product | string; // Optional - may be linked to auction instead
+  auction_id?: string; // Optional - may be linked to listing instead
+  price: number; // Primary field from backend
+  amount?: number; // Keep for backward compatibility
+  status: "PENDING" | "PROCESSING" | "COMPLETED" | "CANCELLED" | "FAILED" | "pending" | "processing" | "completed" | "cancelled" | "failed"; // Support both cases
+  payment_method?: string;
+  payment_reference?: string; // Reference to payment record
+  meeting_date?: string; // ISO date string
+  notes?: string;
+  // Commission fields
+  commission_rate?: number;
+  platform_fee?: number;
+  seller_payout?: number;
+  // Related entities
+  contract_id?: string;
+  commission_id?: string;
+  // Date fields (support both naming conventions)
+  created_at?: string; // snake_case (backend default)
+  createdAt?: string; // camelCase (some responses)
+  updated_at?: string; // snake_case
+  updatedAt?: string; // camelCase
+  transaction_date?: string; // Legacy field
 }
 export interface PaginatedTransactionsResponse {
-  success: boolean;
+  success?: boolean;
   data: ITransaction[];
-  pagination: PaginationMeta;
+  meta?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages?: number;
+    pages?: number;
+  };
+  pagination?: PaginationMeta; // Legacy support
+  stats?: {
+    PENDING?: { count: number; totalAmount: number };
+    PROCESSING?: { count: number; totalAmount: number };
+    COMPLETED?: { count: number; totalAmount: number };
+    CANCELLED?: { count: number; totalAmount: number };
+    FAILED?: { count: number; totalAmount: number };
+  };
 }
 export interface PaginatedUsersResponse {
   success: boolean;
@@ -297,8 +325,8 @@ export interface Bid {
 
 export interface Auction {
   _id: string;
-  listing_id: string;
-  seller_id: string;
+  listing_id?: string; // Optional - may not be present in flattened structure
+  seller_id: string | null | User; // Can be null or populated User object
   start_time: string;
   end_time: string;
   starting_price: number;
@@ -308,6 +336,22 @@ export interface Auction {
   status: "scheduled" | "live" | "ended" | "cancelled";
   winner_id?: string;
   bids: Bid[];
+  // Listing fields (flattened from listing object in backend response)
+  title?: string;
+  description?: string;
+  images?: string[];
+  category?: "ev" | "battery";
+  condition?: "new" | "like_new" | "excellent" | "good" | "fair" | "poor";
+  location?: string;
+  brand_id?: string | Brand;
+  evDetail?: EVDetail | null;
+  batteryDetail?: BatteryDetail | null;
+  is_verified?: boolean;
+  is_featured?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  auction_id?: string; // May be present in response
+  // Backward compatibility: nested listing object (may be populated in some API responses)
   listing?: Product;
 }
 export interface ListingFee {

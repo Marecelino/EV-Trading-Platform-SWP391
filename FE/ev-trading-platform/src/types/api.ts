@@ -117,13 +117,13 @@ export interface CreateBatteryListingDto {
 }
 
 export interface UpdateListingStatusDto {
-  status: 'draft' | 'active' | 'sold' | 'removed';
+  status: 'draft' | 'pending' | 'active' | 'rejected' | 'sold' | 'removed';
 }
 
 export interface SearchListingsParams {
   keyword?: string;
   brandName?: string;
-  status?: 'draft' | 'active' | 'sold' | 'removed';
+  status?: 'draft' | 'pending' | 'active' | 'rejected' | 'sold' | 'removed';
   condition?: 'new' | 'like_new' | 'excellent' | 'good' | 'fair' | 'poor';
   category?: 'ev' | 'battery';
   location?: string;
@@ -224,6 +224,12 @@ export interface CreateTransactionDto {
   payment_method?: string;
   meeting_date?: string; // ISO date string
   notes?: string;
+}
+
+export interface UpdateTransactionStatusDto {
+  status: "PENDING" | "PROCESSING" | "COMPLETED" | "CANCELLED" | "FAILED";
+  notes?: string; // Optional notes (max 500 chars)
+  contract_id?: string; // Optional: link contract to transaction
 }
 
 // ============================================================================

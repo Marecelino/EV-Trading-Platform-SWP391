@@ -58,7 +58,7 @@ const PaymentCallbackPage = () => {
               message: "Đã thanh toán thành công, tin đăng của bạn sẽ được duyệt trong chốc lát"
             }
           }),
-          2000
+          200
         );
         timersRef.current.push(timerId);
       } else {

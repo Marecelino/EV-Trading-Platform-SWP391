@@ -1,25 +1,603 @@
 // src/pages/AdminAuctionManagementPage/AdminAuctionManagementPage.scss
 @import '../../styles/variables';
 @import '../../styles/mixins';
-@import '../AdminListingManagementPage/AdminListingManagementPage.scss';
 
-.auction-row, .listing-row {
-  display: flex;
-  align-items: center; 
+// Main admin page container - aligns with AdminLayout
+.admin-page {
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 0; // Ensure it's below sidebar
+  
+  h1 {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $text-color;
+    margin-bottom: $spacing-6;
+    padding-bottom: $spacing-4;
+    border-bottom: 2px solid $border-color;
+  }
 }
-.auction-actions {
+
+// Tabs styling - clean and professional
+.admin-tabs {
+  display: flex;
+  gap: $spacing-2;
+  margin-bottom: $spacing-6;
+  border-bottom: 2px solid $border-color;
+  padding-bottom: 0;
+  
+  button {
+    padding: $spacing-4 $spacing-6;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    color: $text-secondary;
+    border-bottom: 3px solid transparent;
+    transition: all $duration-base $ease-in-out;
+    position: relative;
+    bottom: -2px;
+    
+    &:hover {
+      color: $primary-color;
+      background-color: $gray-50;
+    }
+    
+    &.active {
+      color: $primary-color;
+      border-bottom-color: $primary-color;
+      font-weight: $font-weight-semibold;
+    }
+  }
+}
+
+// Table container - clean white card with horizontal scroll
+.admin-table-container {
+  background: $white-color;
+  border-radius: $radius-md;
+  box-shadow: $shadow-base;
+  overflow-x: auto;
+  overflow-y: visible;
+  border: 1px solid $border-color;
+  -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
+  
+  // Custom scrollbar styling for better UX
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: $gray-100;
+    border-radius: $radius-base;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: $gray-400;
+    border-radius: $radius-base;
+    
+    &:hover {
+      background: $gray-500;
+    }
+  }
+  
+  // Firefox scrollbar
+  scrollbar-width: thin;
+  scrollbar-color: $gray-400 $gray-100;
+}
+
+// Table styling
+.admin-table {
+  width: 100%;
+  min-width: 1200px; // Minimum width to prevent columns from being too cramped
+  border-collapse: collapse;
+  font-size: $font-size-base;
+  
+  thead {
+    background: $gray-50;
+    border-bottom: 2px solid $border-color;
+    
+    th {
+      padding: $spacing-5 $spacing-4;
+      text-align: left;
+      font-weight: $font-weight-semibold;
+      color: $text-color;
+      font-size: $font-size-sm;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      background: $gray-50;
+      z-index: 10;
+      
+      // Column-specific minimum widths
+      &:nth-child(1) { // Sản phẩm
+        min-width: 280px;
+        padding-left: $spacing-6;
+      }
+      
+      &:nth-child(2) { // Giá hiện tại
+        min-width: 140px;
+      }
+      
+      &:nth-child(3) { // Thời gian bắt đầu
+        min-width: 180px;
+      }
+      
+      &:nth-child(4) { // Thời gian kết thúc
+        min-width: 180px;
+      }
+      
+      &:nth-child(5) { // Thời gian còn lại
+        min-width: 150px;
+      }
+      
+      &:nth-child(6) { // Số lượt giá
+        min-width: 120px;
+        text-align: center;
+      }
+      
+      &:nth-child(7) { // Trạng thái
+        min-width: 130px;
+        text-align: center;
+      }
+      
+      &:nth-child(8) { // Hành động
+        min-width: 200px;
+        padding-right: $spacing-6;
+        text-align: center;
+      }
+    }
+  }
+  
+  tbody {
+    tr {
+      border-bottom: 1px solid $border-light;
+      transition: background-color $duration-fast $ease-in-out;
+      
+      &:hover {
+        background-color: $gray-50;
+      }
+      
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+    
+    td {
+      padding: $spacing-5 $spacing-4;
+      vertical-align: middle;
+      white-space: nowrap;
+      
+      &:nth-child(1) { // Sản phẩm
+        min-width: 280px;
+        padding-left: $spacing-6;
+      }
+      
+      &:nth-child(2) { // Giá hiện tại
+        min-width: 140px;
+      }
+      
+      &:nth-child(3) { // Thời gian bắt đầu
+        min-width: 180px;
+      }
+      
+      &:nth-child(4) { // Thời gian kết thúc
+        min-width: 180px;
+      }
+      
+      &:nth-child(5) { // Thời gian còn lại
+        min-width: 150px;
+      }
+      
+      &:nth-child(6) { // Số lượt giá
+        min-width: 120px;
+        text-align: center;
+      }
+      
+      &:nth-child(7) { // Trạng thái
+        min-width: 130px;
+        text-align: center;
+      }
+      
+      &:nth-child(8) { // Hành động
+        min-width: 200px;
+        padding-right: $spacing-6;
+      }
+      
+      &.empty-cell {
+        text-align: center;
+        padding: $spacing-16 $spacing-4;
+        white-space: normal;
+      }
+    }
+  }
+}
+
+// Product cell styling
+.product-cell {
   display: flex;
   align-items: center;
-  justify-content: center; // căn giữa nút "Hủy phiên"
-  gap: $spacing-2; // giữ khoảng cách giữa các nút nếu có
+  gap: $spacing-4;
+  min-width: 280px;
+  
+  img {
+    width: 100px;
+    height: 75px;
+    object-fit: cover;
+    border-radius: $radius-base;
+    border: 1px solid $border-color;
+    background: $gray-100;
+    flex-shrink: 0; // Prevent image from shrinking
+  }
+  
+  .product-info {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-1;
+    min-width: 0;
+    flex: 1;
+    
+    a {
+      font-weight: $font-weight-semibold;
+      color: $text-color;
+      text-decoration: none;
+      font-size: $font-size-base;
+      line-height: $line-height-normal;
+      transition: color $duration-fast $ease-in-out;
+      white-space: normal; // Allow text wrapping in product title
+      word-break: break-word;
+      
+      &:hover {
+        color: $primary-color;
+      }
+    }
+    
+    span {
+      font-size: $font-size-sm;
+      color: $text-secondary;
+      white-space: normal;
+    }
+  }
 }
+
+// Price styling
+td {
+  strong {
+    color: $primary-color;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-lg;
+  }
+}
+
+// Time display
+td {
+  color: $text-color;
+  font-size: $font-size-sm;
+  white-space: nowrap;
+}
+
+// Status badge
 .status-badge {
-    display: inline-flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
-    &.status--live { @include status-badge(lighten($primary-color, 45%), $primary-color); }
-    &.status--scheduled { @include status-badge(lighten($accent-color, 35%), darken($accent-color, 15%)); }
-    &.status--ended { @include status-badge(#f0f2f5, #777); }
-    &.status--cancelled { @include status-badge(#fdeaea, #e74c3c); }
+  padding: 6px 14px;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  min-width: 100px;
+  
+  &.status--live {
+    background-color: lighten($primary-color, 45%);
+    color: $primary-color;
+  }
+  
+  &.status--scheduled {
+    background-color: lighten($accent-color, 35%);
+    color: darken($accent-color, 15%);
+  }
+  
+  &.status--ended {
+    background-color: $gray-100;
+    color: $text-secondary;
+  }
+  
+  &.status--cancelled {
+    background-color: lighten($error-color, 40%);
+    color: $error-color;
+  }
+}
+
+// Time remaining/ended
+.time-remaining {
+  color: $primary-color;
+  font-weight: $font-weight-medium;
+  font-size: $font-size-sm;
+}
+
+.time-ended {
+  color: $text-secondary;
+  font-style: italic;
+  font-size: $font-size-sm;
+}
+
+// Bids count
+.bids-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  padding: 6px 12px;
+  background-color: lighten($primary-color, 45%);
+  color: $primary-color;
+  border-radius: $radius-base;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+}
+
+// Actions cell
+.actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-2;
+  flex-wrap: wrap;
+}
+
+// Action buttons
+.action-btn {
+  padding: 8px 16px;
+  border-radius: $radius-base;
+  border: none;
+  cursor: pointer;
+  font-weight: $font-weight-medium;
+  font-size: $font-size-sm;
+  transition: all $duration-fast $ease-in-out;
+  white-space: nowrap;
+  min-width: 80px;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: $shadow-sm;
+    opacity: 0.9;
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  &.btn--approve {
+    background-color: $primary-color;
+    color: $white-color;
+    
+    &:hover {
+      background-color: darken($primary-color, 8%);
+    }
+  }
+  
+  &.btn--end {
+    background-color: $warning-color;
+    color: $white-color;
+    
+    &:hover {
+      background-color: darken($warning-color, 8%);
+    }
+  }
+  
+  &.btn--reject {
+    background-color: $error-color;
+    color: $white-color;
+    
+    &:hover {
+      background-color: darken($error-color, 8%);
+    }
+  }
+}
+
+.no-actions {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  font-style: italic;
+  padding: $spacing-2;
+}
+
+// Loading spinner
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-3;
+  padding: $spacing-8;
+  color: $text-secondary;
+  font-size: $font-size-base;
+  
+  &::before {
+    content: '';
+    width: 24px;
+    height: 24px;
+    border: 3px solid $gray-200;
+    border-top: 3px solid $primary-color;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Empty state
+.empty-state {
+  padding: $spacing-12;
+  text-align: center;
+  
+  .empty-state-title {
+    font-size: $font-size-lg;
+    color: $text-color;
+    margin-bottom: $spacing-3;
+    font-weight: $font-weight-medium;
+  }
+  
+  .empty-state-subtitle {
+    font-size: $font-size-base;
+    color: $text-secondary;
+    margin: 0;
+  }
+}
+
+// Pagination wrapper
+.pagination-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-6;
+  background: $white-color;
+  border-top: 1px solid $border-color;
+  margin-top: $spacing-4;
+  border-radius: 0 0 $radius-md $radius-md;
+  
+  .pagination-info {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    font-weight: $font-weight-medium;
+  }
+}
+
+// Responsive design
+@include tablet {
+  .admin-page {
+    h1 {
+      font-size: $font-size-2xl;
+    }
+  }
+  
+  .admin-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .admin-table {
+    font-size: $font-size-sm;
+    min-width: 1100px; // Slightly smaller min-width for tablet
+    
+    thead th {
+      padding: $spacing-4 $spacing-3;
+      font-size: $font-size-xs;
+    }
+    
+    tbody td {
+      padding: $spacing-4 $spacing-3;
+    }
+    
+    .product-cell {
+      img {
+        width: 80px;
+        height: 60px;
+      }
+    }
+  }
+}
+
+@include mobile {
+  .admin-page {
+    h1 {
+      font-size: $font-size-xl;
+      margin-bottom: $spacing-4;
+    }
+  }
+  
+  .admin-tabs {
+    flex-wrap: wrap;
+    gap: $spacing-1;
+    
+    button {
+      flex: 1 1 calc(50% - 4px);
+      padding: $spacing-3 $spacing-4;
+      font-size: $font-size-sm;
+    }
+  }
+  
+  .admin-table-container {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    border-radius: $radius-base;
+    
+    // Make scrollbar more visible on mobile
+    &::-webkit-scrollbar {
+      height: 10px;
+    }
+  }
+  
+  .admin-table {
+    min-width: 900px; // Smaller min-width for mobile to allow scrolling
+    
+    thead th {
+      padding: $spacing-3 $spacing-2;
+      font-size: $font-size-xs;
+      
+      // Reduce min-widths slightly on mobile
+      &:nth-child(1) { min-width: 240px; }
+      &:nth-child(2) { min-width: 120px; }
+      &:nth-child(3) { min-width: 160px; }
+      &:nth-child(4) { min-width: 160px; }
+      &:nth-child(5) { min-width: 130px; }
+      &:nth-child(6) { min-width: 100px; }
+      &:nth-child(7) { min-width: 110px; }
+      &:nth-child(8) { min-width: 180px; }
+    }
+    
+    tbody td {
+      padding: $spacing-3 $spacing-2;
+      
+      // Reduce min-widths slightly on mobile
+      &:nth-child(1) { min-width: 240px; }
+      &:nth-child(2) { min-width: 120px; }
+      &:nth-child(3) { min-width: 160px; }
+      &:nth-child(4) { min-width: 160px; }
+      &:nth-child(5) { min-width: 130px; }
+      &:nth-child(6) { min-width: 100px; }
+      &:nth-child(7) { min-width: 110px; }
+      &:nth-child(8) { min-width: 180px; }
+    }
+    
+    .product-cell {
+      gap: $spacing-2;
+      min-width: 240px;
+      
+      img {
+        width: 60px;
+        height: 45px;
+      }
+    }
+  }
+  
+  .pagination-wrapper {
+    flex-direction: column;
+    gap: $spacing-3;
+    padding: $spacing-4;
+    
+    .pagination-info {
+      text-align: center;
+    }
+  }
+  
+  .actions-cell {
+    flex-direction: column;
+    gap: $spacing-2;
+    
+    .action-btn {
+      width: 100%;
+      min-width: unset;
+    }
+  }
 }

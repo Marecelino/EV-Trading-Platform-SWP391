@@ -4,13 +4,20 @@ import { CreateEVAuctionDto, CreateBatteryAuctionDto } from '../types/api';
 
 const auctionApi = {
   // Get all auctions with optional status filter
+  // Backend requires page, limit, and status parameters in the URL
   getAllAuctions: (status?: string, page?: number, limit?: number) => {
     const params = new URLSearchParams();
-    if (status) params.append('status', status);
-    if (page) params.append('page', page.toString());
-    if (limit) params.append('limit', limit.toString());
+    // Always include page (default: 1)
+    params.append('page', (page || 1).toString());
+    // Always include limit (default: 10)
+    params.append('limit', (limit || 10).toString());
+    // Include status if provided
+    if (status) {
+      params.append('status', status);
+    }
     
-    return axiosClient.get(`/auctions?${params.toString()}`);
+    const queryString = params.toString();
+    return axiosClient.get(`/auctions?${queryString}`);
   },
 
   // Get auction by ID
@@ -45,17 +52,22 @@ const auctionApi = {
     return axiosClient.delete(`/auctions/${id}`);
   },
 
-  // Start auction
+  // Start auction - POST /api/auctions/{id}/start
   startAuction: (id: string) => {
     return axiosClient.post(`/auctions/${id}/start`);
   },
 
-  // End auction
-  endAuction: (id: string) => {
-    return axiosClient.post(`/auctions/${id}/end`);
+  // Activate auction - PATCH /api/auctions/{id}/activate (set live now)
+  activateAuction: (id: string) => {
+    return axiosClient.patch(`/auctions/${id}/activate`);
   },
 
-  // Cancel auction
+  // End auction - PATCH /api/auctions/{id}/end (manually end)
+  endAuction: (id: string) => {
+    return axiosClient.patch(`/auctions/${id}/end`);
+  },
+
+  // Cancel auction - POST /api/auctions/{id}/cancel
   cancelAuction: (id: string) => {
     return axiosClient.post(`/auctions/${id}/cancel`);
   },

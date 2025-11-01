@@ -9,6 +9,7 @@
   h1 {
     text-align: center;
     font-size: 2.5rem;
+    margin-bottom: $spacing-3;
   }
 
   p {
@@ -19,6 +20,22 @@
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
+  }
+
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+  }
+
+  .empty-state {
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -42,4 +59,9 @@
   @include desktop-lg {
     grid-template-columns: repeat(4, 1fr);
   }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
