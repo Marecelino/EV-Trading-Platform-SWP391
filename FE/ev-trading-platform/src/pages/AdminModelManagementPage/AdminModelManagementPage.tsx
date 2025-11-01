@@ -32,6 +32,7 @@ const AdminModelManagementPage: React.FC = () => {
     top_speed: 0
   });
 
+  // CRITICAL FIX: Improve response parsing to handle multiple structures consistently
   const fetchModels = useCallback(() => {
     setIsLoading(true);
     console.log("=== FETCHING MODELS ===");
@@ -41,30 +42,38 @@ const AdminModelManagementPage: React.FC = () => {
       console.log("Full response:", response);
       console.log("Response data:", response.data);
       
-      if (response.data.data && Array.isArray(response.data.data)) {
-        setModels(response.data.data);
-        console.log(`Loaded ${response.data.data.length} models`);
+      // Handle both direct array and nested response structures
+      let modelsData: Model[] = [];
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        modelsData = response.data.data;
       } else if (Array.isArray(response.data)) {
-        setModels(response.data);
-        console.log(`Loaded ${response.data.length} models`);
-      } else {
-        console.warn("No valid models data found in response");
-        setModels([]);
+        modelsData = response.data;
       }
+      
+      setModels(modelsData);
+      console.log(`Loaded ${modelsData.length} models`);
     }).catch(error => {
       console.error("Error fetching models:", error);
       setModels([]);
     }).finally(() => setIsLoading(false));
   }, []);
 
+  // CRITICAL FIX: Improve response parsing for brands
   const fetchBrands = useCallback(() => {
     brandApi.getBrands().then(response => {
-      if (Array.isArray(response.data)) {
-        setBrands(response.data);
-        console.log(`Loaded ${response.data.length} brands`);
+      // Handle both direct array and nested response structures
+      let brandsData: Brand[] = [];
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        brandsData = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        brandsData = response.data;
       }
+      
+      setBrands(brandsData);
+      console.log(`Loaded ${brandsData.length} brands`);
     }).catch(error => {
       console.error("Error fetching brands:", error);
+      setBrands([]);
     });
   }, []);
 

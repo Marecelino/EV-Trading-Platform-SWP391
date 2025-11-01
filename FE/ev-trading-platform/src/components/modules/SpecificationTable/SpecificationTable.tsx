@@ -9,7 +9,7 @@ interface SpecTableProps {
 
 // Type guard to check if details are for an EV
 function isEV(details: EVDetail | BatteryDetail): details is EVDetail {
-  return (details as EVDetail).mileage !== undefined;
+  return (details as EVDetail).mileage_km !== undefined || (details as EVDetail).mileage !== undefined;
 }
 
 // Helper component for a table row
@@ -57,11 +57,17 @@ const SpecificationTable: React.FC<SpecTableProps> = ({ details }) => {
             <tbody>
               <SpecRow
                 label="Năm sản xuất"
-                value={details.year_of_manufacture}
+                value={details.year || details.year_of_manufacture}
               />
               <SpecRow
                 label="Số KM đã đi"
-                value={`${details.mileage.toLocaleString("vi-VN")} km`}
+                value={
+                  details.mileage_km 
+                    ? `${details.mileage_km.toLocaleString("vi-VN")} km`
+                    : details.mileage 
+                    ? `${details.mileage.toLocaleString("vi-VN")} km`
+                    : undefined
+                }
               />
               <SpecRow label="Màu sắc" value={details.color} />
               <SpecRow label="Số ghế" value={details.seats} />
@@ -83,29 +89,45 @@ const SpecificationTable: React.FC<SpecTableProps> = ({ details }) => {
             <tbody>
               <SpecRow
                 label="Dung lượng pin"
-                value={`${details.battery_capacity} kWh`}
+                value={
+                  details.battery_capacity_kwh !== undefined
+                    ? `${details.battery_capacity_kwh} kWh`
+                    : details.battery_capacity !== undefined
+                    ? `${details.battery_capacity} kWh`
+                    : undefined
+                }
               />
               <SpecRow
                 label="Quãng đường (tối đa)"
-                value={`${details.range} km`}
+                value={
+                  details.range_km !== undefined
+                    ? `${details.range_km.toLocaleString("vi-VN")} km`
+                    : details.range !== undefined
+                    ? `${details.range.toLocaleString("vi-VN")} km`
+                    : undefined
+                }
               />
               <SpecRow
                 label="Thời gian sạc"
-                value={`${details.charging_time} phút`}
+                value={details.charging_time ? `${details.charging_time} phút` : undefined}
               />
               <SpecRow
                 label="Công suất động cơ"
-                value={`${details.motor_power} kW`}
+                value={details.motor_power ? `${details.motor_power} kW` : undefined}
               />
             </tbody>
           </table>
 
-          <h3 className="spec-group-title">Tính năng & Tiện ích</h3>
-          <table>
-            <tbody>
-              <SpecArrayRow label="Tính năng" items={details.features} />
-            </tbody>
-          </table>
+          {details.features && details.features.length > 0 && (
+            <>
+              <h3 className="spec-group-title">Tính năng & Tiện ích</h3>
+              <table>
+                <tbody>
+                  <SpecArrayRow label="Tính năng" items={details.features} />
+                </tbody>
+              </table>
+            </>
+          )}
         </>
       ) : (
         // --- RENDER BATTERY DETAILS ---
@@ -113,14 +135,38 @@ const SpecificationTable: React.FC<SpecTableProps> = ({ details }) => {
           <h3 className="spec-group-title">Thông số kỹ thuật cơ bản</h3>
           <table>
             <tbody>
-              <SpecRow label="Dung lượng" value={`${details.capacity} kWh`} />
-              <SpecRow label="Điện áp" value={`${details.voltage} V`} />
+              <SpecRow 
+                label="Dung lượng" 
+                value={
+                  details.capacity_kwh !== undefined
+                    ? `${details.capacity_kwh} kWh`
+                    : details.capacity !== undefined
+                    ? `${details.capacity} kWh`
+                    : undefined
+                } 
+              />
+              <SpecRow 
+                label="Điện áp" 
+                value={details.voltage ? `${details.voltage} V` : undefined} 
+              />
               <SpecRow
                 label="Tình trạng pin (SOH)"
-                value={`${details.state_of_health} %`}
+                value={
+                  details.soh_percent !== undefined
+                    ? `${details.soh_percent} %`
+                    : details.state_of_health !== undefined
+                    ? `${details.state_of_health} %`
+                    : undefined
+                }
               />
-              <SpecRow label="Loại pin" value={details.chemistry_type} />
-              <SpecRow label="Số lần sạc" value={details.cycle_count} />
+              <SpecRow 
+                label="Loại pin" 
+                value={details.battery_type || details.chemistry_type} 
+              />
+              <SpecRow 
+                label="Số lần sạc" 
+                value={details.cycle_count} 
+              />
             </tbody>
           </table>
 
@@ -128,10 +174,22 @@ const SpecificationTable: React.FC<SpecTableProps> = ({ details }) => {
           <table>
             <tbody>
               <SpecRow
+                label="Năm sản xuất"
+                value={
+                  details.manufacture_year !== undefined
+                    ? details.manufacture_year.toString()
+                    : details.manufacturing_date
+                    ? new Date(details.manufacturing_date).getFullYear().toString()
+                    : undefined
+                }
+              />
+              <SpecRow
                 label="Ngày sản xuất"
-                value={new Date(details.manufacturing_date).toLocaleDateString(
-                  "vi-VN"
-                )}
+                value={
+                  details.manufacturing_date
+                    ? new Date(details.manufacturing_date).toLocaleDateString("vi-VN")
+                    : undefined
+                }
               />
               <SpecRow
                 label="Bảo hành còn lại"
@@ -140,32 +198,40 @@ const SpecificationTable: React.FC<SpecTableProps> = ({ details }) => {
             </tbody>
           </table>
 
-          <h3 className="spec-group-title">Thông số vật lý</h3>
-          <table>
-            <tbody>
-              <SpecRow label="Cân nặng" value={`${details.weight} kg`} />
-              {details.dimensions && (
-                <SpecRow
-                  label="Kích thước (D x R x C)"
-                  value={`${details.dimensions.length} x ${details.dimensions.width} x ${details.dimensions.height} mm`}
-                />
-              )}
-            </tbody>
-          </table>
+          {(details.weight || details.dimensions) && (
+            <>
+              <h3 className="spec-group-title">Thông số vật lý</h3>
+              <table>
+                <tbody>
+                  <SpecRow label="Cân nặng" value={details.weight ? `${details.weight} kg` : undefined} />
+                  {details.dimensions && details.dimensions.length && details.dimensions.width && details.dimensions.height && (
+                    <SpecRow
+                      label="Kích thước (D x R x C)"
+                      value={`${details.dimensions.length} x ${details.dimensions.width} x ${details.dimensions.height} mm`}
+                    />
+                  )}
+                </tbody>
+              </table>
+            </>
+          )}
 
-          <h3 className="spec-group-title">Tương thích & Chứng nhận</h3>
-          <table>
-            <tbody>
-              <SpecArrayRow
-                label="Model tương thích"
-                items={details.compatible_models}
-              />
-              <SpecArrayRow
-                label="Chứng nhận"
-                items={details.certification}
-              />
-            </tbody>
-          </table>
+          {(details.compatible_models || details.certification) && (
+            <>
+              <h3 className="spec-group-title">Tương thích & Chứng nhận</h3>
+              <table>
+                <tbody>
+                  <SpecArrayRow
+                    label="Model tương thích"
+                    items={details.compatible_models}
+                  />
+                  <SpecArrayRow
+                    label="Chứng nhận"
+                    items={details.certification}
+                  />
+                </tbody>
+              </table>
+            </>
+          )}
         </>
       )}
     </div>

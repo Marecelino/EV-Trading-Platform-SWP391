@@ -1,20 +1,22 @@
 import axiosClient from './axiosClient';
+import { CreateReviewDto } from '../types/api';
+import { Review } from '../types';
 
 const reviewApi = {
-  getReviews: () => {
-    return axiosClient.get('/reviews');
+  getReviews: (params?: { reviewee_id?: string; reviewer_id?: string; page?: number; limit?: number }) => {
+    return axiosClient.get<Review[]>('/reviews', { params });
   },
 
   getReviewById: (id: string) => {
-    return axiosClient.get(`/reviews/${id}`);
+    return axiosClient.get<Review>(`/reviews/${id}`);
   },
 
-  createReview: (data: any) => {
-    return axiosClient.post('/reviews', data);
+  createReview: (data: CreateReviewDto) => {
+    return axiosClient.post<Review>('/reviews', data);
   },
 
-  updateReview: (id: string, data: any) => {
-    return axiosClient.patch(`/reviews/${id}`, data);
+  updateReview: (id: string, data: Partial<CreateReviewDto>) => {
+    return axiosClient.patch<Review>(`/reviews/${id}`, data);
   },
 
   deleteReview: (id: string) => {
@@ -22,7 +24,7 @@ const reviewApi = {
   },
 
   updateReviewVisibility: (id: string, isVisible: boolean) => {
-    return axiosClient.patch(`/reviews/${id}/visibility`, { isVisible });
+    return axiosClient.patch<Review>(`/reviews/${id}/visibility`, { is_visible: isVisible });
   },
 };
 

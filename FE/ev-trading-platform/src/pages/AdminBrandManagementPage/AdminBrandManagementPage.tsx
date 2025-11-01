@@ -21,6 +21,7 @@ const AdminBrandManagementPage: React.FC = () => {
     is_active: true
   });
 
+  // CRITICAL FIX: Improve response parsing to handle multiple structures consistently
   const fetchBrands = useCallback(() => {
     setIsLoading(true);
     console.log("=== FETCHING BRANDS ===");
@@ -30,13 +31,16 @@ const AdminBrandManagementPage: React.FC = () => {
       console.log("Full response:", response);
       console.log("Response data:", response.data);
       
-      if (Array.isArray(response.data)) {
-        setBrands(response.data);
-        console.log(`Loaded ${response.data.length} brands`);
-      } else {
-        console.warn("No valid brands data found in response");
-        setBrands([]);
+      // Handle both direct array and nested response structures
+      let brandsData: Brand[] = [];
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        brandsData = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        brandsData = response.data;
       }
+      
+      setBrands(brandsData);
+      console.log(`Loaded ${brandsData.length} brands`);
     }).catch(error => {
       console.error("Error fetching brands:", error);
       setBrands([]);

@@ -1,5 +1,5 @@
 // src/pages/CreateListingPage/CreateListingPage.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Car, BatteryCharging } from "lucide-react";
 import AuctionFormSection from "../../components/modules/forms/AuctionFormSection";
@@ -7,14 +7,55 @@ import Button from "../../components/common/Button/Button";
 import ImageUploader from "../../components/common/ImageUploader/ImageUploader";
 import PaymentModal from "../../components/modals/PaymentModal/PaymentModal";
 import listingApi from "../../api/listingApi";
+import auctionApi from "../../api/auctionApi";
 import brandApi from "../../api/brandApi";
-import modelApi from "../../api/modelApi";
-import { Brand, Model, Category } from "../../types";
+import { Brand } from "../../types";
+import { CreateEVListingDto, CreateBatteryListingDto, CreateEVAuctionDto, CreateBatteryAuctionDto } from "../../types/api";
+import { useAuth } from "../../contexts/AuthContext";
 import "./CreateListingPage.scss";
+
+// Default placeholder image URL - sử dụng khi seller không upload ảnh
+const DEFAULT_PLACEHOLDER_IMAGE_URL = "https://tse1.mm.bing.net/th/id/OIP.CpI4hlHw3GEBWi67sFUFpQHaHa?rs=1&pid=ImgDetMain&o=7&rm=3";
 
 type Category = "ev" | "battery";
 type ListingType = "direct_sale" | "auction";
 type FormState = Record<string, unknown>;
+
+// CRITICAL FIX: Define proper interfaces for form data structures
+interface LocationFormData {
+  city?: string;
+  district?: string;
+  address?: string;
+}
+
+interface EVDetailsFormData {
+  year_of_manufacture?: number;
+  mileage?: number;
+  battery_capacity?: number;
+  range?: number;
+}
+
+interface BatteryDetailsFormData {
+  capacity?: number; // maps to capacity_kwh
+  state_of_health?: number; // maps to soh_percent
+  manufacturing_date?: string; // maps to manufacture_year
+}
+
+interface CreateListingResponse {
+  listing_fee_id?: string;
+  amount_due?: number;
+  [key: string]: unknown;
+}
+
+// Validation errors state
+type ValidationErrors = {
+  title?: string;
+  description?: string;
+  price?: string;
+  brand_name?: string;
+  images?: string;
+  [key: string]: string | undefined;
+};
 
 const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({
   title,
@@ -27,6 +68,7 @@ const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({
 );
 
 const CreateListingPage: React.FC = () => {
+  const { user } = useAuth();
   const [category, setCategory] = useState<Category | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -38,6 +80,24 @@ const CreateListingPage: React.FC = () => {
     listing_fee_id: string;
     amount_due: number;
   } | null>(null);
+  
+  // CRITICAL FIX: Fetch brands for brand_name mapping
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+
+  // Fetch brands on mount
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const response = await brandApi.getActiveBrands();
+        const brandsData = response.data?.data || response.data || [];
+        setBrands(Array.isArray(brandsData) ? brandsData : []);
+      } catch (error) {
+        console.error("Failed to fetch brands:", error);
+      }
+    };
+    fetchBrands();
+  }, []);
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -67,31 +127,243 @@ const CreateListingPage: React.FC = () => {
     }
   };
 
+  // Validation function
+  const validateForm = (): boolean => {
+    const errors: ValidationErrors = {};
+
+    // Title validation: min 5, max 100
+    const title = (formData.title as string) || "";
+    if (title.length < 5) {
+      errors.title = "Tiêu đề phải có ít nhất 5 ký tự";
+    } else if (title.length > 100) {
+      errors.title = "Tiêu đề không được vượt quá 100 ký tự";
+    }
+
+    // Description validation: min 20, max 2000
+    const description = (formData.description as string) || "";
+    if (description.length < 20) {
+      errors.description = "Mô tả phải có ít nhất 20 ký tự";
+    } else if (description.length > 2000) {
+      errors.description = "Mô tả không được vượt quá 2000 ký tự";
+    }
+
+    // Price validation: min 0
+    const price = Number(formData.price) || 0;
+    if (price <= 0) {
+      errors.price = "Giá phải lớn hơn 0";
+    }
+
+    // Brand validation: must select a brand
+    if (!formData.brand_id) {
+      errors.brand_name = "Vui lòng chọn hãng";
+    }
+
+    // Images validation: max 10 (removed min requirement - will use placeholder if no images)
+    if (imageUrls.length > 10) {
+      errors.images = "Chỉ được tải lên tối đa 10 hình ảnh";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
+    if (!category) {
+      setValidationErrors({ brand_name: "Vui lòng chọn loại sản phẩm (Xe điện hoặc Pin)" });
+      return;
+    }
+
+    if (!user?._id) {
+      alert("Vui lòng đăng nhập để tạo tin đăng");
+      navigate("/login");
+      return;
+    }
+
     setIsLoading(true);
+    setValidationErrors({});
 
     try {
-      // Dữ liệu cuối cùng để gửi đi
-      const finalData = {
-        ...formData,
-        listing_type: listingType,
-        category: category, // Thêm category để backend dễ xác định loại phí
-        images: imageUrls,
+      // CRITICAL FIX: Map brand_id to brand_name
+      const selectedBrand = brands.find(b => b._id === formData.brand_id);
+      if (!selectedBrand) {
+        setValidationErrors({ brand_name: "Hãng không hợp lệ" });
+        setIsLoading(false);
+        return;
+      }
+
+      // CRITICAL FIX: Location should be string, not object
+      const locationString = formData.location
+        ? (typeof formData.location === 'string'
+            ? formData.location
+            : (() => {
+                const location = formData.location as LocationFormData;
+                return `${location.district || ''}, ${location.city || ''}`.trim();
+              })())
+        : undefined;
+
+      // CRITICAL FIX: Ensure images array has at least 1 URL (use placeholder if no images uploaded)
+      const finalImageUrls = imageUrls.length > 0 
+        ? imageUrls 
+        : [DEFAULT_PLACEHOLDER_IMAGE_URL];
+
+      // CRITICAL FIX: Backend requires separate endpoints for EV and Battery
+      // Map form data to the correct DTO structure based on category
+      
+      const baseListingData = {
+        seller_id: user._id,
+        brand_name: selectedBrand.name, // FIXED: Use brand name from selected brand
+        title: (formData.title as string).trim(),
+        description: (formData.description as string).trim(),
+        price: Number(formData.price),
+        condition: (formData.condition as 'new' | 'like_new' | 'excellent' | 'good' | 'fair' | 'poor') || 'good',
+        images: finalImageUrls, // Use finalImageUrls (with placeholder if needed)
+        location: locationString, // FIXED: Use string instead of object
       };
 
-      // Luôn gọi API POST /listings để khởi tạo
-      const response = await listingsApi.create(finalData);
+      let response;
+      
+      // Handle auction vs direct sale
+      if (listingType === "auction") {
+        // Auction creation - use separate endpoints for EV and Battery
+        const selectedBrand = brands.find(b => b._id === formData.brand_id);
+        if (!selectedBrand) {
+          setValidationErrors({ brand_name: "Hãng không hợp lệ" });
+          setIsLoading(false);
+          return;
+        }
 
-      if (response.data.success) {
-        setFeeInfo(response.data.data);
-        setIsPaymentModalOpen(true);
+        // CRITICAL FIX: Ensure images array has at least 1 URL for auction too
+        const finalAuctionImageUrls = imageUrls.length > 0 
+          ? imageUrls 
+          : [DEFAULT_PLACEHOLDER_IMAGE_URL];
+
+        const auctionBaseData = {
+          seller_id: user._id,
+          brand_name: selectedBrand.name,
+          title: (formData.title as string).trim(),
+          description: (formData.description as string).trim(),
+          condition: (formData.condition as 'new' | 'like_new' | 'excellent' | 'good' | 'fair' | 'poor') || 'good',
+          images: finalAuctionImageUrls, // Use finalAuctionImageUrls (with placeholder if needed)
+          location: locationString,
+          starting_price: Number((formData.auction as { starting_price?: string })?.starting_price || 0),
+          min_increment: Number((formData.auction as { min_increment?: string })?.min_increment || 0),
+          buy_now_price: (formData.auction as { buy_now_price?: string })?.buy_now_price 
+            ? Number((formData.auction as { buy_now_price?: string }).buy_now_price) 
+            : undefined,
+        };
+
+        // Convert datetime-local to ISO 8601
+        const startTime = (formData.auction as { start_time?: string })?.start_time;
+        const endTime = (formData.auction as { end_time?: string })?.end_time;
+        
+        if (!startTime || !endTime) {
+          setValidationErrors({ title: "Vui lòng nhập đầy đủ thời gian bắt đầu và kết thúc đấu giá" });
+          setIsLoading(false);
+          return;
+        }
+
+        if (category === "ev") {
+          const evDetails = formData.ev_details as EVDetailsFormData | undefined;
+          const evAuctionData: CreateEVAuctionDto = {
+            ...auctionBaseData,
+            start_time: new Date(startTime).toISOString(),
+            end_time: new Date(endTime).toISOString(),
+            year: evDetails?.year_of_manufacture,
+            mileage: evDetails?.mileage,
+            battery_capacity: evDetails?.battery_capacity,
+            range: evDetails?.range,
+            manufacture_year: evDetails?.year_of_manufacture, // Can be same as year
+          };
+          response = await auctionApi.createEVAuction(evAuctionData);
+        } else {
+          const batteryDetails = formData.battery_details as BatteryDetailsFormData | undefined;
+          const batteryAuctionData: CreateBatteryAuctionDto = {
+            ...auctionBaseData,
+            start_time: new Date(startTime).toISOString(),
+            end_time: new Date(endTime).toISOString(),
+            capacity_kwh: batteryDetails?.capacity,
+            soh_percent: batteryDetails?.state_of_health,
+            manufacture_year: batteryDetails?.manufacturing_date 
+              ? new Date(batteryDetails.manufacturing_date).getFullYear() 
+              : undefined,
+          };
+          response = await auctionApi.createBatteryAuction(batteryAuctionData);
+        }
       } else {
-        throw new Error(response.data.message || "Có lỗi xảy ra");
+        // Direct sale - use listing endpoints
+        if (category === "ev") {
+          const evDetails = formData.ev_details as EVDetailsFormData | undefined;
+          // Map EV-specific fields - FIXED: Use correct field names
+          const evData: CreateEVListingDto = {
+            ...baseListingData,
+            year: evDetails?.year_of_manufacture,
+            mileage: evDetails?.mileage, // FIXED: mileage not mileage_km
+            battery_capacity: evDetails?.battery_capacity, // FIXED: battery_capacity not battery_capacity_kwh
+            range: evDetails?.range, // FIXED: range not range_km
+          };
+          response = await listingApi.createEV(evData);
+        } else {
+          const batteryDetails = formData.battery_details as BatteryDetailsFormData | undefined;
+          // Map Battery-specific fields - FIXED: Remove battery_type
+          const batteryData: CreateBatteryListingDto = {
+            ...baseListingData,
+            capacity_kwh: batteryDetails?.capacity,
+            soh_percent: batteryDetails?.state_of_health,
+            manufacture_year: batteryDetails?.manufacturing_date 
+              ? new Date(batteryDetails.manufacturing_date).getFullYear() 
+              : undefined,
+          };
+          response = await listingApi.createBattery(batteryData);
+        }
+      }
+
+      // Handle response - check if payment is required
+      // Note: Response structure may vary, adjust based on actual backend response
+      if (response.data) {
+        // CRITICAL FIX: Use proper type instead of 'as any'
+        const responseData = response.data as CreateListingResponse | { data?: CreateListingResponse };
+        
+        // Extract payment data based on response structure
+        let paymentData: CreateListingResponse | null = null;
+        
+        if (typeof responseData === 'object' && responseData !== null) {
+          if ('data' in responseData && responseData.data && typeof responseData.data === 'object') {
+            paymentData = responseData.data as CreateListingResponse;
+          } else {
+            paymentData = responseData as CreateListingResponse;
+          }
+        }
+        
+
+        if (paymentData && typeof paymentData === 'object' && 'listing_fee_id' in paymentData && paymentData.listing_fee_id) {
+          setFeeInfo({
+            listing_fee_id: paymentData.listing_fee_id,
+            amount_due: paymentData.amount_due || 0,
+          });
+          setIsPaymentModalOpen(true);
+        } else {
+          // Success - show message and navigate
+          alert("Tạo tin đăng thành công!");
+          navigate("/dashboard/my-listings");
+        }
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Có lỗi xảy ra";
+
+      const axiosError = error as { 
+        message?: string; 
+        data?: { message?: string }; 
+        response?: { data?: { message?: string } } 
+      };
+      const message = axiosError?.message || axiosError?.data?.message || axiosError?.response?.data?.message || "Có lỗi xảy ra";
       alert(`Không thể tạo tin đăng: ${message}`);
+      console.error("Create listing error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -133,37 +405,65 @@ const CreateListingPage: React.FC = () => {
       <FormSection title="Thông tin cơ bản">
         <div className="form-grid">
           <div className="form-group">
-            <label>Hãng</label>
-            <select name="brand_id" onChange={handleInputChange} required>
+            <label htmlFor="brand_id">Hãng {validationErrors.brand_name && <span className="error-text">* {validationErrors.brand_name}</span>}</label>
+            <select 
+              id="brand_id"
+              name="brand_id" 
+              onChange={handleInputChange} 
+              required
+              className={validationErrors.brand_name ? 'error' : ''}
+              aria-invalid={!!validationErrors.brand_name}
+            >
               <option value="">Chọn hãng</option>
-              <option value="brand_vinfast">VinFast</option>
-              <option value="brand_tesla">Tesla</option>
-              <option value="brand_kia">Kia</option>
-              {category === "battery" && (
-                <option value="brand_vines">VinES</option>
-              )}
+              {brands.map((brand) => (
+                <option key={brand._id} value={brand._id}>
+                  {brand.name}
+                </option>
+              ))}
             </select>
           </div>
           {/* Bạn có thể thêm dropdown cho Model ở đây */}
           <div className="form-group full-width">
-            <label>Tiêu đề tin đăng</label>
+            <label htmlFor="title">
+              Tiêu đề tin đăng 
+              {validationErrors.title && <span className="error-text"> * {validationErrors.title}</span>}
+            </label>
             <input
+              id="title"
               name="title"
               type="text"
               placeholder="VD: Vinfast VF8 Eco 2023 còn mới"
               onChange={handleInputChange}
               required
+              minLength={5}
+              maxLength={100}
+              className={validationErrors.title ? 'error' : ''}
+              aria-invalid={!!validationErrors.title}
+              aria-describedby={validationErrors.title ? 'title-error' : undefined}
             />
+            {validationErrors.title && <span id="title-error" className="error-message">{validationErrors.title}</span>}
+            <small className="help-text">Tối thiểu 5 ký tự, tối đa 100 ký tự</small>
           </div>
           <div className="form-group full-width">
-            <label>Mô tả chi tiết</label>
+            <label htmlFor="description">
+              Mô tả chi tiết
+              {validationErrors.description && <span className="error-text"> * {validationErrors.description}</span>}
+            </label>
             <textarea
+              id="description"
               name="description"
               rows={6}
               placeholder="Mô tả tình trạng, lịch sử bảo dưỡng..."
               onChange={handleInputChange}
               required
+              minLength={20}
+              maxLength={2000}
+              className={validationErrors.description ? 'error' : ''}
+              aria-invalid={!!validationErrors.description}
+              aria-describedby={validationErrors.description ? 'description-error' : undefined}
             ></textarea>
+            {validationErrors.description && <span id="description-error" className="error-message">{validationErrors.description}</span>}
+            <small className="help-text">Tối thiểu 20 ký tự, tối đa 2000 ký tự</small>
           </div>
         </div>
       </FormSection>
@@ -186,8 +486,9 @@ const CreateListingPage: React.FC = () => {
                 name="ev_details.mileage"
                 type="number"
                 onChange={handleInputChange}
-                required
+                min={0}
               />
+              <small className="help-text">Số kilomet đã đi</small>
             </div>
             <div className="form-group">
               <label>Dung lượng pin (kWh)</label>
@@ -195,8 +496,10 @@ const CreateListingPage: React.FC = () => {
                 name="ev_details.battery_capacity"
                 type="number"
                 onChange={handleInputChange}
-                required
+                min={0}
+                step={0.1}
               />
+              <small className="help-text">Dung lượng pin tính bằng kWh</small>
             </div>
             <div className="form-group">
               <label>Quãng đường (km)</label>
@@ -204,151 +507,118 @@ const CreateListingPage: React.FC = () => {
                 name="ev_details.range"
                 type="number"
                 onChange={handleInputChange}
-                required
+                min={0}
               />
+              <small className="help-text">Quãng đường có thể đi trên một lần sạc</small>
             </div>
           </div>
         )}
-        {category?.slug === "pin-xe-dien" && (
+        {category === "battery" && (
           <div className="form-grid">
             <div className="form-group">
-              <label>Dung lượng (Ah)</label>
+              <label>Dung lượng (kWh) *</label>
               <input
                 name="battery_details.capacity"
                 type="number"
                 onChange={handleInputChange}
+                min={0}
+                step={0.1}
                 required
               />
+              <small className="help-text">Dung lượng pin tính bằng kWh</small>
             </div>
             <div className="form-group">
-              <label>Sức khỏe pin (%)</label>
+              <label>Sức khỏe pin (%) *</label>
               <input
                 name="battery_details.state_of_health"
                 type="number"
                 onChange={handleInputChange}
+                min={0}
+                max={100}
                 required
               />
+              <small className="help-text">Tình trạng pin còn lại (0-100%)</small>
             </div>
             <div className="form-group">
-              <label>Điện áp (V)</label>
-              <input
-                name="battery_details.voltage"
-                type="number"
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Loại hóa chất</label>
-              <input
-                name="battery_details.chemistry_type"
-                type="text"
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Ngày sản xuất</label>
+              <label>Năm sản xuất</label>
               <input
                 name="battery_details.manufacturing_date"
                 type="date"
                 onChange={handleInputChange}
-                required
               />
-            </div>
-            <div className="form-group">
-              <label>Bảo hành còn lại</label>
-              <input
-                name="battery_details.warranty_remaining"
-                type="text"
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Các dòng xe tương thích</label>
-              <input
-                name="battery_details.compatible_models"
-                type="text"
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Kích thước (dài)</label>
-              <input
-                name="battery_details.dimensions.length"
-                type="number"
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Kích thước (rộng)</label>
-              <input
-                name="battery_details.dimensions.width"
-                type="number"
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Kích thước (cao)</label>
-              <input
-                name="battery_details.dimensions.height"
-                type="number"
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Cân nặng (kg)</label>
-              <input
-                name="battery_details.weight"
-                type="number"
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Chứng nhận</label>
-              <input
-                name="battery_details.certification"
-                type="text"
-                onChange={handleInputChange}
-                required
-              />
+              <small className="help-text">Ngày sản xuất pin (sẽ tự động chuyển thành năm)</small>
             </div>
           </div>
         )}
       </FormSection>
 
       <FormSection title="Hình ảnh sản phẩm">
+        {validationErrors.images && (
+          <div className="error-message">{validationErrors.images}</div>
+        )}
         <ImageUploader
-          onUploadComplete={(urls) =>
-            setImageUrls((prev) => [...prev, ...urls])
-          }
+          onUploadComplete={(urls) => {
+            setImageUrls((prev) => {
+              const newUrls = [...prev, ...urls];
+              if (newUrls.length > 10) {
+                setValidationErrors(prev => ({ ...prev, images: "Chỉ được tải lên tối đa 10 hình ảnh" }));
+                return prev.slice(0, 10);
+              }
+              if (newUrls.length <= 10) {
+                setValidationErrors(prev => {
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  const { images: _images, ...rest } = prev;
+                  return rest;
+                });
+              }
+              return newUrls;
+            });
+          }}
         />
+        <small className="help-text">
+          Khuyến nghị tải lên ảnh để tin đăng hấp dẫn hơn (tối đa 10 ảnh, hiện tại: {imageUrls.length}/10)
+          {imageUrls.length === 0 && (
+            <span className="placeholder-hint"> • Nếu không tải ảnh, hệ thống sẽ sử dụng ảnh mặc định</span>
+          )}
+        </small>
       </FormSection>
 
       <FormSection title="Thông tin bán">
         <div className="form-grid">
           <div className="form-group">
-            <label>Tình trạng</label>
-            <select name="condition" onChange={handleInputChange} required>
+            <label htmlFor="condition">Tình trạng</label>
+            <select 
+              id="condition"
+              name="condition" 
+              onChange={handleInputChange} 
+              required
+            >
+              <option value="">Chọn tình trạng</option>
+              <option value="new">Mới</option>
               <option value="like_new">Như mới</option>
+              <option value="excellent">Xuất sắc</option>
               <option value="good">Tốt</option>
               <option value="fair">Khá</option>
+              <option value="poor">Kém</option>
             </select>
           </div>
           <div className="form-group">
-            <label>Giá bán (VND)</label>
+            <label htmlFor="price">
+              Giá bán (VND)
+              {validationErrors.price && <span className="error-text"> * {validationErrors.price}</span>}
+            </label>
             <input
+              id="price"
               name="price"
               type="number"
               onChange={handleInputChange}
               required
+              min={0}
+              step={1000}
+              className={validationErrors.price ? 'error' : ''}
+              aria-invalid={!!validationErrors.price}
             />
+            {validationErrors.price && <span className="error-message">{validationErrors.price}</span>}
           </div>
           <div className="form-group">
             <label>Thành phố</label>

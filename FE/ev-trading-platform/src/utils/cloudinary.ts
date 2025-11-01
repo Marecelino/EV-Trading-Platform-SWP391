@@ -1,7 +1,7 @@
 // src/utils/cloudinary.ts
 export const uploadToCloudinary = async (file: File): Promise<string> => {
   const cloudName = "dfibid2nb"; 
-  const uploadPreset = "swp392"; 
+  const uploadPreset = "swp392-ev-trading-thuntse161992"; 
 
   const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
 

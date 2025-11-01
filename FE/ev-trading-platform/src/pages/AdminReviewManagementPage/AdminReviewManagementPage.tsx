@@ -10,16 +10,54 @@ const AdminReviewManagementPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
 
+  // CRITICAL FIX: Pass pagination params to getReviews
   const fetchReviews = useCallback((page: number) => {
     setIsLoading(true);
-    reviewApi.getReviews().then(response => {
-      if (response.data.data) {
-        setReviews(response.data.data);
+    const params = { page, limit: 10 }; // Pass page and limit to API
+    
+    reviewApi.getReviews(params).then((response) => {
+      // CRITICAL FIX: Handle response structure properly
+      // getReviews returns AxiosResponse<Review[]>, so response.data is Review[] or wrapped
+      const responseData = response.data as Review[] | { 
+        data?: Review[]; 
+        meta?: { page?: number; totalPages?: number }; 
+        pagination?: { page?: number; pages?: number } 
+      };
+      
+      // Extract reviews data
+      let reviewsData: Review[] = [];
+      if (Array.isArray(responseData)) {
+        reviewsData = responseData;
+      } else if (responseData && typeof responseData === 'object' && 'data' in responseData && Array.isArray(responseData.data)) {
+        reviewsData = responseData.data;
+      }
+      
+      setReviews(reviewsData);
+      
+      // CRITICAL FIX: Handle pagination from response with proper type checking
+      // Fix mixed ?? and || operators
+      if (responseData && typeof responseData === 'object' && 'meta' in responseData && responseData.meta) {
+        const totalPages = responseData.meta.totalPages ?? (Math.ceil(reviewsData.length / 10) || 1);
         setPagination({
-            currentPage: response.data.meta.page,
-            totalPages: response.data.meta.totalPages,
+          currentPage: responseData.meta.page ?? page,
+          totalPages,
+        });
+      } else if (responseData && typeof responseData === 'object' && 'pagination' in responseData && responseData.pagination) {
+        const totalPages = responseData.pagination.pages ?? (Math.ceil(reviewsData.length / 10) || 1);
+        setPagination({
+          currentPage: responseData.pagination.page ?? page,
+          totalPages,
+        });
+      } else {
+        // Fallback pagination
+        setPagination({
+          currentPage: page,
+          totalPages: Math.ceil(reviewsData.length / 10) || 1,
         });
       }
+    }).catch((error: unknown) => {
+      console.error("Error fetching reviews:", error);
+      setReviews([]);
     }).finally(() => setIsLoading(false));
   }, []);
 
@@ -47,16 +85,26 @@ const AdminReviewManagementPage: React.FC = () => {
             {isLoading ? (
               <tr><td colSpan={6} style={{ textAlign: 'center' }}>Đang tải...</td></tr>
             ) : (
-              reviews.map(review => (
-                <tr key={review._id}>
-                  <td>{(review.reviewer_id as User).full_name}</td>
-                  <td>{(review.reviewee_id as User).full_name}</td>
-                  <td>{review.rating}</td>
-                  <td>{review.comment}</td>
-                  <td>{review.review_type}</td>
-                  <td>{new Date(review.created_at).toLocaleDateString('vi-VN')}</td>
-                </tr>
-              ))
+              reviews.map(review => {
+                // CRITICAL FIX: Add type guards for reviewer_id and reviewee_id
+                const reviewer = typeof review.reviewer_id === 'object' && review.reviewer_id
+                  ? review.reviewer_id as User
+                  : null;
+                const reviewee = typeof review.reviewee_id === 'object' && review.reviewee_id
+                  ? review.reviewee_id as User
+                  : null;
+                
+                return (
+                  <tr key={review._id}>
+                    <td>{reviewer?.full_name || 'N/A'}</td>
+                    <td>{reviewee?.full_name || 'N/A'}</td>
+                    <td>{review.rating}</td>
+                    <td>{review.comment}</td>
+                    <td>{review.review_type}</td>
+                    <td>{new Date(review.created_at).toLocaleDateString('vi-VN')}</td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

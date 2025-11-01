@@ -7,6 +7,7 @@ interface AuthContextType {
   token: string | null;
   login: (token: string, user: User) => void;
   logout: () => void;
+  completeSocialLogin: (token: string) => Promise<User>;
   loading: boolean;
 }
 
@@ -23,7 +24,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (storedToken) {
         try {
           const response = await authApi.getProfile();
-          setUser(response.data);
+          console.log("=== AUTH PROFILE RESPONSE ===");
+          console.log("Full response:", response);
+          console.log("Response data:", response.data);
+          
+          // CRITICAL FIX: Improve response parsing to handle nested structures
+          let userData = null;
+          if (response.data?.data && typeof response.data.data === 'object') {
+            userData = response.data.data;
+          } else if (response.data && typeof response.data === 'object') {
+            userData = response.data;
+          }
+          
+          if (userData) {
+            setUser(userData);
+          } else {
+            console.warn("No valid user data found in profile response");
+            localStorage.removeItem('token');
+            setToken(null);
+            setUser(null);
+          }
         } catch (error) {
           console.error('Failed to fetch profile', error);
           localStorage.removeItem('token');
@@ -49,8 +69,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  // CRITICAL FIX: Implement completeSocialLogin for OAuth callback
+  const completeSocialLogin = async (token: string): Promise<User> => {
+    // Store the token first
+    localStorage.setItem('token', token);
+    setToken(token);
+    
+    // Fetch user profile
+    try {
+      const response = await authApi.getProfile();
+      console.log("=== SOCIAL LOGIN PROFILE RESPONSE ===");
+      console.log("Full response:", response);
+      console.log("Response data:", response.data);
+      
+      // CRITICAL FIX: Improve response parsing to handle nested structures
+      let userData = null;
+      if (response.data?.data && typeof response.data.data === 'object') {
+        userData = response.data.data;
+      } else if (response.data && typeof response.data === 'object') {
+        userData = response.data;
+      }
+      
+      if (userData) {
+        setUser(userData);
+        return userData;
+      } else {
+        throw new Error('No valid user data found in profile response');
+      }
+    } catch (error) {
+      console.error('Failed to complete social login', error);
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, completeSocialLogin, loading }}>
       {children}
     </AuthContext.Provider>
   );

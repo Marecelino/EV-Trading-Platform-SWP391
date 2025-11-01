@@ -19,18 +19,41 @@ const AdminAuctionManagementPage: React.FC = () => {
     totalPages: 1,
   });
 
+  // CRITICAL FIX: Verify getAllAuctions response structure handling
   const fetchAuctions = useCallback((status: AuctionStatus, page: number) => {
     setIsLoading(true);
     auctionApi
       .getAllAuctions(status, page)
       .then((response) => {
-        if (response.data.success) {
-          setAuctions(response.data.data ?? []);
+        // Handle both response.data.success format and direct data format
+        let auctionsData: (Auction & { listing?: Product })[] = [];
+        if (response.data?.success && response.data?.data) {
+          auctionsData = response.data.data;
+        } else if (Array.isArray(response.data?.data)) {
+          auctionsData = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          auctionsData = response.data;
+        }
+        
+        setAuctions(auctionsData);
+        
+        // Handle pagination
+        if (response.data?.pagination) {
           setPagination({
-            currentPage: response.data.pagination?.page ?? 1,
-            totalPages: response.data.pagination?.pages ?? 1,
+            currentPage: response.data.pagination.page ?? page,
+            totalPages: response.data.pagination.pages ?? 1,
+          });
+        } else {
+          // If no pagination, calculate from data length
+          setPagination({
+            currentPage: page,
+            totalPages: Math.ceil(auctionsData.length / 10) || 1,
           });
         }
+      })
+      .catch(error => {
+        console.error("Error fetching auctions:", error);
+        setAuctions([]);
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -44,6 +67,7 @@ const AdminAuctionManagementPage: React.FC = () => {
     setPagination((p) => ({ ...p, currentPage: 1 }));
   };
 
+  // CRITICAL FIX: Replace approveAuction with startAuction
   const handleApproveAuction = (auctionId: string) => {
     if (
       !window.confirm(
@@ -52,13 +76,22 @@ const AdminAuctionManagementPage: React.FC = () => {
     )
       return;
 
-    auctionApi.approveAuction(auctionId).then((response) => {
-      if (response.data.success) {
+    auctionApi.startAuction(auctionId).then((response) => {
+      // Handle response structure - may be nested or direct
+      const isSuccess = response.data?.success || 
+                       (response.data && typeof response.data === 'object' && 'status' in response.data) ||
+                       response.status === 200;
+      
+      if (isSuccess) {
         alert("Duyệt thành công!");
-        setAuctions((prev) => prev.filter((a) => a._id !== auctionId));
+        // Refresh auctions list instead of just filtering
+        fetchAuctions(activeTab, pagination.currentPage);
       } else {
         alert("Có lỗi xảy ra, vui lòng thử lại.");
       }
+    }).catch(error => {
+      console.error("Error starting auction:", error);
+      alert("Có lỗi xảy ra, vui lòng thử lại.");
     });
   };
   return (

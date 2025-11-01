@@ -1,4 +1,5 @@
 import axiosClient from './axiosClient';
+import { CreateCommissionDto } from '../types/api';
 
 const commissionApi = {
   getCommissions: () => {
@@ -9,7 +10,7 @@ const commissionApi = {
     return axiosClient.get('/commissions/stats');
   },
 
-  createCommission: (data: any) => {
+  createCommission: (data: CreateCommissionDto) => {
     return axiosClient.post('/commissions', data);
   },
 

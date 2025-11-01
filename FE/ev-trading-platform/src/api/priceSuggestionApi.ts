@@ -1,7 +1,8 @@
 import axiosClient from './axiosClient';
+import { CreatePriceSuggestionDto, UpdatePriceSuggestionDto } from '../types/api';
 
 const priceSuggestionApi = {
-  createPriceSuggestion: (data: any) => {
+  createPriceSuggestion: (data: CreatePriceSuggestionDto) => {
     return axiosClient.post('/pricesuggestions', data);
   },
 
@@ -17,7 +18,7 @@ const priceSuggestionApi = {
     return axiosClient.get(`/pricesuggestions/listing/${listingId}/latest`);
   },
 
-  updatePriceSuggestion: (id: string, data: any) => {
+  updatePriceSuggestion: (id: string, data: UpdatePriceSuggestionDto) => {
     return axiosClient.put(`/pricesuggestions/${id}`, data);
   },
 

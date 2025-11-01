@@ -1,6 +1,7 @@
 // src/components/modals/EditProfileModal/EditProfileModal.tsx
 import React, { useState, useEffect } from 'react';
 import type { User } from '../../../types';
+import { UpdateUserDto, ChangePasswordDto } from '../../../types/api';
 import Button from '../../common/Button/Button';
 import { X } from 'lucide-react';
 import './EditProfileModal.scss';
@@ -9,7 +10,8 @@ interface EditProfileModalProps {
   user: User;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updatedData: any) => Promise<void>; // Dùng 'any' để chấp nhận cả mật khẩu
+  // CRITICAL FIX: Use proper types from api.ts instead of 'any'
+  onSave: (updatedData: UpdateUserDto | ChangePasswordDto) => Promise<void>;
 }
 
 const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, isOpen, onClose, onSave }) => {
@@ -51,17 +53,27 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, isOpen, onClo
     setError(null);
     setIsLoading(true);
 
-    let dataToSave: any = {};
+    // CRITICAL FIX: Map form data to correct DTO structures
+    let dataToSave: UpdateUserDto | ChangePasswordDto;
+    
     if (activeTab === 'info') {
-      dataToSave = formData;
+      // Map to UpdateUserDto: full_name -> name, avatar_url -> avatar
+      dataToSave = {
+        name: formData.full_name, // UpdateUserDto uses 'name' not 'full_name'
+        phone: formData.phone,
+        avatar: formData.avatar_url, // UpdateUserDto uses 'avatar' not 'avatar_url'
+      } as UpdateUserDto;
     } else {
+      // Map to ChangePasswordDto
       if (passwordData.newPassword !== passwordData.confirmNewPassword) {
         setError('Mật khẩu mới không khớp.');
         setIsLoading(false);
         return;
       }
-      // Trong dự án thật, backend sẽ xác thực mật khẩu hiện tại
-      dataToSave = { newPassword: passwordData.newPassword };
+      dataToSave = {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword, // minLength: 8 per DTO
+      } as ChangePasswordDto;
     }
 
     await onSave(dataToSave);

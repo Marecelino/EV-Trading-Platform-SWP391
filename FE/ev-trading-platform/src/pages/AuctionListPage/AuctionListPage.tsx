@@ -11,12 +11,24 @@ const AuctionListPage: React.FC = () => {
 
   useEffect(() => {
     setIsLoading(true);
+    // CRITICAL FIX: Replace getActiveAuctions() with getAllAuctions('live')
     auctionApi
-      .getActiveAuctions()
+      .getAllAuctions('live')
       .then((res) => {
-        if (res.data.success) {
-          setAuctions(res.data.data);
+        // Handle both response.data and response.data.data structures
+        let auctionsData: Auction[] = [];
+        if (res.data?.success && res.data?.data) {
+          auctionsData = res.data.data;
+        } else if (res.data?.data) {
+          auctionsData = res.data.data;
+        } else if (Array.isArray(res.data)) {
+          auctionsData = res.data;
         }
+        setAuctions(Array.isArray(auctionsData) ? auctionsData : []);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch auctions:", error);
+        setAuctions([]);
       })
       .finally(() => setIsLoading(false));
   }, []);

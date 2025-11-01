@@ -23,9 +23,9 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import UserProfilePage from "./pages/UserProfilePage/UserProfilePage";
 import { FavoritesProvider } from "./contexts/FavoritesContext";
 import FavoritesPage from "./pages/FavoritesPage/FavoritesPage";
-//import AuctionDetailPage from "./pages/AuctionDetailPage/AuctionDetailPage";
-//import AuctionListPage from "./pages/AuctionListPage/AuctionListPage";
-//import AdminAuctionManagementPage from "./pages/AdminAuctionManagementPage/AdminAuctionManagementPage";
+import AuctionDetailPage from "./pages/AuctionDetailPage/AuctionDetailPage";
+import AuctionListPage from "./pages/AuctionListPage/AuctionListPage";
+import AdminAuctionManagementPage from "./pages/AdminAuctionManagementPage/AdminAuctionManagementPage";
 import SocialCallbackPage from "./pages/SocialCallbackPage/SocialCallbackPage";
 import AdminContactManagementPage from "./pages/AdminContactManagementPage/AdminContactManagementPage";
 import ContactDetailPage from "./pages/ContactDetailPage/ContactDetailPage";
@@ -62,8 +62,8 @@ function App() {
                 />
                 <Route path="/compare" element={<ComparePage />} />
                 <Route path="/favorites" element={<FavoritesPage />} />
-                {/*<Route path="/auctions/:id" element={<AuctionDetailPage />} />
-                <Route path="/auctions" element={<AuctionListPage />} /> */}
+                <Route path="/auctions/:id" element={<AuctionDetailPage />} />
+                <Route path="/auctions" element={<AuctionListPage />} /> 
               </Route>
               <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route path="profile" element={<UserProfilePage />} />
@@ -97,8 +97,8 @@ function App() {
                     element={<AdminModelManagementPage />}
                   />
                   <Route
-                    //path="auctions"
-                    //element={<AdminAuctionManagementPage />}
+                    path="auctions"
+                    element={<AdminAuctionManagementPage />}
                   />
                   <Route
                     path="contacts"

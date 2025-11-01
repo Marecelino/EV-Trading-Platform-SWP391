@@ -1,6 +1,7 @@
 // src/pages/FavoritesPage/FavoritesPage.tsx
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import favoriteApi from "../../api/favoriteApi";
 import listingApi from "../../api/listingApi";
 import type { Product } from "../../types";
 import { useAuth } from "../../contexts/AuthContext";
@@ -25,29 +26,62 @@ const FavoritesPage: React.FC = () => {
       setIsLoading(true);
       try {
         console.log("=== FETCHING FAVORITE PRODUCTS ===");
-        console.log("Favorite IDs:", Array.from(favoriteIds));
+        console.log("User ID:", user._id);
         
-        // Fetch all listings first
-        const listingsResponse = await listingApi.getListings();
-        console.log("=== LISTINGS API RESPONSE ===");
-        console.log("Full response:", listingsResponse);
+        // CRITICAL FIX: Use favoriteApi.getFavorites with user_id instead of getListings
+        const favoritesResponse = await favoriteApi.getFavorites({ 
+          user_id: user._id 
+        });
+        console.log("=== FAVORITES API RESPONSE ===");
+        console.log("Full response:", favoritesResponse);
         
-        let allListings: Product[] = [];
-        if (listingsResponse.data.data) {
-          allListings = listingsResponse.data.data;
-        } else if (Array.isArray(listingsResponse.data)) {
-          allListings = listingsResponse.data;
+        // CRITICAL FIX: Fix response structure parsing
+        type FavoriteItem = { listing_id?: string | Product; auction_id?: string };
+        type ResponseData = FavoriteItem[] | { data: FavoriteItem[] } | unknown;
+        let favorites: FavoriteItem[] = [];
+        
+        const responseData = favoritesResponse.data as ResponseData;
+        if (Array.isArray(responseData)) {
+          favorites = responseData as FavoriteItem[];
+        } else if (responseData && typeof responseData === 'object' && 'data' in responseData && Array.isArray((responseData as { data: FavoriteItem[] }).data)) {
+          favorites = (responseData as { data: FavoriteItem[] }).data;
         }
         
-        console.log(`Loaded ${allListings.length} total listings`);
+        // Extract listing IDs from favorites
+        const listingIds = favorites
+          .filter(fav => fav.listing_id)
+          .map(fav => {
+            if (typeof fav.listing_id === 'object' && fav.listing_id !== null) {
+              return (fav.listing_id as Product)._id;
+            }
+            return fav.listing_id as string;
+          })
+          .filter((id): id is string => !!id);
         
-        // Filter to get only favorite products
-        const filtered = allListings.filter((product: Product) =>
-          favoriteIds.has(product._id)
-        );
+        console.log(`Found ${listingIds.length} favorite listings`);
         
-        console.log(`Found ${filtered.length} favorite products`);
-        setFavoriteProducts(filtered);
+        // Fetch listings by IDs using Promise.all
+        if (listingIds.length > 0) {
+          try {
+            const listingPromises = listingIds.map(id => listingApi.getListingById(id));
+            const listingResponses = await Promise.allSettled(listingPromises);
+            
+            const products: Product[] = [];
+            listingResponses.forEach((result) => {
+              if (result.status === 'fulfilled' && result.value.data) {
+                products.push(result.value.data);
+              }
+            });
+            
+            console.log(`Successfully loaded ${products.length} favorite products`);
+            setFavoriteProducts(products);
+          } catch (error) {
+            console.error("Error fetching favorite listings:", error);
+            setFavoriteProducts([]);
+          }
+        } else {
+          setFavoriteProducts([]);
+        }
       } catch (error) {
         console.error("Error fetching favorite products:", error);
         setFavoriteProducts([]);

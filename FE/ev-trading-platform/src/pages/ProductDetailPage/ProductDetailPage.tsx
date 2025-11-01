@@ -12,7 +12,7 @@ import favoriteApi from "../../api/favoriteApi";
 import evDetailApi from "../../api/evDetailApi";
 import batteryDetailApi from "../../api/batteryDetailApi";
 import authApi from "../../api/authApi";
-import type { Product, User } from "../../types";
+import type { Product, User, EVDetail, BatteryDetail } from "../../types";
 import PriceSuggestion from "../../components/modules/PriceSuggestion/PriceSuggestion";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -80,8 +80,21 @@ const ProductDetailPage: React.FC = () => {
           const productRes = await listingApi.getListingById(id);
           console.log("Product API Response:", productRes.data);
 
-          if (productRes.data) {
-            let productData: Product = productRes.data;
+          // CRITICAL FIX: Handle response structure properly
+          // getListingById returns AxiosResponse<Product>, so productRes.data is Product or wrapped
+          const responseData = productRes.data as Product | { 
+            data?: Product; 
+            success?: boolean 
+          };
+          
+          let productData: Product | null = null;
+          if (responseData && typeof responseData === 'object' && 'data' in responseData && responseData.data) {
+            productData = responseData.data;
+          } else if (responseData && typeof responseData === 'object' && '_id' in responseData) {
+            productData = responseData as Product;
+          }
+
+          if (productData) {
 
             // Try to fetch EV details
             try {
@@ -107,12 +120,26 @@ const ProductDetailPage: React.FC = () => {
             try {
               if (typeof productData.seller_id === 'string') {
                 // If seller_id is just a string, fetch seller data from API
-                try {
-                  const sellerRes = await authApi.getUserById(productData.seller_id);
-                  console.log("Seller response:", sellerRes.data);
-                  if (sellerRes.data && sellerRes.data.data) {
-                    setSeller(sellerRes.data.data);
-                  }
+                  try {
+                    const sellerRes = await authApi.getUserById(productData.seller_id);
+                    console.log("Seller response:", sellerRes.data);
+                    // CRITICAL FIX: Handle response structure properly
+                    // getUserById returns AxiosResponse<User>, so sellerRes.data is User or wrapped
+                    const sellerResponseData = sellerRes.data as User | { 
+                      data?: User; 
+                      success?: boolean 
+                    };
+                    
+                    let sellerData: User | null = null;
+                    if (sellerResponseData && typeof sellerResponseData === 'object' && 'data' in sellerResponseData && sellerResponseData.data) {
+                      sellerData = sellerResponseData.data;
+                    } else if (sellerResponseData && typeof sellerResponseData === 'object' && '_id' in sellerResponseData) {
+                      sellerData = sellerResponseData as User;
+                    }
+                    
+                    if (sellerData) {
+                      setSeller(sellerData);
+                    }
                 } catch (apiError) {
                   // Fallback to mock data if API fails
                   console.log("API failed, using mock seller data:", apiError);
@@ -141,9 +168,16 @@ const ProductDetailPage: React.FC = () => {
             try {
               const suggestionRes = await priceSuggestionApi.getLatestPriceSuggestionByListingId(id);
               console.log("Price suggestion response:", suggestionRes.data);
-              if (suggestionRes.data && suggestionRes.data.data) {
+              // CRITICAL FIX: Handle response structure - may be nested or direct
+              let suggestionData = null;
+              if (suggestionRes.data?.data) {
+                suggestionData = suggestionRes.data.data;
+              } else if (suggestionRes.data) {
+                suggestionData = suggestionRes.data;
+              }
+              
+              if (suggestionData) {
                 // Transform API response to match component expected format
-                const suggestionData = suggestionRes.data.data;
                 const transformedSuggestion = {
                   title: "Gợi ý giá từ AI",
                   subtitle: `Dựa trên ${suggestionData.based_on_transactions || 0} giao dịch tương tự`,
@@ -160,9 +194,13 @@ const ProductDetailPage: React.FC = () => {
               console.log("No price suggestion available:", suggestionError);
             }
 
-            if (user) {
+            if (user && id) {
               try {
-                const favoriteRes = await favoriteApi.checkFavorite(user._id, id);
+                // CRITICAL FIX: checkFavorite now requires params object
+                const favoriteRes = await favoriteApi.checkFavorite({ 
+                  user_id: user._id, 
+                  listing_id: id 
+                });
                 console.log("Favorite check result:", favoriteRes.data);
               } catch (favoriteError) {
                 console.log("Favorite check failed:", favoriteError);
@@ -191,7 +229,60 @@ const ProductDetailPage: React.FC = () => {
       <div className="container page-loading">Không tìm thấy sản phẩm.</div>
     );
 
-  const details = product.ev_details || product.battery_details;
+  // Helper: Create details object from flat fields or nested details
+  // Support both camelCase (evDetail) and snake_case (ev_details) naming conventions
+  const getDetails = (): EVDetail | BatteryDetail | null => {
+    // Check camelCase first (backend response), then snake_case (backward compatibility)
+    if (product.evDetail) {
+      return product.evDetail;
+    }
+    if (product.ev_details) {
+      return product.ev_details;
+    }
+    if (product.batteryDetail) {
+      return product.batteryDetail;
+    }
+    if (product.battery_details) {
+      return product.battery_details;
+    }
+    // If flat fields exist on product, construct detail object
+    if (product.category === 'ev' && (product.year || product.mileage || product.battery_capacity || product.range)) {
+      return {
+        _id: product._id,
+        year: product.year || 0,
+        mileage_km: product.mileage || 0,
+        battery_capacity_kwh: product.battery_capacity || 0,
+        range_km: product.range || 0,
+      } as EVDetail;
+    }
+    if (product.category === 'battery' && (product.capacity_kwh !== undefined || product.soh_percent !== undefined)) {
+      return {
+        _id: product._id,
+        capacity_kwh: product.capacity_kwh || 0,
+        soh_percent: product.soh_percent || 0,
+        battery_type: product.battery_type,
+        manufacture_year: product.manufacture_year,
+      } as BatteryDetail;
+    }
+    return null;
+  };
+
+  const details = getDetails();
+  
+  // Helper: Get location string
+  const getLocationString = (): string => {
+    if (typeof product.location === 'string') {
+      return product.location;
+    }
+    if (product.location && typeof product.location === 'object') {
+      const parts = [];
+      if (product.location.district) parts.push(product.location.district);
+      if (product.location.city) parts.push(product.location.city);
+      if (product.location.address) parts.push(product.location.address);
+      return parts.length > 0 ? parts.join(', ') : '';
+    }
+    return '';
+  };
 
   const getConditionText = (condition: string) => {
     const map: Record<string, string> = {
@@ -238,47 +329,143 @@ const ProductDetailPage: React.FC = () => {
               <MapPin className="icon" size={18} />
               <span className="label">Khu vực:</span>
               <span className="value">
-                {product.location.district}, {product.location.city}
+                {getLocationString() || 'N/A'}
               </span>
             </div>
-            <div className="meta-item">
-              <Eye className="icon" size={18} />
-              <span className="label">Lượt xem:</span>
-              <span className="value">{product.views}</span>
-            </div>
-            <div className="meta-item">
-              <Calendar className="icon" size={18} />
-              <span className="label">Ngày đăng:</span>
-              <span className="value">
-                {new Date(product.created_at).toLocaleDateString("vi-VN")}
-              </span>
-            </div>
-            {product.ev_details && (
+            {product.views !== undefined && (
+              <div className="meta-item">
+                <Eye className="icon" size={18} />
+                <span className="label">Lượt xem:</span>
+                <span className="value">{product.views}</span>
+              </div>
+            )}
+            {(product.created_at || product.createdAt) && (
+              <div className="meta-item">
+                <Calendar className="icon" size={18} />
+                <span className="label">Ngày đăng:</span>
+                <span className="value">
+                  {(() => {
+                    try {
+                      const dateStr = product.createdAt || product.created_at || '';
+                      const date = new Date(dateStr);
+                      return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString("vi-VN");
+                    } catch {
+                      return 'N/A';
+                    }
+                  })()}
+                </span>
+              </div>
+            )}
+            {/* Display EV fields from nested evDetail/ev_details OR flat fields on product */}
+            {(product.evDetail || product.ev_details || product.category === 'ev') && (
               <>
-                <div className="meta-item">
-                  <Calendar className="icon" size={18} />
-                  <span className="label">Năm sản xuất:</span>
-                  <span className="value">{product.ev_details.year_of_manufacture}</span>
-                </div>
-                <div className="meta-item">
-                  <Gauge className="icon" size={18} />
-                  <span className="label">Đã đi:</span>
-                  <span className="value">{product.ev_details.mileage.toLocaleString("vi-VN")} km</span>
-                </div>
+                {(product.evDetail?.year || product.ev_details?.year || product.year) && (
+                  <div className="meta-item">
+                    <Calendar className="icon" size={18} />
+                    <span className="label">Năm sản xuất:</span>
+                    <span className="value">
+                      {product.evDetail?.year || product.ev_details?.year || product.year || 'N/A'}
+                    </span>
+                  </div>
+                )}
+                {(product.evDetail?.mileage_km !== undefined || product.ev_details?.mileage_km !== undefined || product.mileage !== undefined) && (
+                  <div className="meta-item">
+                    <Gauge className="icon" size={18} />
+                    <span className="label">Đã đi:</span>
+                    <span className="value">
+                      {product.evDetail?.mileage_km !== undefined
+                        ? `${product.evDetail.mileage_km.toLocaleString("vi-VN")} km`
+                        : product.ev_details?.mileage_km !== undefined
+                        ? `${product.ev_details.mileage_km.toLocaleString("vi-VN")} km`
+                        : product.mileage !== undefined
+                        ? `${product.mileage.toLocaleString("vi-VN")} km`
+                        : 'N/A'}
+                    </span>
+                  </div>
+                )}
+                {(product.evDetail?.battery_capacity_kwh !== undefined || product.ev_details?.battery_capacity_kwh !== undefined || product.battery_capacity !== undefined) && (
+                  <div className="meta-item">
+                    <Battery className="icon" size={18} />
+                    <span className="label">Dung lượng pin:</span>
+                    <span className="value">
+                      {product.evDetail?.battery_capacity_kwh !== undefined
+                        ? `${product.evDetail.battery_capacity_kwh} kWh`
+                        : product.ev_details?.battery_capacity_kwh !== undefined
+                        ? `${product.ev_details.battery_capacity_kwh} kWh`
+                        : product.battery_capacity !== undefined
+                        ? `${product.battery_capacity} kWh`
+                        : 'N/A'}
+                    </span>
+                  </div>
+                )}
+                {(product.evDetail?.range_km !== undefined || product.ev_details?.range_km !== undefined || product.range !== undefined) && (
+                  <div className="meta-item">
+                    <Gauge className="icon" size={18} />
+                    <span className="label">Quãng đường:</span>
+                    <span className="value">
+                      {product.evDetail?.range_km !== undefined
+                        ? `${product.evDetail.range_km.toLocaleString("vi-VN")} km`
+                        : product.ev_details?.range_km !== undefined
+                        ? `${product.ev_details.range_km.toLocaleString("vi-VN")} km`
+                        : product.range !== undefined
+                        ? `${product.range.toLocaleString("vi-VN")} km`
+                        : 'N/A'}
+                    </span>
+                  </div>
+                )}
               </>
             )}
-            {product.battery_details && (
+            {/* Display Battery fields from nested batteryDetail/battery_details OR flat fields on product */}
+            {(product.batteryDetail || product.battery_details || product.category === 'battery') && (
               <>
-                <div className="meta-item">
-                  <Battery className="icon" size={18} />
-                  <span className="label">Dung lượng:</span>
-                  <span className="value">{product.battery_details.capacity} kWh</span>
-                </div>
-                <div className="meta-item">
-                  <ShieldCheck className="icon" size={18} />
-                  <span className="label">Sức khỏe pin:</span>
-                  <span className="value">{product.battery_details.state_of_health}%</span>
-                </div>
+                {(product.batteryDetail?.capacity_kwh !== undefined || product.battery_details?.capacity_kwh !== undefined || product.capacity_kwh !== undefined) && (
+                  <div className="meta-item">
+                    <Battery className="icon" size={18} />
+                    <span className="label">Dung lượng:</span>
+                    <span className="value">
+                      {product.batteryDetail?.capacity_kwh !== undefined
+                        ? `${product.batteryDetail.capacity_kwh} kWh`
+                        : product.battery_details?.capacity_kwh !== undefined
+                        ? `${product.battery_details.capacity_kwh} kWh`
+                        : product.capacity_kwh !== undefined
+                        ? `${product.capacity_kwh} kWh`
+                        : 'N/A'}
+                    </span>
+                  </div>
+                )}
+                {(product.batteryDetail?.soh_percent !== undefined || product.battery_details?.soh_percent !== undefined || product.soh_percent !== undefined) && (
+                  <div className="meta-item">
+                    <ShieldCheck className="icon" size={18} />
+                    <span className="label">Sức khỏe pin (SOH):</span>
+                    <span className="value">
+                      {product.batteryDetail?.soh_percent !== undefined
+                        ? `${product.batteryDetail.soh_percent}%`
+                        : product.battery_details?.soh_percent !== undefined
+                        ? `${product.battery_details.soh_percent}%`
+                        : product.soh_percent !== undefined
+                        ? `${product.soh_percent}%`
+                        : 'N/A'}
+                    </span>
+                  </div>
+                )}
+                {(product.batteryDetail?.battery_type || product.battery_details?.battery_type || product.battery_type) && (
+                  <div className="meta-item">
+                    <ShieldCheck className="icon" size={18} />
+                    <span className="label">Loại pin:</span>
+                    <span className="value">
+                      {product.batteryDetail?.battery_type || product.battery_details?.battery_type || product.battery_type || 'N/A'}
+                    </span>
+                  </div>
+                )}
+                {(product.batteryDetail?.manufacture_year !== undefined || product.battery_details?.manufacture_year !== undefined || product.manufacture_year !== undefined) && (
+                  <div className="meta-item">
+                    <Calendar className="icon" size={18} />
+                    <span className="label">Năm sản xuất:</span>
+                    <span className="value">
+                      {product.batteryDetail?.manufacture_year || product.battery_details?.manufacture_year || product.manufacture_year || 'N/A'}
+                    </span>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -290,7 +477,11 @@ const ProductDetailPage: React.FC = () => {
         <ImageGallery images={product.images} />
 
         {/* === THANH THÔNG SỐ CHÍNH === */}
-        {details && <KeySpecsBar details={details} />}
+        {details && (
+          <div className="content-card">
+            <KeySpecsBar details={details} />
+          </div>
+        )}
 
         {/* === MÔ TẢ === */}
         <div className="content-card">
@@ -301,25 +492,32 @@ const ProductDetailPage: React.FC = () => {
         </div>
 
         {/* === ĐẶC ĐIỂM NỔI BẬT === */}
-        {product.ev_details && (
+        {((product.evDetail?.features && product.evDetail.features.length > 0) || 
+          (product.ev_details?.features && product.ev_details.features.length > 0)) && (
           <HighlightsCard
             title="Tính năng & Tiện ích"
-            items={product.ev_details.features}
+            items={(product.evDetail?.features || product.ev_details?.features) || []}
             icon={<List size={20} />}
           />
         )}
-        {product.battery_details && (
+        {(product.batteryDetail || product.battery_details) && (
           <>
-            <HighlightsCard
-              title="Model tương thích"
-              items={product.battery_details.compatible_models}
-              icon={<List size={20} />}
-            />
-            <HighlightsCard
-              title="Chứng nhận & Tiêu chuẩn"
-              items={product.battery_details.certification}
-              icon={<Shield size={20} />}
-            />
+            {((product.batteryDetail?.compatible_models && product.batteryDetail.compatible_models.length > 0) ||
+              (product.battery_details?.compatible_models && product.battery_details.compatible_models.length > 0)) && (
+              <HighlightsCard
+                title="Model tương thích"
+                items={(product.batteryDetail?.compatible_models || product.battery_details?.compatible_models) || []}
+                icon={<List size={20} />}
+              />
+            )}
+            {((product.batteryDetail?.certification && product.batteryDetail.certification.length > 0) ||
+              (product.battery_details?.certification && product.battery_details.certification.length > 0)) && (
+              <HighlightsCard
+                title="Chứng nhận & Tiêu chuẩn"
+                items={(product.batteryDetail?.certification || product.battery_details?.certification) || []}
+                icon={<Shield size={20} />}
+              />
+            )}
           </>
         )}
 

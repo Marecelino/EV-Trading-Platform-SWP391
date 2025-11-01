@@ -1,138 +1,173 @@
 // src/pages/ProductListPage/ProductListPage.tsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import ProductCard from "../../components/modules/ProductCard/ProductCard";
 import SidebarFilter from "../../components/modules/SidebarFilter/SidebarFilter";
 import TopFilterBar, {
   type Filters,
 } from "../../components/modules/TopFilterBar/TopFilterBar";
 import listingApi from "../../api/listingApi";
-import type { Product, Brand, Model } from "../../types";
+import type { Product } from "../../types";
 import "./ProductListPage.scss";
 
 const ProductListPage: React.FC = () => {
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]); // Store all fetched products
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]); // Filtered products for display
   const [isLoading, setIsLoading] = useState(true);
-
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 1
+  });
   // State trung tâm cho tất cả bộ lọc
   const [filters, setFilters] = useState<Filters>({
     category: "xe-dien", // Mặc định là xe điện
   });
 
+  // CRITICAL FIX: Use getListings() to fetch all data once, then filter client-side
   useEffect(() => {
     const fetchAllProducts = async () => {
       setIsLoading(true);
       try {
+        // Fetch all listings without filters
         const response = await listingApi.getListings();
-        console.log("API Response:", response.data);
-        if (response.data.data) {
-          console.log("Products data:", response.data.data);
-          setAllProducts(response.data.data);
+        console.log("GetListings API Response:", response.data);
+
+        // Parse response - can be array or { data: [], meta: {} } or PaginatedResponse { data: [], pagination: {} }
+        let productsData: Product[] = [];
+        const responseData = response.data;
+        
+        if (Array.isArray(responseData)) {
+          productsData = responseData;
+        } else if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+          // Handle { data: [], meta: {} } or { data: [], pagination: {} } structure
+          const dataField = (responseData as { data: unknown }).data;
+          if (Array.isArray(dataField)) {
+            productsData = dataField;
+          }
         }
+
+        console.log("Parsed productsData:", productsData);
+        console.log("Products count:", productsData.length);
+        setAllProducts(productsData);
       } catch (error) {
         console.error("Failed to fetch products:", error);
+        setAllProducts([]);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     fetchAllProducts();
-  }, []); // Chỉ chạy 1 lần khi trang được tải
+  }, []); // Only fetch once on mount
 
-  // Lọc danh sách sản phẩm trên frontend dựa vào state `filters`
-  const filteredProducts = useMemo(() => {
-    console.log("=== FILTERING PRODUCTS ===");
-    console.log("Total products:", allProducts.length);
-    console.log("Current filters:", filters);
-    
-    const filtered = allProducts.filter((product) => {
-      console.log("Checking product:", product.title, "ID:", product._id);
+  // Client-side filtering and pagination
+  useEffect(() => {
+    const applyFilters = () => {
+      let filtered = [...allProducts];
       
-      // 1. Lọc theo Từ khóa tìm kiếm
-      if (filters.searchTerm && filters.searchTerm.trim()) {
-        const searchLower = filters.searchTerm.toLowerCase();
-        const titleMatch = product.title?.toLowerCase().includes(searchLower);
-        const descriptionMatch = product.description?.toLowerCase().includes(searchLower);
-        
-        if (!titleMatch && !descriptionMatch) {
-          console.log("❌ Search term filter failed:", filters.searchTerm);
-          return false;
-        }
-        console.log("✅ Search term filter passed");
-      }
+      console.log("=== APPLYING FILTERS ===");
+      console.log("allProducts count:", allProducts.length);
+      console.log("filters:", filters);
 
-      // 2. Lọc theo Hãng
-      if (filters.brand) {
-        let brandMatch = false;
-        
-        if (typeof product.brand_id === 'object' && product.brand_id) {
-          brandMatch = (product.brand_id as Brand)._id === filters.brand;
-        } else if (typeof product.brand_id === 'string') {
-          brandMatch = product.brand_id === filters.brand;
-        }
-        
-        if (!brandMatch) {
-          console.log("❌ Brand filter failed:", filters.brand);
-          return false;
-        }
-        console.log("✅ Brand filter passed");
-      }
-
-      // 3. Lọc theo Model
-      if (filters.model) {
-        let modelMatch = false;
-        
-        if (typeof product.model_id === 'object' && product.model_id) {
-          modelMatch = (product.model_id as Model)._id === filters.model;
-        } else if (typeof product.model_id === 'string') {
-          modelMatch = product.model_id === filters.model;
-        }
-        
-        if (!modelMatch) {
-          console.log("❌ Model filter failed:", filters.model);
-          return false;
-        }
-        console.log("✅ Model filter passed");
-      }
-
-      // 4. Lọc theo Năm sản xuất (chỉ cho xe điện)
-      if (filters.category === "xe-dien" && filters.year_of_manufacture) {
-        // Try to get year from ev_details if available
-        let yearMatch = false;
-        
-        if (product.ev_details?.year_of_manufacture) {
-          yearMatch = product.ev_details.year_of_manufacture === filters.year_of_manufacture;
-        } else {
-          // If no ev_details, try to extract year from title or description
-          const yearRegex = new RegExp(filters.year_of_manufacture.toString());
-          yearMatch = yearRegex.test(product.title) || yearRegex.test(product.description);
-        }
-        
-        if (!yearMatch) {
-          console.log("❌ Year filter failed:", filters.year_of_manufacture);
-          return false;
-        }
-        console.log("✅ Year filter passed");
-      }
-
-      // 5. Lọc theo Category (if we have category-specific logic)
+      // Filter by category (map frontend category to backend category)
       if (filters.category) {
-        // For now, we'll assume all products match category filter
-        // In the future, this could be enhanced based on product type or other criteria
-        console.log("✅ Category filter passed (default)");
+        const categoryMap: Record<string, 'ev' | 'battery' | undefined> = {
+          'xe-dien': 'ev',
+          'pin-xe-dien': 'battery',
+        };
+        const backendCategory = categoryMap[filters.category];
+        if (backendCategory) {
+          filtered = filtered.filter(p => p.category === backendCategory);
+          console.log("After category filter:", filtered.length);
+        }
       }
 
-      console.log("✅ All filters passed for product:", product.title);
-      return true;
-    });
-    
-    console.log("=== FILTERING RESULT ===");
-    console.log("Filtered products:", filtered.length, "out of", allProducts.length);
-    return filtered;
-  }, [allProducts, filters]);
+      // Filter by keyword/searchTerm (enhanced search)
+      if (filters.searchTerm) {
+        const searchTerm = filters.searchTerm.toLowerCase().trim();
+        if (searchTerm) {
+          filtered = filtered.filter(p => {
+            // Search in title
+            const titleMatch = p.title.toLowerCase().includes(searchTerm);
+            // Search in description
+            const descMatch = p.description.toLowerCase().includes(searchTerm);
+            // Search in brand name (if populated)
+            let brandMatch = false;
+            if (typeof p.brand_id === 'object' && p.brand_id) {
+              brandMatch = (p.brand_id as { name?: string }).name?.toLowerCase().includes(searchTerm) || false;
+            }
+            return titleMatch || descMatch || brandMatch;
+          });
+          console.log("After search filter:", filtered.length);
+        }
+      }
+
+      // Filter by brand
+      if (filters.brand) {
+        const brandId = filters.brand;
+        filtered = filtered.filter(p => {
+          const brand = typeof p.brand_id === 'object' ? p.brand_id : null;
+          return brand?._id === brandId || p.brand_id === brandId;
+        });
+      }
+
+      // Filter by model
+      if (filters.model) {
+        const modelId = filters.model;
+        filtered = filtered.filter(p => {
+          const model = typeof p.model_id === 'object' ? p.model_id : null;
+          return model?._id === modelId || p.model_id === modelId;
+        });
+      }
+
+      // Filter by status - show all active/sellable listings (exclude draft, rejected)
+      // Show: active, pending_payment, payment_completed, sold (for display)
+      // Hide: draft, rejected
+      filtered = filtered.filter(p => {
+        const hideStatuses = ['draft', 'rejected'];
+        return !hideStatuses.includes(p.status);
+      });
+
+      // Filter by condition if available in filters (for future use)
+      // if (filters.condition) {
+      //   filtered = filtered.filter(p => p.condition === filters.condition);
+      // }
+
+      // Update pagination based on filtered results
+      const total = filtered.length;
+      const pages = Math.ceil(total / pagination.limit);
+      setPagination(prev => ({
+        ...prev,
+        total,
+        pages
+      }));
+
+      // Apply pagination
+      const startIndex = (pagination.page - 1) * pagination.limit;
+      const endIndex = startIndex + pagination.limit;
+      const paginatedResults = filtered.slice(startIndex, endIndex);
+
+      console.log("Final filtered count:", filtered.length);
+      console.log("Paginated results count:", paginatedResults.length);
+      setFilteredProducts(paginatedResults);
+    };
+
+    if (allProducts.length > 0) {
+      applyFilters();
+    }
+  }, [allProducts, filters, pagination.page, pagination.limit]);
 
   const handleFilterChange = (newFilters: Partial<Filters>) => {
     setFilters((prevFilters) => ({
       ...prevFilters,
       ...newFilters,
     }));
+    // Reset to page 1 when filters change
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, page }));
   };
 
   return (
@@ -143,41 +178,8 @@ const ProductListPage: React.FC = () => {
         <h1>Danh sách sản phẩm</h1>
         <p className="results-count">
           Hiển thị {filteredProducts.length} sản phẩm
-          {allProducts.length !== filteredProducts.length && ` (từ ${allProducts.length} sản phẩm)`}
-        </p>
-      </div>
-
-      {/* Debug Panel */}
-      <div className="debug-panel" style={{ 
-        marginBottom: '20px', 
-        padding: '15px', 
-        backgroundColor: '#f8f9fa', 
-        borderRadius: '8px',
-        border: '1px solid #e9ecef'
-      }}>
-        <h4>🔍 Debug Info:</h4>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-          <div>
-            <strong>Current Filters:</strong>
-            <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
-              <li>Category: {filters.category || 'None'}</li>
-              <li>Search: {filters.searchTerm || 'None'}</li>
-              <li>Brand: {filters.brand || 'None'}</li>
-              <li>Model: {filters.model || 'None'}</li>
-              <li>Year: {filters.year_of_manufacture || 'None'}</li>
-            </ul>
-          </div>
-          <div>
-            <strong>Results:</strong>
-            <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
-              <li>Total Products: {allProducts.length}</li>
-              <li>Filtered: {filteredProducts.length}</li>
-              <li>Loading: {isLoading ? 'Yes' : 'No'}</li>
-            </ul>
-          </div>
-        </div>
-        <p style={{ marginTop: '10px', fontSize: '12px', color: '#6c757d' }}>
-          <strong>Note:</strong> Check browser console for detailed filtering logs.
+          {pagination.total > 0 && ` (tổng ${pagination.total} sản phẩm)`}
+          {pagination.pages > 1 && ` - Trang ${pagination.page}/${pagination.pages}`}
         </p>
       </div>
 
@@ -185,6 +187,8 @@ const ProductListPage: React.FC = () => {
         <div className="product-grid">
           {isLoading ? (
             <p>Đang tải...</p>
+          ) : filteredProducts.length === 0 ? (
+            <p>Không tìm thấy sản phẩm nào phù hợp với bộ lọc của bạn.</p>
           ) : (
             filteredProducts.map((product) => (
               <ProductCard
@@ -195,8 +199,31 @@ const ProductListPage: React.FC = () => {
             ))
           )}
         </div>
-        <SidebarFilter />
+        <SidebarFilter filters={filters} onFilterChange={handleFilterChange} />
       </div>
+
+      {/* Pagination */}
+      {pagination.pages > 1 && (
+        <div className="pagination-container" style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
+          <button 
+            onClick={() => handlePageChange(pagination.page - 1)}
+            disabled={pagination.page === 1}
+            style={{ marginRight: '10px', padding: '8px 16px' }}
+          >
+            Trước
+          </button>
+          <span style={{ padding: '8px 16px', alignSelf: 'center' }}>
+            Trang {pagination.page} / {pagination.pages}
+          </span>
+          <button 
+            onClick={() => handlePageChange(pagination.page + 1)}
+            disabled={pagination.page >= pagination.pages}
+            style={{ marginLeft: '10px', padding: '8px 16px' }}
+          >
+            Sau
+          </button>
+        </div>
+      )}
     </div>
   );
 };

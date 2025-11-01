@@ -1,5 +1,6 @@
 import axiosClient from './axiosClient';
 import { Auction } from '../types';
+import { CreateEVAuctionDto, CreateBatteryAuctionDto } from '../types/api';
 
 const auctionApi = {
   // Get all auctions with optional status filter
@@ -17,8 +18,20 @@ const auctionApi = {
     return axiosClient.get(`/auctions/${id}`);
   },
 
-  // Create new auction
+  // Create EV auction - POST /api/auctions/ev
+  createEVAuction: (data: CreateEVAuctionDto) => {
+    return axiosClient.post<Auction>('/auctions/ev', data);
+  },
+
+  // Create Battery auction - POST /api/auctions/battery
+  createBatteryAuction: (data: CreateBatteryAuctionDto) => {
+    return axiosClient.post<Auction>('/auctions/battery', data);
+  },
+
+  // Legacy - deprecated, use createEVAuction or createBatteryAuction instead
+  /** @deprecated Use createEVAuction or createBatteryAuction instead */
   createAuction: (data: Partial<Auction>) => {
+    console.warn('createAuction is deprecated. Use createEVAuction or createBatteryAuction instead.');
     return axiosClient.post('/auctions', data);
   },
 

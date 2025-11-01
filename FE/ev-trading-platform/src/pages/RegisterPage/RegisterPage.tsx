@@ -65,12 +65,17 @@ const RegisterPage: React.FC = () => {
     try {
       const registerData: RegisterDto = { email: credentials.email, password: credentials.password };
       const response = await authApi.register(registerData);
-      // Assuming the response contains the user ID
-      const newUserId = response.data.data.user._id;
+      // Register response structure: { success, message, data: { userId, email, requiresProfileCompletion } }
+      const newUserId = response.data.data.userId;
+      if (!newUserId) {
+        throw new Error('User ID not received from server');
+      }
       setUserId(newUserId);
       setStage("profile");
     } catch (err: any) {
-      setError(err.response?.data?.message ?? "Đăng ký thất bại. Vui lòng thử lại.");
+      // Handle both axios errors and ApiErrorResponse structure
+      const errorMessage = err?.message || err?.response?.data?.message || err?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
