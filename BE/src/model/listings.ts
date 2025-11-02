@@ -132,7 +132,8 @@ export const ListingSchema = SchemaFactory.createForClass(Listing);
 // Indexes
 ListingSchema.index({ seller_id: 1, status: 1 });
 ListingSchema.index({ brand_id: 1 });
-ListingSchema.index({ category_id: 1, status: 1 });
+// Use the actual field name `category` (was previously `category_id`)
+ListingSchema.index({ category: 1, status: 1 });
 ListingSchema.index({ price: 1, condition: 1 });
 ListingSchema.index({ is_featured: 1, status: 1 });
 ListingSchema.index({ location: 1 });

@@ -208,11 +208,12 @@ export class ContactsService {
     if (payload.signed_at) {
       contract.signed_at = new Date(payload.signed_at);
     }
-
-    if (payload.mark_as_signed) {
-      contract.status = ContractStatus.SIGNED;
-      if (!contract.signed_at) contract.signed_at = new Date();
-    }
+    // When a signature is confirmed, mark the contract as SIGNED.
+    // Previously this required payload.mark_as_signed; change to always
+    // mark signed when confirmSignature is invoked to reflect the intent
+    // that confirmation implies the contract is signed.
+    contract.status = ContractStatus.SIGNED;
+    if (!contract.signed_at) contract.signed_at = new Date(payload.signed_at || Date.now());
     // Append audit event for signature confirmation
     contract.audit_events = contract.audit_events || [];
     contract.audit_events.push({

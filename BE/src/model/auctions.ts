@@ -9,6 +9,7 @@ export enum AuctionStatus {
   LIVE = 'live',
   ENDED = 'ended',
   CANCELLED = 'cancelled',
+  SOLD = 'sold',
 }
 
 // Bid subdocument

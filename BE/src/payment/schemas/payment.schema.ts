@@ -67,6 +67,9 @@ export class Payment {
 
   @Prop({ type: Types.ObjectId, ref: 'Contract' })
   contract_id?: Types.ObjectId;
+
+  @Prop({ default: false })
+  is_listing_fee?: boolean;
 }
 
 export type PaymentDocument = Payment & Document;
