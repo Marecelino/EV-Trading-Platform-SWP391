@@ -7,8 +7,9 @@ import "./AuctionStatusPanel.scss";
 
 interface AuctionStatusPanelProps {
   auction: Auction;
-  onBidPlaced: (amount: number) => Promise<void>;
+  onBidPlaced: (amount: number, userId: string) => Promise<void>;
   onBuyNow: () => void;
+  onPayment?: () => Promise<void>; // For payment after auction ended (winner)
 }
 
 interface TimeLeft {
@@ -24,6 +25,7 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
   auction,
   onBidPlaced,
   onBuyNow,
+  onPayment,
 }) => {
   const { user } = useAuth();
   const [bidAmount, setBidAmount] = useState("");
@@ -123,6 +125,17 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
     setError(null);
   }, [auction.current_price]);
 
+  // Check if auction can accept bids
+  const canBid = useMemo(() => {
+    if (!user) return false;
+    if (typeof auction.seller_id === 'object' && auction.seller_id?._id === user._id) return false;
+    if (typeof auction.seller_id === 'string' && auction.seller_id === user._id) return false;
+    if (auction.status !== 'live') return false;
+    if (auction.payment_status !== 'completed') return false; // Must have paid listing fee
+    if (new Date(auction.end_time) <= new Date()) return false; // Time must not have ended
+    return true;
+  }, [user, auction]);
+
   const handlePlaceBid = async () => {
     setError(null);
     const amount = Number(bidAmount);
@@ -132,8 +145,24 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
       setError("Bạn cần đăng nhập để tham gia đấu giá.");
       return;
     }
-    if (user._id === auction.seller_id) {
+    if (typeof auction.seller_id === 'object' && auction.seller_id?._id === user._id) {
       setError("Bạn không thể tự đấu giá sản phẩm của mình.");
+      return;
+    }
+    if (typeof auction.seller_id === 'string' && auction.seller_id === user._id) {
+      setError("Bạn không thể tự đấu giá sản phẩm của mình.");
+      return;
+    }
+    if (auction.status !== 'live') {
+      setError("Phiên đấu giá chưa được kích hoạt.");
+      return;
+    }
+    if (auction.payment_status !== 'completed') {
+      setError("Phiên đấu giá chưa sẵn sàng để đấu giá.");
+      return;
+    }
+    if (new Date(auction.end_time) <= new Date()) {
+      setError("Phiên đấu giá đã kết thúc.");
       return;
     }
     if (isNaN(amount) || amount < minNextBid) {
@@ -143,7 +172,7 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
 
     setIsSubmitting(true);
     try {
-      await onBidPlaced(amount);
+      await onBidPlaced(amount, user._id);
       setBidAmount("");
     } catch (err: unknown) {
       // CRITICAL FIX: Use proper error types instead of 'any'
@@ -152,6 +181,8 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
         response?: {
           data?: ApiErrorResponse & {
             code?: string;
+            message?: string;
+            error?: string;
             data?: { currentPrice?: number };
           };
         };
@@ -159,24 +190,57 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
       
       const errorData = axiosError.response?.data;
       const errorCode = errorData?.code;
+      const errorMessage = errorData?.message || errorData?.error;
       
-      switch (errorCode) {
-        case "BID_TOO_LOW":
-          const currentPrice = errorData?.data?.currentPrice || auction.current_price;
-          const newMinBid = currentPrice + auction.min_increment;
-          setError(
-            `Giá đã tăng lên. Mức tối thiểu mới là ${newMinBid.toLocaleString("vi-VN")} ₫`
-          );
-          break;
-        case "AUCTION_ENDED":
-          setError("Phiên đấu giá đã kết thúc.");
-          break;
-        case "INSUFFICIENT_BALANCE":
-          setError("Số dư tài khoản không đủ.");
-          break;
-        default:
-          setError(errorData?.message || errorData?.error || "Đã có lỗi xảy ra. Vui lòng thử lại.");
+      // Map backend error messages to Vietnamese
+      if (errorMessage?.includes('Auction is not live')) {
+        setError("Phiên đấu giá chưa được kích hoạt.");
+      } else if (errorMessage?.includes('Auction has ended')) {
+        setError("Phiên đấu giá đã kết thúc.");
+      } else if (errorMessage?.includes('User cannot bid on their own auction')) {
+        setError("Bạn không thể tự đấu giá sản phẩm của mình.");
+      } else {
+        switch (errorCode) {
+          case "BID_TOO_LOW":
+            const currentPrice = errorData?.data?.currentPrice || auction.current_price;
+            const newMinBid = currentPrice + auction.min_increment;
+            setError(
+              `Giá đã tăng lên. Mức tối thiểu mới là ${newMinBid.toLocaleString("vi-VN")} ₫`
+            );
+            break;
+          case "AUCTION_ENDED":
+            setError("Phiên đấu giá đã kết thúc.");
+            break;
+          case "INSUFFICIENT_BALANCE":
+            setError("Số dư tài khoản không đủ.");
+            break;
+          default:
+            setError(errorMessage || "Đã có lỗi xảy ra. Vui lòng thử lại.");
+        }
       }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!user) {
+      setError("Bạn cần đăng nhập để mua ngay.");
+      return;
+    }
+    if (!auction.buy_now_price) return;
+    
+    const confirmMessage = `Bạn có chắc muốn mua ngay với giá ${auction.buy_now_price.toLocaleString("vi-VN")} ₫?`;
+    if (!window.confirm(confirmMessage)) return;
+    
+    setIsSubmitting(true);
+    try {
+      await onBidPlaced(auction.buy_now_price, user._id);
+      setBidAmount("");
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: ApiErrorResponse } };
+      const errorMessage = axiosError.response?.data?.message || axiosError.response?.data?.error || "Đã có lỗi xảy ra khi mua ngay.";
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -187,13 +251,52 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
     setError(null);
   };
 
-  const isAuctionEnded = timeLeft.finished;
+  const isAuctionEnded = auction.status === 'ended' || auction.status === 'cancelled' || timeLeft.finished;
   const priceChange = auction.current_price - previousPrice;
+
+  // Get status message based on auction status
+  const getStatusMessage = (): string => {
+    switch (auction.status) {
+      case 'draft':
+        return 'Bản nháp - Chưa thanh toán';
+      case 'pending':
+        return 'Đã thanh toán - Đang chờ admin duyệt';
+      case 'scheduled':
+        return `Đã được lên lịch - Bắt đầu lúc ${new Date(auction.start_time).toLocaleString('vi-VN')}`;
+      case 'live':
+        return 'Đang diễn ra';
+      case 'ended':
+        return 'Đã kết thúc';
+      case 'cancelled':
+        return 'Đã bị hủy';
+      default:
+        return '';
+    }
+  };
+
+  // Check if current user is the highest bidder (winner)
+  const isWinner = useMemo(() => {
+    if (!user || auction.status !== 'ended' || !auction.bids || auction.bids.length === 0) return false;
+    // Get highest bid (first bid in array if sorted by amount DESC, or check all bids)
+    const highestBid = auction.bids.reduce((max, bid) => {
+      const bidUserId = typeof bid.user_id === 'object' ? bid.user_id._id : bid.user_id;
+      return bid.amount > max.amount ? bid : max;
+    }, auction.bids[0]);
+    const highestBidUserId = typeof highestBid.user_id === 'object' ? highestBid.user_id._id : highestBid.user_id;
+    return highestBidUserId === user._id;
+  }, [user, auction]);
 
   return (
     <div
-      className={`auction-panel content-card ${isAuctionEnded ? "ended" : ""}`}
+      className={`auction-panel content-card ${isAuctionEnded ? "ended" : ""} status-${auction.status}`}
     >
+      {/* Status Message */}
+      {auction.status !== 'live' && (
+        <div className="status-message">
+          <span>{getStatusMessage()}</span>
+        </div>
+      )}
+
       {/* Timer Section */}
       <div className={`timer ${getTimerUrgencyClass()}`}>
         <span className="timer__label">
@@ -244,8 +347,8 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
         )}
       </div>
 
-      {/* Bid Form - Only show for logged-in users and active auctions */}
-      {user && !isAuctionEnded && (
+      {/* Bid Form - Only show for logged-in users and live auctions that can accept bids */}
+      {user && canBid && (
         <div className="bid-form">
           {/* Quick Bid Buttons */}
           <div className="quick-bids">
@@ -307,20 +410,44 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
         </div>
       )}
 
-      {/* Buy Now Button */}
-      {auction.buy_now_price && !isAuctionEnded && (
+      {/* Buy Now Button - Only show for live auctions */}
+      {auction.buy_now_price && auction.status === 'live' && canBid && (
         <Button
           variant="secondary"
           className="btn-buy-now"
-          onClick={onBuyNow}
+          onClick={handleBuyNow}
+          disabled={isSubmitting}
           aria-label={`Mua ngay với giá ${auction.buy_now_price.toLocaleString("vi-VN")} đồng`}
         >
           Mua ngay {auction.buy_now_price.toLocaleString("vi-VN")} ₫
         </Button>
       )}
 
+      {/* Payment Button for Winner */}
+      {isWinner && auction.status === 'ended' && onPayment && (
+        <Button
+          variant="primary"
+          className="btn-payment"
+          onClick={onPayment}
+          aria-label="Thanh toán để hoàn tất giao dịch"
+        >
+          Thanh toán {auction.current_price.toLocaleString("vi-VN")} ₫
+        </Button>
+      )}
+
+      {/* Winner Info for Ended Auction */}
+      {auction.status === 'ended' && !isWinner && auction.bids && auction.bids.length > 0 && (
+        <div className="winner-info">
+          <p>Người thắng đấu giá: {(() => {
+            const highestBid = auction.bids.reduce((max, bid) => bid.amount > max.amount ? bid : max, auction.bids[0]);
+            const bidder = typeof highestBid.user_id === 'object' ? highestBid.user_id : null;
+            return bidder?.full_name || 'Người dùng ẩn';
+          })()}</p>
+        </div>
+      )}
+
       {/* Not Logged In Message */}
-      {!user && !isAuctionEnded && (
+      {!user && auction.status === 'live' && (
         <div className="login-prompt">
           <p>Đăng nhập để tham gia đấu giá</p>
           <Button onClick={() => window.location.href = "/login"}>

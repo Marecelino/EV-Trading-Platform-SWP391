@@ -24,12 +24,18 @@ const listingApi = {
     return axiosClient.get<Product>(`/listings/${id}`);
   },
 
-  getMyListings: () => {
-    return axiosClient.get<Product[]>('/listings/my');
+  // Get user's own listings with filters and pagination
+  // Supports: status, page, limit parameters
+  // Returns: { data: Product[], meta: {...} }
+  getMyListings: (params?: SearchListingsParams) => {
+    return axiosClient.get<Product[] | PaginatedResponse<Product>>('/listings/my', { params });
   },
 
-  getListingsBySeller: (sellerId: string) => {
-    return axiosClient.get<Product[]>(`/listings/seller/${sellerId}`);
+  // Get listings by seller with filters and pagination
+  // Supports: status, page, limit parameters
+  // Returns: { data: Product[], meta: {...} }
+  getListingsBySeller: (sellerId: string, params?: SearchListingsParams) => {
+    return axiosClient.get<Product[] | PaginatedResponse<Product>>(`/listings/seller/${sellerId}`, { params });
   },
 
   // === CREATE LISTINGS ===

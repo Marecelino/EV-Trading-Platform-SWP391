@@ -125,10 +125,14 @@
   // ===== SIDEBAR =====
   aside.sidebar {
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px; // Consistent gap between all sidebar cards
     
     @include desktop {
       position: sticky;
       top: 100px;
+      align-self: flex-start; // Prevent sidebar from stretching
       max-height: calc(100vh - 120px);
       overflow-y: auto;
       
@@ -156,14 +160,31 @@
     @include mobile {
       order: -1;
       margin-bottom: 24px;
+      gap: 16px; // Smaller gap on mobile
       
-      .content-card {
-        margin-bottom: 16px;
+      // Remove margin-bottom from cards since we're using gap
+      > * {
+        margin-bottom: 0 !important;
       }
     }
 
+    // Tablet: Ensure proper spacing
+    @media (min-width: 768px) and (max-width: 1023px) {
+      gap: 20px;
+      
+      > * {
+        margin-bottom: 0 !important;
+      }
+    }
+
+    // Ensure all direct children (cards) have proper spacing
+    > * {
+      flex-shrink: 0; // Prevent cards from shrinking
+      width: 100%;
+    }
+
     // Animation cho sidebar cards
-    .content-card {
+    > * {
       animation: slideInRight 0.5s ease-out;
       
       &:nth-child(2) {
@@ -172,6 +193,10 @@
       
       &:nth-child(3) {
         animation-delay: 0.2s;
+      }
+      
+      &:nth-child(4) {
+        animation-delay: 0.3s;
       }
     }
   }

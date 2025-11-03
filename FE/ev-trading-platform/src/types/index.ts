@@ -323,6 +323,14 @@ export interface Bid {
   created_at: string;
 }
 
+// AuctionStatus enum for reference (matches backend AuctionStatus enum)
+// DRAFT = 'draft'           // Bản nháp (vừa tạo)
+// PENDING = 'pending'       // Chờ admin duyệt (sau khi thanh toán phí)
+// SCHEDULED = 'scheduled'   // Đã được lên lịch
+// LIVE = 'live'             // Đang diễn ra (nhận bids)
+// ENDED = 'ended'           // Đã kết thúc
+// CANCELLED = 'cancelled'   // Bị hủy
+
 export interface Auction {
   _id: string;
   listing_id?: string; // Optional - may not be present in flattened structure
@@ -333,7 +341,8 @@ export interface Auction {
   current_price: number;
   min_increment: number;
   buy_now_price?: number;
-  status: "scheduled" | "live" | "ended" | "cancelled";
+  status: "draft" | "pending" | "scheduled" | "live" | "ended" | "cancelled";
+  payment_status?: "pending" | "completed"; // Payment status for listing fee (15,000 VND)
   winner_id?: string;
   bids: Bid[];
   // Listing fields (flattened from listing object in backend response)

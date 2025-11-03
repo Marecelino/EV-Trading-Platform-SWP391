@@ -31,9 +31,22 @@ const BidHistory: React.FC<BidHistoryProps> = ({ bids, isLoading = false }) => {
     return "vừa xong";
   };
 
-  // Sort bids by amount (highest first) and memoize
+  // Sort bids by created_at DESC (newest first) - backend returns bids from newest to oldest (unshift)
+  // But we want to display newest first in UI
   const sortedBids = useMemo(() => {
-    return [...(bids || [])].sort((a, b) => b.amount - a.amount);
+    if (!bids || bids.length === 0) return [];
+    // Sort by created_at DESC (newest first)
+    return [...bids].sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return dateB - dateA; // DESC order
+    });
+  }, [bids]);
+
+  // Get highest bid for "Giá cao nhất" label
+  const highestBid = useMemo(() => {
+    if (!bids || bids.length === 0) return null;
+    return bids.reduce((max, bid) => bid.amount > max.amount ? bid : max, bids[0]);
   }, [bids]);
 
   // Calculate bid statistics
@@ -55,7 +68,10 @@ const BidHistory: React.FC<BidHistoryProps> = ({ bids, isLoading = false }) => {
 
   // Get bidder display name
   const getBidderName = (bid: Bid, index: number): string => {
-    if (index === 0) return "Giá cao nhất";
+    // Show "Giá cao nhất" label for the highest bid (not necessarily index 0)
+    if (highestBid && bid._id === highestBid._id) {
+      return "Giá cao nhất";
+    }
     
     const bidder = typeof bid.user_id === 'object' ? bid.user_id : null;
     return bidder?.full_name || "Người dùng ẩn";
@@ -64,7 +80,8 @@ const BidHistory: React.FC<BidHistoryProps> = ({ bids, isLoading = false }) => {
   // Get bidder avatar
   const getBidderAvatar = (bid: Bid): string => {
     const bidder = typeof bid.user_id === 'object' ? bid.user_id : null;
-    return bidder?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(getBidderName(bid, -1))}&background=27AE60&color=fff`;
+    const bidderName = bidder?.full_name || "Người dùng ẩn";
+    return bidder?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(bidderName)}&background=27AE60&color=fff`;
   };
 
   return (

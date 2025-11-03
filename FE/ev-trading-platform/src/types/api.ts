@@ -117,13 +117,13 @@ export interface CreateBatteryListingDto {
 }
 
 export interface UpdateListingStatusDto {
-  status: 'draft' | 'pending' | 'active' | 'rejected' | 'sold' | 'removed';
+  status: 'draft' | 'pending' | 'active' | 'rejected' | 'sold' | 'expired';
 }
 
 export interface SearchListingsParams {
   keyword?: string;
   brandName?: string;
-  status?: 'draft' | 'pending' | 'active' | 'rejected' | 'sold' | 'removed';
+  status?: 'draft' | 'pending' | 'active' | 'rejected' | 'sold' | 'expired';
   condition?: 'new' | 'like_new' | 'excellent' | 'good' | 'fair' | 'poor';
   category?: 'ev' | 'battery';
   location?: string;
@@ -208,7 +208,12 @@ export interface CreateAuctionDto {
 }
 
 export interface PlaceBidDto {
-  amount: number; // min: 0
+  user_id: string; // Required - MongoDB ObjectId
+  amount: number; // Required (>= 0) - VND
+}
+
+export interface UpdateAuctionStatusDto {
+  status: 'draft' | 'pending' | 'scheduled' | 'live' | 'ended' | 'cancelled';
 }
 
 // ============================================================================
@@ -364,9 +369,16 @@ export interface ApiErrorResponse {
 }
 
 export interface PaginatedResponse<T> {
-  success: boolean;
+  success?: boolean;
   data: T[];
-  pagination?: {
+  meta?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages?: number;
+    pages?: number;
+  };
+  pagination?: { // Legacy support
     page: number;
     limit: number;
     total: number;

@@ -7,14 +7,10 @@ import { Link } from 'react-router-dom';
 import './AdminListingManagementPage.scss';
 import Pagination from '../../components/common/Pagination/Pagination';
 
-type ListingStatus = 'pending' | 'active' | 'rejected';
+type ListingStatus = 'pending' | 'active' | 'rejected' | 'draft' | 'sold' | 'expired';
 
-// Map frontend status to API status
-// According to backend documentation:
-// - 'pending': listings that have been paid and are waiting for admin approval
-// - 'active': listings that have been approved and are displayed publicly
-// - 'rejected': listings that have been rejected by admin
-const mapStatusToApi = (status: ListingStatus): 'pending' | 'active' | 'rejected' | undefined => {
+// Map frontend status to API status (direct mapping - backend uses same values)
+const mapStatusToApi = (status: ListingStatus): 'draft' | 'pending' | 'active' | 'rejected' | 'sold' | 'expired' | undefined => {
   switch (status) {
     case 'pending':
       return 'pending'; // Listings that have been paid, waiting for admin approval
@@ -22,196 +18,177 @@ const mapStatusToApi = (status: ListingStatus): 'pending' | 'active' | 'rejected
       return 'active'; // Approved listings displayed publicly
     case 'rejected':
       return 'rejected'; // Rejected listings
+    case 'draft':
+      return 'draft'; // Draft listings (not yet paid)
+    case 'sold':
+      return 'sold'; // Sold listings
+    case 'expired':
+      return 'expired'; // Expired listings
     default:
       return undefined;
   }
 };
 
 const AdminListingManagementPage: React.FC = () => {
-  const [allListings, setAllListings] = useState<Product[]>([]);
+  const [listings, setListings] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ListingStatus>('pending');
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
   const ITEMS_PER_PAGE = 3;
 
-  // REMOVED: Client-side filtering - now handled by API with status param
-  // Calculate pagination
-  const totalPages = Math.ceil(allListings.length / ITEMS_PER_PAGE);
-  const startIndex = (pagination.currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedListings = allListings.slice(startIndex, endIndex);
-
-  // CRITICAL FIX: Use searchListings with status param instead of getListings + client-side filtering
+  // Fetch listings using getListings endpoint (admin endpoint)
   const fetchListings = useCallback(() => {
     setIsLoading(true);
     console.log("=== FETCHING LISTINGS ===");
     console.log("Active tab (status):", activeTab);
     
     const apiStatus = mapStatusToApi(activeTab);
-    const searchParams: SearchListingsParams = {
+    const params: SearchListingsParams = {
       status: apiStatus,
-      limit: 100, // Get enough listings for admin view
+      page: pagination.currentPage,
+      limit: ITEMS_PER_PAGE,
     };
 
-    listingApi.searchListings(searchParams).then(response => {
-      console.log("=== LISTINGS API RESPONSE ===");
-      console.log("Full response:", response);
-      console.log("Response data:", response.data);
-      console.log("Response data type:", typeof response.data);
-      console.log("Is array?", Array.isArray(response.data));
-      
-      // Handle both direct array and PaginatedResponse
-      let listingsData: Product[] = [];
-      
-      // Check if response.data is directly an array
-      if (Array.isArray(response.data)) {
-        listingsData = response.data;
-        console.log("Response is direct array, length:", listingsData.length);
-      } 
-      // Check if response.data has a 'data' property (PaginatedResponse)
-      else if (response.data && typeof response.data === 'object') {
-        // Try PaginatedResponse format: { data: Product[], meta: {...} }
-        if ((response.data as PaginatedResponse<Product>).data && Array.isArray((response.data as PaginatedResponse<Product>).data)) {
-          listingsData = (response.data as PaginatedResponse<Product>).data;
-          console.log("Response is PaginatedResponse, length:", listingsData.length);
+    listingApi.getListings(params)
+      .then((response) => {
+        console.log("=== LISTINGS API RESPONSE ===");
+        console.log("Full response:", response);
+        console.log("Response data:", response.data);
+        
+        // Handle response structure: { data: [...], meta: {...} }
+        const responseData = response.data as Product[] | PaginatedResponse<Product>;
+        
+        let listingsData: Product[] = [];
+        let paginationMeta = null;
+        
+        // Extract listings from response
+        if (Array.isArray(responseData)) {
+          // Direct array format (fallback)
+          listingsData = responseData;
+        } else if (responseData && typeof responseData === 'object') {
+          // PaginatedResponse format: { data: Product[], meta: {...} } or { data: Product[], pagination: {...} }
+          if ('data' in responseData && Array.isArray(responseData.data)) {
+            listingsData = responseData.data;
+            // Prefer 'meta' over 'pagination' (backend uses 'meta')
+            paginationMeta = 'meta' in responseData && responseData.meta 
+              ? responseData.meta 
+              : 'pagination' in responseData && responseData.pagination
+              ? responseData.pagination
+              : null;
+          }
         }
-        // Try wrapped format: { success: true, data: Product[] }
-        else if ('data' in response.data && Array.isArray((response.data as { data: unknown }).data)) {
-          listingsData = (response.data as { data: Product[] }).data;
-          console.log("Response is wrapped format, length:", listingsData.length);
+        
+        // Validate and clean data
+        listingsData = listingsData.filter((listing): listing is Product => {
+          if (!listing || !listing._id) {
+            console.warn("Invalid listing found:", listing);
+            return false;
+          }
+          return true;
+        });
+        
+        setListings(listingsData);
+        console.log(`Loaded ${listingsData.length} valid listings with status ${activeTab} (API status: ${apiStatus})`);
+        
+        // Update pagination from backend meta or pagination
+        if (paginationMeta && typeof paginationMeta === 'object') {
+          const meta = paginationMeta as { page?: number; totalPages?: number; pages?: number; total?: number; limit?: number };
+          setPagination({
+            currentPage: meta.page || pagination.currentPage,
+            totalPages: meta.totalPages || meta.pages || Math.ceil((meta.total || 0) / (meta.limit || ITEMS_PER_PAGE)) || 1,
+          });
+        } else {
+          // Fallback: calculate from data length
+          setPagination({
+            currentPage: pagination.currentPage,
+            totalPages: Math.ceil(listingsData.length / ITEMS_PER_PAGE) || 1,
+          });
         }
-        // Try direct object with listings array property
-        else if ('listings' in response.data && Array.isArray((response.data as { listings: unknown }).listings)) {
-          listingsData = (response.data as { listings: Product[] }).listings;
-          console.log("Response has listings property, length:", listingsData.length);
-        }
-        else {
-          console.warn("Unknown response structure:", response.data);
-        }
-      }
-      
-      // Validate and clean data
-      listingsData = listingsData.filter((listing): listing is Product => {
-        if (!listing || !listing._id) {
-          console.warn("Invalid listing found:", listing);
-          return false;
-        }
-        return true;
-      });
-      
-      setAllListings(listingsData);
-      console.log(`Loaded ${listingsData.length} valid listings with status ${activeTab} (API status: ${apiStatus})`);
-    }).catch(error => {
-      console.error("Error fetching listings:", error);
-      console.error("Error details:", error.response?.data || error.message);
-      setAllListings([]);
-    }).finally(() => setIsLoading(false));
-  }, [activeTab]);
+      })
+      .catch((error) => {
+        console.error("Error fetching listings:", error);
+        console.error("Error details:", error.response?.data || error.message);
+        setListings([]);
+      })
+      .finally(() => setIsLoading(false));
+  }, [activeTab, pagination.currentPage]);
 
-  // Update pagination when filtered listings change
-  useEffect(() => {
-    setPagination(prev => ({ 
-      ...prev, 
-      totalPages: totalPages,
-      currentPage: prev.currentPage > totalPages ? 1 : prev.currentPage
-    }));
-  }, [totalPages]);
-
-  // Load listings on component mount and when activeTab changes
+  // Load listings on component mount and when activeTab or page changes
   useEffect(() => {
     fetchListings();
-  }, [fetchListings]); // fetchListings already depends on activeTab
+  }, [fetchListings]);
 
   const handleTabClick = (tab: ListingStatus) => {
     setActiveTab(tab);
-    setPagination(prev => ({ ...prev, currentPage: 1 })); // Reset về trang 1 khi chuyển tab
+    setPagination((p) => ({ ...p, currentPage: 1 })); // Reset to page 1 when changing tabs
   };
 
-  // Sau khi cập nhật trạng thái, gọi lại fetchListings để làm mới dữ liệu
+  // Handle listing status update
   const handleUpdateStatus = (id: string, newStatus: 'active' | 'rejected') => {
     const actionText = newStatus === 'active' ? 'duyệt' : (activeTab === 'active' ? 'gỡ' : 'từ chối');
     if (!window.confirm(`Bạn có chắc muốn ${actionText} tin đăng này?`)) {
       return;
     }
 
-    // Map frontend status to API status (direct mapping - no conversion needed)
+    // Map frontend status to API status (direct mapping)
     const apiStatus: UpdateListingStatusDto['status'] = newStatus; // 'active' or 'rejected'
     const statusDto: UpdateListingStatusDto = { status: apiStatus };
 
-    listingApi.updateListingStatus(id, statusDto).then((response) => {
-      // CRITICAL FIX: updateListingStatus returns AxiosResponse<Product>
-      // Response.data is Product, not a wrapper object with 'success'
-      // Check if we have a Product object or HTTP status code
-      const responseData = response.data as Product | { success?: boolean; data?: Product };
-      const isSuccess = response.status === 200 || 
-                       (responseData && typeof responseData === 'object' && '_id' in responseData) ||
-                       ('success' in responseData && responseData.success);
-      
-      if (isSuccess) {
-        alert(`Đã ${actionText} tin đăng thành công!`);
-        // Tải lại dữ liệu của trang hiện tại để cập nhật danh sách
-        fetchListings();
-      } else {
+    listingApi.updateListingStatus(id, statusDto)
+      .then((response) => {
+        const responseData = response.data as Product | { success?: boolean; data?: Product };
+        const isSuccess = response.status === 200 || 
+                         (responseData && typeof responseData === 'object' && '_id' in responseData) ||
+                         ('success' in responseData && responseData.success);
+        
+        if (isSuccess) {
+          alert(`Đã ${actionText} tin đăng thành công!`);
+          fetchListings();
+        } else {
+          alert('Có lỗi xảy ra, vui lòng thử lại.');
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Error updating listing status:", error);
         alert('Có lỗi xảy ra, vui lòng thử lại.');
-      }
-    }).catch((error: unknown) => {
-      console.error("Error updating listing status:", error);
-      alert('Có lỗi xảy ra, vui lòng thử lại.');
-    });
+      });
   };
   
-  // Tương tự, gọi lại fetchListings sau khi bật/tắt kiểm định
-  // CRITICAL FIX: Use updateListingVerification method (added to listingApi)
+  // Handle toggle verification
   const handleToggleVerification = (id: string, currentVerification: boolean) => {
     const newVerificationStatus = !currentVerification;
     
-    listingApi.updateListingVerification(id, newVerificationStatus).then((response) => {
-      // CRITICAL FIX: updateListingVerification returns AxiosResponse<Product>
-      // Response.data is Product, not a wrapper object with 'success'
-      // Check if we have a Product object or HTTP status code
-      const responseData = response.data as Product | { success?: boolean; data?: Product; is_verified?: boolean };
-      const isSuccess = response.status === 200 || 
-                       (responseData && typeof responseData === 'object' && '_id' in responseData) ||
-                       ('success' in responseData && responseData.success) ||
-                       ('is_verified' in responseData);
-      
-      if (isSuccess) {
-        // Tải lại dữ liệu để hiển thị trạng thái mới nhất
-        fetchListings();
-      } else {
+    listingApi.updateListingVerification(id, newVerificationStatus)
+      .then((response) => {
+        const responseData = response.data as Product | { success?: boolean; data?: Product; is_verified?: boolean };
+        const isSuccess = response.status === 200 || 
+                         (responseData && typeof responseData === 'object' && '_id' in responseData) ||
+                         ('success' in responseData && responseData.success) ||
+                         ('is_verified' in responseData);
+        
+        if (isSuccess) {
+          fetchListings();
+        } else {
+          alert('Có lỗi xảy ra khi cập nhật trạng thái kiểm định.');
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Error updating verification status:", error);
         alert('Có lỗi xảy ra khi cập nhật trạng thái kiểm định.');
-      }
-    }).catch((error: unknown) => {
-      console.error("Error updating verification status:", error);
-      alert('Có lỗi xảy ra khi cập nhật trạng thái kiểm định.');
-    });
+      });
   };
 
   return (
     <div className="admin-page">
       <h1>Quản lý tin đăng</h1>
       
-      {/* Debug Info */}
-      <div className="debug-info" style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '5px', fontSize: '14px' }}>
-        <h4>Debug Info:</h4>
-        <p><strong>Status filter:</strong> {activeTab} → API: {mapStatusToApi(activeTab) || 'N/A'}</p>
-        <p><strong>Tổng số listings:</strong> {allListings.length} (sau khi filter)</p>
-        <p><strong>Đang hiển thị:</strong> {paginatedListings.length} listings (trang {pagination.currentPage} / {totalPages})</p>
-        <p><strong>Lưu ý:</strong> Kiểm tra Console để xem chi tiết API responses và data structure.</p>
-        {allListings.length > 0 && (
-          <details style={{ marginTop: '10px' }}>
-            <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>Xem sample listing data (click để mở)</summary>
-            <pre style={{ marginTop: '10px', padding: '10px', backgroundColor: '#fff', borderRadius: '4px', overflow: 'auto', maxHeight: '200px' }}>
-              {JSON.stringify(allListings[0], null, 2)}
-            </pre>
-          </details>
-        )}
-      </div>
-      
       <div className="admin-tabs">
         <button className={activeTab === 'pending' ? 'active' : ''} onClick={() => handleTabClick('pending')}>Chờ duyệt</button>
         <button className={activeTab === 'active' ? 'active' : ''} onClick={() => handleTabClick('active')}>Đang hiển thị</button>
         <button className={activeTab === 'rejected' ? 'active' : ''} onClick={() => handleTabClick('rejected')}>Bị từ chối</button>
+        <button className={activeTab === 'draft' ? 'active' : ''} onClick={() => handleTabClick('draft')}>Bản nháp</button>
+        <button className={activeTab === 'sold' ? 'active' : ''} onClick={() => handleTabClick('sold')}>Đã bán</button>
+        <button className={activeTab === 'expired' ? 'active' : ''} onClick={() => handleTabClick('expired')}>Hết hạn</button>
       </div>
 
       <div className="admin-table-container">
@@ -227,11 +204,26 @@ const AdminListingManagementPage: React.FC = () => {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '40px' }}>Đang tải dữ liệu...</td></tr>
-            ) : paginatedListings.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '40px' }}>Không có tin đăng nào trong mục này.</td></tr>
+              <tr>
+                <td colSpan={5} className="empty-cell">
+                  <div className="loading-spinner">Đang tải dữ liệu...</div>
+                </td>
+              </tr>
+            ) : listings.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="empty-cell">
+                  <div className="empty-state">
+                    <p className="empty-state-title">
+                      Không có tin đăng nào trong mục này.
+                    </p>
+                    <p className="empty-state-subtitle">
+                      Hãy thử chuyển sang tab khác.
+                    </p>
+                  </div>
+                </td>
+              </tr>
             ) : (
-              paginatedListings.map(listing => (
+              listings.map(listing => (
                 <tr key={listing._id}>
                   <td>
                     <div className="product-cell">
@@ -280,11 +272,16 @@ const AdminListingManagementPage: React.FC = () => {
                         <button className="action-btn btn--reject" onClick={() => handleUpdateStatus(listing._id, 'rejected')}>Từ chối</button>
                       </>
                     )}
-                     {activeTab === 'active' && (
-                       <button className="action-btn btn--reject" onClick={() => handleUpdateStatus(listing._id, 'rejected')}>Gỡ bài</button>
+                    {activeTab === 'active' && (
+                      <button className="action-btn btn--reject" onClick={() => handleUpdateStatus(listing._id, 'rejected')}>Gỡ bài</button>
                     )}
                     {activeTab === 'rejected' && (
-                       <button className="action-btn btn--approve" onClick={() => handleUpdateStatus(listing._id, 'active')}>Duyệt lại</button>
+                      <button className="action-btn btn--approve" onClick={() => handleUpdateStatus(listing._id, 'active')}>Duyệt lại</button>
+                    )}
+                    {(activeTab === 'draft' || activeTab === 'sold' || activeTab === 'expired') && (
+                      <span className="no-actions" style={{ color: '#999', fontStyle: 'italic' }}>
+                        Không có hành động
+                      </span>
                     )}
                   </td>
                 </tr>
@@ -293,11 +290,19 @@ const AdminListingManagementPage: React.FC = () => {
           </tbody>
         </table>
       </div>
-      <Pagination 
-        currentPage={pagination.currentPage}
-        totalPages={totalPages}
-        onPageChange={(page) => setPagination(prev => ({...prev, currentPage: page}))}
-      />
+      
+      {!isLoading && listings.length > 0 && (
+        <div className="pagination-wrapper">
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={(page) => setPagination((p) => ({ ...p, currentPage: page }))}
+          />
+          <div className="pagination-info">
+            Trang {pagination.currentPage} / {pagination.totalPages}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

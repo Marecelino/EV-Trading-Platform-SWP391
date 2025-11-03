@@ -1,6 +1,6 @@
 import axiosClient from './axiosClient';
 import { Auction } from '../types';
-import { CreateEVAuctionDto, CreateBatteryAuctionDto } from '../types/api';
+import { CreateEVAuctionDto, CreateBatteryAuctionDto, UpdateAuctionStatusDto } from '../types/api';
 
 const auctionApi = {
   // Get all auctions with optional status filter
@@ -47,6 +47,11 @@ const auctionApi = {
     return axiosClient.put(`/auctions/${id}`, data);
   },
 
+  // Update auction status - PATCH /api/auctions/:id/status
+  updateAuctionStatus: (id: string, data: UpdateAuctionStatusDto) => {
+    return axiosClient.patch<Auction>(`/auctions/${id}/status`, data);
+  },
+
   // Delete auction
   deleteAuction: (id: string) => {
     return axiosClient.delete(`/auctions/${id}`);
@@ -78,7 +83,8 @@ const auctionApi = {
   },
 
   // Place a bid
-  placeBid: (id: string, data: { amount: number }) => {
+  // Backend requires user_id in body
+  placeBid: (id: string, data: { user_id: string; amount: number }) => {
     return axiosClient.post(`/auctions/${id}/bids`, data);
   },
 

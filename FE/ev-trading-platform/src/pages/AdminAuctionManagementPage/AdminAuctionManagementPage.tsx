@@ -3,15 +3,16 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import auctionApi from "../../api/auctionApi";
 import type { Auction } from "../../types";
+import { UpdateAuctionStatusDto } from "../../types/api";
 import Pagination from "../../components/common/Pagination/Pagination";
 import "./AdminAuctionManagementPage.scss";
 
-type AuctionStatus = "scheduled" | "live" | "ended" | "cancelled";
+type AuctionStatus = "pending" | "draft" | "scheduled" | "live" | "ended" | "cancelled";
 
 const AdminAuctionManagementPage: React.FC = () => {
   const [allAuctions, setAllAuctions] = useState<Auction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<AuctionStatus>("live");
+  const [activeTab, setActiveTab] = useState<AuctionStatus>("pending");
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -104,6 +105,8 @@ const AdminAuctionManagementPage: React.FC = () => {
   // Helper function to get Vietnamese status translation
   const getStatusLabel = (status: string): string => {
     const statusMap: Record<string, string> = {
+      draft: "Bản nháp",
+      pending: "Chờ duyệt",
       scheduled: "Sắp diễn ra",
       live: "Đang diễn ra",
       ended: "Đã kết thúc",
@@ -135,34 +138,53 @@ const AdminAuctionManagementPage: React.FC = () => {
     }
   };
 
-  // Handler: Approve and start auction (scheduled → live)
-  const handleApproveAuction = (auctionId: string) => {
-    if (
-      !window.confirm(
-        "Bạn có chắc muốn duyệt và bắt đầu phiên đấu giá này không?"
-      )
-    )
-      return;
+  // Handler: Schedule auction (pending → scheduled)
+  const handleScheduleAuction = (auctionId: string) => {
+    if (!window.confirm("Bạn có chắc muốn lên lịch phiên đấu giá này?")) return;
 
-    auctionApi.startAuction(auctionId).then((response) => {
-      const isSuccess = response.data?.success || 
-                       (response.data && typeof response.data === 'object' && 'status' in response.data) ||
-                       response.status === 200;
+    const statusDto: UpdateAuctionStatusDto = { status: 'scheduled' };
+    auctionApi.updateAuctionStatus(auctionId, statusDto).then((response) => {
+      const isSuccess = response.status === 200 || 
+                       (response.data && typeof response.data === 'object' && '_id' in response.data);
       
       if (isSuccess) {
-        alert("Duyệt thành công! Phiên đấu giá đã được kích hoạt.");
+        alert("Đã lên lịch phiên đấu giá thành công.");
         fetchAuctions(activeTab);
       } else {
         alert("Có lỗi xảy ra, vui lòng thử lại.");
       }
     }).catch(error => {
-      console.error("Error starting auction:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Có lỗi xảy ra khi duyệt phiên đấu giá.";
+      console.error("Error scheduling auction:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Có lỗi xảy ra khi lên lịch phiên đấu giá.";
       alert(errorMessage);
     });
   };
 
-  // Handler: Cancel auction
+  // Handler: Activate auction immediately (pending/scheduled → live)
+  const handleActivateAuction = (auctionId: string) => {
+    if (!window.confirm("Bạn có chắc muốn kích hoạt ngay phiên đấu giá này?")) return;
+
+    auctionApi.activateAuction(auctionId).then((response) => {
+      const isSuccess = response.status === 200 || 
+                       (response.data && typeof response.data === 'object' && '_id' in response.data);
+      
+      if (isSuccess) {
+        alert("Kích hoạt thành công! Phiên đấu giá đã được bắt đầu ngay.");
+        fetchAuctions(activeTab);
+      } else {
+        alert("Có lỗi xảy ra, vui lòng thử lại.");
+      }
+    }).catch(error => {
+      console.error("Error activating auction:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Có lỗi xảy ra khi kích hoạt phiên đấu giá.";
+      alert(errorMessage);
+    });
+  };
+
+  // Handler: Approve and start auction (deprecated - use handleActivateAuction or handleScheduleAuction)
+  const handleApproveAuction = handleActivateAuction;
+
+  // Handler: Cancel auction (set status to cancelled)
   const handleCancelAuction = (auctionId: string, auctionTitle?: string) => {
     const title = auctionTitle || "phiên đấu giá này";
     if (
@@ -172,10 +194,10 @@ const AdminAuctionManagementPage: React.FC = () => {
     )
       return;
 
-    auctionApi.cancelAuction(auctionId).then((response) => {
-      const isSuccess = response.data?.success || 
-                       (response.data && typeof response.data === 'object' && 'status' in response.data) ||
-                       response.status === 200;
+    const statusDto: UpdateAuctionStatusDto = { status: 'cancelled' };
+    auctionApi.updateAuctionStatus(auctionId, statusDto).then((response) => {
+      const isSuccess = response.status === 200 || 
+                       (response.data && typeof response.data === 'object' && '_id' in response.data);
       
       if (isSuccess) {
         alert("Đã hủy phiên đấu giá thành công.");
@@ -223,16 +245,28 @@ const AdminAuctionManagementPage: React.FC = () => {
 
       <div className="admin-tabs">
         <button
-          className={activeTab === "live" ? "active" : ""}
-          onClick={() => handleTabClick("live")}
+          className={activeTab === "pending" ? "active" : ""}
+          onClick={() => handleTabClick("pending")}
         >
-          Đang diễn ra
+          Chờ duyệt
+        </button>
+        <button
+          className={activeTab === "draft" ? "active" : ""}
+          onClick={() => handleTabClick("draft")}
+        >
+          Bản nháp
         </button>
         <button
           className={activeTab === "scheduled" ? "active" : ""}
           onClick={() => handleTabClick("scheduled")}
         >
           Sắp diễn ra
+        </button>
+        <button
+          className={activeTab === "live" ? "active" : ""}
+          onClick={() => handleTabClick("live")}
+        >
+          Đang diễn ra
         </button>
         <button
           className={activeTab === "ended" ? "active" : ""}
@@ -367,34 +401,68 @@ const AdminAuctionManagementPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="actions-cell">
+                      {activeTab === "pending" && (
+                        <>
+                          <button
+                            className="action-btn btn--approve"
+                            onClick={() => handleScheduleAuction(auction._id)}
+                            title="Lên lịch phiên đấu giá"
+                          >
+                            Lên lịch
+                          </button>
+                          <button
+                            className="action-btn btn--approve"
+                            onClick={() => handleActivateAuction(auction._id)}
+                            title="Kích hoạt ngay phiên đấu giá"
+                          >
+                            Kích hoạt ngay
+                          </button>
+                          <button
+                            className="action-btn btn--reject"
+                            onClick={() => handleCancelAuction(auction._id, title)}
+                            title="Hủy phiên đấu giá"
+                          >
+                            Hủy
+                          </button>
+                        </>
+                      )}
                       {activeTab === "scheduled" && (
-                        <button
-                          className="action-btn btn--approve"
-                          onClick={() => handleApproveAuction(auction._id)}
-                          title="Duyệt và bắt đầu phiên đấu giá"
-                        >
-                          Duyệt
-                        </button>
+                        <>
+                          <button
+                            className="action-btn btn--approve"
+                            onClick={() => handleActivateAuction(auction._id)}
+                            title="Kích hoạt ngay phiên đấu giá"
+                          >
+                            Kích hoạt ngay
+                          </button>
+                          <button
+                            className="action-btn btn--reject"
+                            onClick={() => handleCancelAuction(auction._id, title)}
+                            title="Hủy phiên đấu giá"
+                          >
+                            Hủy
+                          </button>
+                        </>
                       )}
                       {activeTab === "live" && !isEnded && (
-                        <button
-                          className="action-btn btn--end"
-                          onClick={() => handleEndAuction(auction._id, title)}
-                          title="Kết thúc phiên đấu giá sớm"
-                        >
-                          Kết thúc
-                        </button>
+                        <>
+                          <button
+                            className="action-btn btn--end"
+                            onClick={() => handleEndAuction(auction._id, title)}
+                            title="Kết thúc phiên đấu giá sớm"
+                          >
+                            Kết thúc
+                          </button>
+                          <button
+                            className="action-btn btn--reject"
+                            onClick={() => handleCancelAuction(auction._id, title)}
+                            title="Hủy phiên đấu giá"
+                          >
+                            Hủy
+                          </button>
+                        </>
                       )}
-                      {!isEnded && (
-                        <button
-                          className="action-btn btn--reject"
-                          onClick={() => handleCancelAuction(auction._id, title)}
-                          title="Hủy phiên đấu giá"
-                        >
-                          Hủy
-                        </button>
-                      )}
-                      {isEnded && (
+                      {(activeTab === "ended" || activeTab === "cancelled" || activeTab === "draft") && (
                         <span className="no-actions" style={{ color: "#999", fontStyle: "italic" }}>
                           Không có hành động
                         </span>

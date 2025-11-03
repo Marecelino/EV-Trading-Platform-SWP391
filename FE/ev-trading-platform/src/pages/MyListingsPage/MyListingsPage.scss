@@ -137,9 +137,167 @@
   }
 
 }
-.loading-text, .empty-text {
+// Loading state
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  
+  .loading-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-3;
+    padding: $spacing-8;
+    color: $text-secondary;
+    font-size: $font-size-base;
+    
+    &::before {
+      content: '';
+      width: 24px;
+      height: 24px;
+      border: 3px solid $gray-200;
+      border-top: 3px solid $primary-color;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Empty state
+.empty-state {
+  padding: $spacing-12;
   text-align: center;
-  padding: 50px 20px;
-  color: #777;
-  font-style: italic;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  
+  .empty-state-title {
+    font-size: $font-size-lg;
+    color: $text-color;
+    margin-bottom: $spacing-3;
+    font-weight: $font-weight-medium;
+  }
+  
+  .empty-state-subtitle {
+    font-size: $font-size-base;
+    color: $text-secondary;
+    margin: 0;
+  }
+}
+
+// Error message
+.error-message {
+  padding: $spacing-8;
+  text-align: center;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-4;
+  
+  p {
+    color: $error-color;
+    font-size: $font-size-base;
+    margin: 0;
+  }
+  
+  button {
+    padding: $spacing-3 $spacing-6;
+    background-color: $primary-color;
+    color: $white-color;
+    border: none;
+    border-radius: $radius-base;
+    cursor: pointer;
+    font-weight: $font-weight-medium;
+    transition: all $duration-fast $ease-in-out;
+    
+    &:hover {
+      background-color: darken($primary-color, 8%);
+      transform: translateY(-1px);
+      box-shadow: $shadow-sm;
+    }
+  }
+}
+
+// Pagination wrapper
+.pagination-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-4;
+  padding: $spacing-6;
+  margin-top: $spacing-4;
+  
+  .pagination-btn {
+    padding: $spacing-3 $spacing-6;
+    border: 1px solid $border-color;
+    background-color: $white-color;
+    color: $text-color;
+    border-radius: $radius-base;
+    cursor: pointer;
+    font-weight: $font-weight-medium;
+    transition: all $duration-fast $ease-in-out;
+    
+    &:hover:not(:disabled) {
+      background-color: $gray-50;
+      border-color: $primary-color;
+      color: $primary-color;
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+  
+  .pagination-info {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    font-weight: $font-weight-medium;
+  }
+}
+
+// Admin tabs (reused from AdminListingManagementPage)
+.admin-tabs {
+  display: flex;
+  gap: $spacing-2;
+  margin-bottom: $spacing-6;
+  border-bottom: 2px solid $border-color;
+  padding-bottom: 0;
+  flex-wrap: wrap;
+  
+  button {
+    padding: $spacing-4 $spacing-6;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    color: $text-secondary;
+    border-bottom: 3px solid transparent;
+    transition: all $duration-base $ease-in-out;
+    position: relative;
+    bottom: -2px;
+
+    &:hover {
+      color: $primary-color;
+      background-color: $gray-50;
+    }
+
+    &.active {
+      color: $primary-color;
+      border-bottom-color: $primary-color;
+      font-weight: $font-weight-semibold;
+    }
+  }
 }
