@@ -26,6 +26,33 @@ const MyListingItem: React.FC<MyListingItemProps> = ({ product }) => {
     }
   };
 
+  // Helper function to safely format date
+  // Backend may return createdAt (camelCase) or created_at (snake_case)
+  const formatDate = (product: Product): string => {
+    // Try both camelCase and snake_case
+    const dateString = product.createdAt || product.created_at;
+    
+    if (!dateString) {
+      return 'Không xác định';
+    }
+
+    // Try to parse the date
+    const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date format:', dateString, 'for product:', product._id);
+      return 'Không xác định';
+    }
+
+    // Format as Vietnamese date
+    return date.toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  };
+
   const statusInfo = getStatusInfo(product.status);
 
   return (
@@ -39,7 +66,7 @@ const MyListingItem: React.FC<MyListingItemProps> = ({ product }) => {
         <p className="item-price">{product.price.toLocaleString('vi-VN')} ₫</p>
         <div className="item-meta">
           <span className={`item-status ${statusInfo.className}`}>{statusInfo.text}</span>
-          <span className="item-date">Ngày đăng: {new Date(product.created_at).toLocaleDateString('vi-VN')}</span>
+          <span className="item-date">Ngày đăng: {formatDate(product)}</span>
         </div>
       </div>
 
