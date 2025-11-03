@@ -23,7 +23,49 @@ export class AuctionsService {
     @InjectModel(Favorite.name)
     private readonly favoriteModel: Model<FavoriteDocument>,
     private readonly notificationsService: NotificationsService,
-  ) { }
+  ) {}
+
+  /**
+   * Auto-transition auctions based on current time.
+   * - scheduled -> live when start_time has passed but end_time not yet
+   * - scheduled/live -> ended when end_time has passed
+   * The update runs best-effort; failures are logged but do not break requests.
+   */
+  private async reconcileTimedStatuses(): Promise<void> {
+    const now = new Date();
+    try {
+      const [started, ended] = await Promise.all([
+        this.auctionModel.updateMany(
+          {
+            status: AuctionStatus.SCHEDULED,
+            start_time: { $lte: now },
+            end_time: { $gt: now },
+          },
+          { $set: { status: AuctionStatus.LIVE } },
+        ),
+        this.auctionModel.updateMany(
+          {
+            status: { $in: [AuctionStatus.LIVE, AuctionStatus.SCHEDULED] },
+            end_time: { $lte: now },
+          },
+          { $set: { status: AuctionStatus.ENDED } },
+        ),
+      ]);
+
+      const startedCount = (started as any)?.modifiedCount ?? 0;
+      const endedCount = (ended as any)?.modifiedCount ?? 0;
+
+      if (startedCount > 0 || endedCount > 0) {
+        console.log('[AuctionsService] Auto-updated auction statuses', {
+          startedToLive: startedCount,
+          endedToClosed: endedCount,
+        });
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn('Failed to auto-update auction statuses', message);
+    }
+  }
 
   /**
    * CREATE - Create new auction
@@ -34,6 +76,7 @@ export class AuctionsService {
    */
   async findAll(page = 1, limit = 10, filter = {}) {
     try {
+      await this.reconcileTimedStatuses();
       const skip = (page - 1) * limit;
 
       const [auctions, total] = await Promise.all([
@@ -97,6 +140,7 @@ export class AuctionsService {
     }
 
     try {
+      await this.reconcileTimedStatuses();
       const auctionDoc = await this.auctionModel
         .findById(id)
         .populate('seller_id', 'name email phone')
@@ -212,8 +256,13 @@ export class AuctionsService {
       try {
         const updatedStatus = updatedDoc.status;
         const auctionIdStr = String(updatedDoc._id);
-        if (oldStatus !== AuctionStatus.ENDED && updatedStatus === AuctionStatus.ENDED) {
-          const favorites = await this.favoriteModel.find({ auction_id: auctionIdStr }).lean();
+        if (
+          oldStatus !== AuctionStatus.ENDED &&
+          updatedStatus === AuctionStatus.ENDED
+        ) {
+          const favorites = await this.favoriteModel
+            .find({ auction_id: auctionIdStr })
+            .lean();
           const recipients = (favorites || []).map((f) => String(f.user_id));
 
           if (recipients.length > 0) {
@@ -231,27 +280,48 @@ export class AuctionsService {
           }
         }
       } catch (err) {
-        console.error('Failed to create favorite notifications for auction status update', err);
+        console.error(
+          'Failed to create favorite notifications for auction status update',
+          err,
+        );
       }
 
       // If price changed as part of this update, notify favorites
       try {
         const newPrice = (updatedDoc as any).current_price;
         const auctionIdStr = String(updatedDoc._id);
-        if (typeof oldPrice !== 'undefined' && typeof newPrice !== 'undefined' && oldPrice !== newPrice) {
+        if (
+          typeof oldPrice !== 'undefined' &&
+          typeof newPrice !== 'undefined' &&
+          oldPrice !== newPrice
+        ) {
           // Build selectors to match favorites by auction_id (ObjectId or string)
           // and also by listing_id if this auction is tied to a listing.
           const selectors: any[] = [];
-          if (mongoose.Types.ObjectId.isValid(auctionIdStr)) selectors.push({ auction_id: new mongoose.Types.ObjectId(auctionIdStr) });
+          if (mongoose.Types.ObjectId.isValid(auctionIdStr))
+            selectors.push({
+              auction_id: new mongoose.Types.ObjectId(auctionIdStr),
+            });
           selectors.push({ auction_id: auctionIdStr });
 
-          const listingId = ((updatedDoc as any).listing_id && String(((updatedDoc as any).listing_id as any)?._id ?? (updatedDoc as any).listing_id)) || null;
+          const listingId =
+            ((updatedDoc as any).listing_id &&
+              String(
+                ((updatedDoc as any).listing_id as any)?._id ??
+                  (updatedDoc as any).listing_id,
+              )) ||
+            null;
           if (listingId) {
-            if (mongoose.Types.ObjectId.isValid(listingId)) selectors.push({ listing_id: new mongoose.Types.ObjectId(listingId) });
+            if (mongoose.Types.ObjectId.isValid(listingId))
+              selectors.push({
+                listing_id: new mongoose.Types.ObjectId(listingId),
+              });
             selectors.push({ listing_id: listingId });
           }
 
-          const favorites = await this.favoriteModel.find({ $or: selectors }).lean();
+          const favorites = await this.favoriteModel
+            .find({ $or: selectors })
+            .lean();
           const recipients = (favorites || []).map((f) => String(f.user_id));
 
           if (recipients.length > 0) {
@@ -269,7 +339,10 @@ export class AuctionsService {
           }
         }
       } catch (err) {
-        console.error('Failed to create favorite notifications for auction price update', err);
+        console.error(
+          'Failed to create favorite notifications for auction price update',
+          err,
+        );
       }
 
       const updated = updatedDoc.toObject
@@ -328,26 +401,44 @@ export class AuctionsService {
       try {
         const auctionIdStr = String(updatedDoc._id);
         const selectors: any[] = [];
-        if (mongoose.Types.ObjectId.isValid(auctionIdStr)) selectors.push({ auction_id: new mongoose.Types.ObjectId(auctionIdStr) });
+        if (mongoose.Types.ObjectId.isValid(auctionIdStr))
+          selectors.push({
+            auction_id: new mongoose.Types.ObjectId(auctionIdStr),
+          });
         selectors.push({ auction_id: auctionIdStr });
 
-        const listingId = ((updatedDoc as any).listing_id && String(((updatedDoc as any).listing_id as any)?._id ?? (updatedDoc as any).listing_id)) || null;
+        const listingId =
+          ((updatedDoc as any).listing_id &&
+            String(
+              ((updatedDoc as any).listing_id as any)?._id ??
+                (updatedDoc as any).listing_id,
+            )) ||
+          null;
         if (listingId) {
-          if (mongoose.Types.ObjectId.isValid(listingId)) selectors.push({ listing_id: new mongoose.Types.ObjectId(listingId) });
+          if (mongoose.Types.ObjectId.isValid(listingId))
+            selectors.push({
+              listing_id: new mongoose.Types.ObjectId(listingId),
+            });
           selectors.push({ listing_id: listingId });
         }
 
-        const favorites = await this.favoriteModel.find({ $or: selectors }).lean();
-        const recipients = (favorites || []).map((f) => String((f as any).user_id));
+        const favorites = await this.favoriteModel
+          .find({ $or: selectors })
+          .lean();
+        const recipients = (favorites || []).map((f) =>
+          String((f as any).user_id),
+        );
 
         if (recipients.length > 0) {
-          const message = status === AuctionStatus.ENDED
-            ? `Auction "${(updatedDoc as any).title}" has ended.`
-            : `Auction "${(updatedDoc as any).title}" status changed to ${String(status)}.`;
+          const message =
+            status === AuctionStatus.ENDED
+              ? `Auction "${(updatedDoc as any).title}" has ended.`
+              : `Auction "${(updatedDoc as any).title}" status changed to ${String(status)}.`;
 
-          const type = status === AuctionStatus.ENDED
-            ? NotificationType.FAVORITE_AUCTION_SOLD
-            : NotificationType.SYSTEM_ANNOUNCEMENT;
+          const type =
+            status === AuctionStatus.ENDED
+              ? NotificationType.FAVORITE_AUCTION_SOLD
+              : NotificationType.SYSTEM_ANNOUNCEMENT;
 
           await Promise.all(
             recipients.map((uid) =>
@@ -362,15 +453,23 @@ export class AuctionsService {
           );
         }
       } catch (err) {
-        console.error('Failed to create favorite notifications for auction status update', err);
+        console.error(
+          'Failed to create favorite notifications for auction status update',
+          err,
+        );
       }
 
       return updatedDoc.toObject ? updatedDoc.toObject() : (updatedDoc as any);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      throw new BadRequestException('Failed to update auction status: ' + error.message);
+      throw new BadRequestException(
+        'Failed to update auction status: ' + error.message,
+      );
     }
   }
 
@@ -562,10 +661,14 @@ export class AuctionsService {
       // attach detail document if available
       let result: any = { ...updated, auction_id: auctionId };
       if (category === 'ev') {
-        const evDetail = await this.evDetailModel.findOne({ auction_id: auctionId }).lean();
+        const evDetail = await this.evDetailModel
+          .findOne({ auction_id: auctionId })
+          .lean();
         result = { ...result, evDetail };
       } else if (category === 'battery') {
-        const batteryDetail = await this.batteryDetailModel.findOne({ auction_id: auctionId }).lean();
+        const batteryDetail = await this.batteryDetailModel
+          .findOne({ auction_id: auctionId })
+          .lean();
         result = { ...result, batteryDetail };
       }
 
@@ -622,15 +725,29 @@ export class AuctionsService {
         // include favorites by auction_id and by listing_id (if the auction references a listing)
         const auctionIdStr = String(saved._id);
         const selectors: any[] = [];
-        if (mongoose.Types.ObjectId.isValid(auctionIdStr)) selectors.push({ auction_id: new mongoose.Types.ObjectId(auctionIdStr) });
+        if (mongoose.Types.ObjectId.isValid(auctionIdStr))
+          selectors.push({
+            auction_id: new mongoose.Types.ObjectId(auctionIdStr),
+          });
         selectors.push({ auction_id: auctionIdStr });
-        const listingId = ((saved as any).listing_id && String(((saved as any).listing_id as any)?._id ?? (saved as any).listing_id)) || null;
+        const listingId =
+          ((saved as any).listing_id &&
+            String(
+              ((saved as any).listing_id as any)?._id ??
+                (saved as any).listing_id,
+            )) ||
+          null;
         if (listingId) {
-          if (mongoose.Types.ObjectId.isValid(listingId)) selectors.push({ listing_id: new mongoose.Types.ObjectId(listingId) });
+          if (mongoose.Types.ObjectId.isValid(listingId))
+            selectors.push({
+              listing_id: new mongoose.Types.ObjectId(listingId),
+            });
           selectors.push({ listing_id: listingId });
         }
 
-        const favorites = await this.favoriteModel.find({ $or: selectors }).lean();
+        const favorites = await this.favoriteModel
+          .find({ $or: selectors })
+          .lean();
         const recipients = (favorites || []).map((f) => String(f.user_id));
 
         if (recipients.length > 0) {
@@ -647,7 +764,10 @@ export class AuctionsService {
           );
         }
       } catch (err) {
-        console.error('Failed to create favorite notifications for auction end', err);
+        console.error(
+          'Failed to create favorite notifications for auction end',
+          err,
+        );
       }
 
       return saved;
@@ -677,8 +797,13 @@ export class AuctionsService {
       if (!auction) throw new NotFoundException('Auction not found');
 
       if (auction.status === AuctionStatus.LIVE) return auction;
-      if (auction.status === AuctionStatus.ENDED || auction.status === AuctionStatus.CANCELLED) {
-        throw new BadRequestException('Cannot activate ended or cancelled auction');
+      if (
+        auction.status === AuctionStatus.ENDED ||
+        auction.status === AuctionStatus.CANCELLED
+      ) {
+        throw new BadRequestException(
+          'Cannot activate ended or cancelled auction',
+        );
       }
 
       const now = new Date();
@@ -704,8 +829,14 @@ export class AuctionsService {
 
       return updated;
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
-      throw new BadRequestException('Failed to activate auction: ' + error.message);
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
+      throw new BadRequestException(
+        'Failed to activate auction: ' + error.message,
+      );
     }
   }
 

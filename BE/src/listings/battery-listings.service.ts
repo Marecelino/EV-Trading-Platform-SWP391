@@ -94,6 +94,7 @@ export class BatteryListingsService {
         buyer_id: requestBuyer,
         seller_id: platformSellerId,
         listing_id: saved._id,
+        is_listing_fee: true,
         amount: listingFeeAmount,
         payment_method: PaymentMethod.VNPAY,
         status: PaymentStatus.PENDING,

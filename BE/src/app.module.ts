@@ -25,6 +25,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { BrandsModule } from './brands/brands.module';
+import { BatteryDetailsModule } from './battery-details/battery-details.module';
 
 @Module({
   imports: [
@@ -75,7 +76,7 @@ import { BrandsModule } from './brands/brands.module';
     ListingsModule,
     AuthModule,
     PaymentModule,
-    SignnowModule,
+    // SignnowModule,
     TransactionsModule,
     ReviewsModule,
     ContactsModule,
@@ -83,8 +84,9 @@ import { BrandsModule } from './brands/brands.module';
     PriceSuggestionsModule,
     FavoritesModule,
     TransactionComplaintsModule,
-    ReportsModule,
+    // ReportsModule,
     BrandsModule,
+    BatteryDetailsModule,
   ],
   controllers: [AppController],
   providers: [

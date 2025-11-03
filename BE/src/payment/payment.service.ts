@@ -369,7 +369,11 @@ export class PaymentService {
 
     if (status === PaymentStatus.COMPLETED) {
       try {
-        await this.finalizeSuccessfulPayment(payment, 'IPN');
+        if ((payment as any).is_listing_fee) {
+          await this.finalizeSuccessfulListingPayment(payment, 'IPN');
+        } else {
+          await this.finalizeSuccessfulPayment(payment, 'IPN');
+        }
       } catch (err) {
         console.error('Error finalizing payment via IPN:', err);
       }
@@ -410,7 +414,11 @@ export class PaymentService {
         // If completed and no transaction created yet, try to create one (idempotent)
         if (rspCode === '00') {
           try {
-            await this.finalizeSuccessfulPayment(payment, 'RETURN');
+            if ((payment as any).is_listing_fee) {
+              await this.finalizeSuccessfulListingPayment(payment, 'RETURN');
+            } else {
+              await this.finalizeSuccessfulPayment(payment, 'RETURN');
+            }
           } catch (err) {
             console.error('Error finalizing payment via return:', err);
           }
@@ -556,7 +564,7 @@ export class PaymentService {
     if (listingId) {
       try {
         // Mark listing as pending publication/processing
-        await this.listingsService.updateStatus(listingId, ListingStatus.PENDING);
+        await this.listingsService.updateStatus(listingId, ListingStatus.SOLD);
       } catch (error) {
         console.warn('Failed to update listing status after payment', {
           listingId,
@@ -576,6 +584,64 @@ export class PaymentService {
     }
 
     // Do not create a contract record or trigger SignNow.
+    // For purchase payments (non-listing fees) create a draft Contract and
+    // attempt to send a SignNow invite (best-effort). If SignNow isn't
+    // configured or the invite fails, continue without blocking the flow.
+    let createdContract: any = null;
+    let signnowResult: any = null;
+    try {
+      const buyerId = (payment.buyer_id as any)?.toString?.() ?? String((payment as any).buyer_id || '');
+      const sellerId = (payment.seller_id as any)?.toString?.() ?? String((payment as any).seller_id || '');
+      const [buyer, seller] = await Promise.all([
+        buyerId ? this.userModel.findById(buyerId).lean().catch(() => null) : Promise.resolve(null),
+        sellerId ? this.userModel.findById(sellerId).lean().catch(() => null) : Promise.resolve(null),
+      ]);
+
+      const contractNo = `CONTRACT-${String(transaction._id)}`;
+
+      createdContract = await this.contactsService.create({
+        transaction_id: (transaction._id as Types.ObjectId).toString(),
+        contract_no: contractNo,
+        document_url: 'about:blank',
+        status: ContractStatus.DRAFT,
+        terms_and_conditions: '',
+        notes: `Auto-created on payment ${String(payment._id)}`,
+      } as any);
+
+      // Try SignNow invite if we have buyer/seller emails
+      try {
+        const dto: any = {
+          contract_id: (createdContract._id as any).toString(),
+          buyer_name: (buyer && (buyer.name || '')) || '',
+          buyer_email: (buyer && (buyer.email || '')) || '',
+          seller_name: (seller && (seller.name || '')) || '',
+          seller_email: (seller && (seller.email || '')) || '',
+          amount: payment.amount,
+        };
+
+        if (dto.buyer_email && dto.seller_email) {
+          signnowResult = await this.signnowService.createContractAndInvite(dto);
+        } else {
+          this.logger.warn('Skipping SignNow invite: missing buyer or seller email', {
+            buyerEmail: dto.buyer_email,
+            sellerEmail: dto.seller_email,
+          });
+        }
+      } catch (err) {
+        this.logger.warn('SignNow invite failed (continuing)', err?.message || err);
+      }
+
+      // attach contract reference to payment
+      try {
+        payment.contract_id = (createdContract._id as any);
+        await payment.save();
+      } catch (err) {
+        this.logger.warn('Failed to attach contract to payment', { error: err?.message || err });
+      }
+    } catch (err) {
+      this.logger.warn('Failed to create contract after payment (continuing)', err?.message || err);
+    }
+
     // Instead: if the payment is related to an auction, mark the auction as
     // PAYMENT_COMPLETED; if it's related to a listing, the listing was already
     // updated to SOLD above. Return the transaction and commission info only.
@@ -584,7 +650,72 @@ export class PaymentService {
         const auctionId = (payment as any).auction_id?.toString?.() ?? String((payment as any).auction_id);
         if (auctionId) {
           try {
-            // After listing-fee payment completes, move auction from DRAFT to PENDING
+            // After listing-fee payment completes, move auction from DRAFT to SOLD
+            await this.auctionsService.updateStatus(auctionId, AuctionStatus.SOLD);
+            await this.auctionsService.updatePaymentStatus(auctionId, PaymentListingStatus.COMPLETED);
+          } catch (err) {
+            console.warn('Failed to update auction status to SOLD', { auctionId, error: err?.message || err });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Error while updating auction/listing status after payment', err?.message || err);
+    }
+    return {
+      transaction,
+      commission: { rate, platformFee, sellerPayout },
+      contract: createdContract,
+      signnow: signnowResult,
+    };
+  }
+
+  private async finalizeSuccessfulListingPayment(
+    payment: PaymentDocument,
+    source: 'IPN' | 'RETURN',
+  ) {
+    // Listing fee payments don't create transactions or contracts. They only
+    // update the listing/auction payment status so the listing can become PENDING.
+    let listing: any = null;
+    try {
+      if (payment.listing_id) {
+        listing = await this.listingsService.findOne(
+          payment.listing_id.toString(),
+        );
+      }
+    } catch (err) {
+      console.warn('Listing not found during listing-fee finalization', err);
+    }
+
+    const listingId =
+      listing?._id?.toString?.() ??
+      listing?.id?.toString?.() ??
+      payment.listing_id?.toString?.();
+
+    if (listingId) {
+      try {
+        await this.listingsService.updateStatus(listingId, ListingStatus.PENDING);
+      } catch (error) {
+        console.warn('Failed to update listing status after listing-fee payment', {
+          listingId,
+          error,
+        });
+      }
+
+      try {
+        await this.listingsService.updatePaymentStatus(listingId, PaymentListingStatus.COMPLETED);
+      } catch (error) {
+        console.warn('Failed to update listing payment_status after listing-fee payment', {
+          listingId,
+          error,
+        });
+      }
+    }
+
+    try {
+      if ((payment as any).auction_id) {
+        const auctionId = (payment as any).auction_id?.toString?.() ?? String((payment as any).auction_id);
+        if (auctionId) {
+          try {
             await this.auctionsService.updateStatus(auctionId, AuctionStatus.PENDING);
             await this.auctionsService.updatePaymentStatus(auctionId, PaymentListingStatus.COMPLETED);
           } catch (err) {
@@ -593,12 +724,10 @@ export class PaymentService {
         }
       }
     } catch (err) {
-      console.warn('Error while updating auction/listing status after payment', err?.message || err);
+      console.warn('Error while updating auction/listing status after listing-fee payment', err?.message || err);
     }
 
-    return {
-      transaction,
-      commission: { rate, platformFee, sellerPayout },
-    };
+    // No transaction or commission created for listing fee. Return the payment only.
+    return { payment };
   }
 }

@@ -24,6 +24,9 @@ import {
 } from '@nestjs/swagger';
 import { AuctionsService } from './auctions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../model/users.schema';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { CreateBidDto } from './dto/create-bid.dto';
 import { EVAuctionService } from './ev-auction.service';
@@ -441,7 +444,9 @@ export class AuctionsController {
   }
 
   @Patch(':id/activate')
-  @ApiOperation({ summary: 'Activate auction (set live now)' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Activate auction (set live now) - admin only' })
   @ApiParam({ name: 'id', description: 'Auction ID' })
   @ApiResponse({ status: 200, description: 'Auction activated successfully' })
   async activateAuction(@Param('id') id: string) {

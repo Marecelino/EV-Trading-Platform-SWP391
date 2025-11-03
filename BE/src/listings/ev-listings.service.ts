@@ -98,6 +98,7 @@ export class EVListingsService {
         seller_id: platformSellerId,
         listing_id: saved._id,
         amount: listingFeeAmount,
+        is_listing_fee: true,
         payment_method: PaymentMethod.VNPAY,
         status: PaymentStatus.PENDING,
       } as any);

@@ -15,14 +15,16 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { BatteryDetailsService } from './battery-details.service';
 import { CreateBatteryDetailDto, UpdateBatteryDetailDto } from './dto';
 
 @ApiTags('Battery Details')
+@ApiBearerAuth()
 @Controller('battery-details')
 export class BatteryDetailsController {
-  constructor(private readonly batteryDetailsService: BatteryDetailsService) {}
+  constructor(private readonly batteryDetailsService: BatteryDetailsService) { }
 
   @Post()
   @ApiOperation({ summary: 'Tạo thông tin chi tiết pin mới' })

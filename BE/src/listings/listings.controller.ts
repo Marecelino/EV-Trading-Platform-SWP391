@@ -36,6 +36,9 @@ import {
 } from '../model/listings';
 import { UpdateListingStatusDto } from './dto/update-listing-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../model/users.schema';
 import type { Request as ExpressRequest } from 'express';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -319,7 +322,9 @@ export class ListingsController {
   }
 
   @Patch(':id/activate')
-  @ApiOperation({ summary: 'Activate listing (set status active)' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Activate listing (set status active) - admin only' })
   @ApiParam({ name: 'id', description: 'Listing ID' })
   @ApiResponse({ status: 200, description: 'Listing activated' })
   async activateListing(@Param('id') id: string) {

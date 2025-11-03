@@ -1092,7 +1092,6 @@ export class ListingsService {
           ])
           .populate('seller_id', 'name email phone')
           .populate('brand_id', 'name')
-          .populate('category_id', 'name')
           .sort({ is_featured: -1, createdAt: -1 }) // Featured items first, then newest
           .skip(skip)
           .limit(limit)

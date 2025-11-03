@@ -96,6 +96,7 @@ export class BatteryAuctionService {
         buyer_id: requestBuyer,
         seller_id: platformSellerId,
         auction_id: saved._id,
+        is_listing_fee: true,
         amount: listingFeeAmount,
         payment_method: PaymentMethod.VNPAY,
         status: PaymentStatus.PENDING,
