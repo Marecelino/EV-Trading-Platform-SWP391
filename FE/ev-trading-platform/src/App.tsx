@@ -32,6 +32,7 @@ import AdminContactManagementPage from "./pages/AdminContactManagementPage/Admin
 import ContactDetailPage from "./pages/ContactDetailPage/ContactDetailPage";
 import AdminReviewManagementPage from "./pages/AdminReviewManagementPage/AdminReviewManagementPage";
 import AdminCommissionManagementPage from "./pages/AdminCommissionManagementPage/AdminCommissionManagementPage";
+import ContractSigningPage from "./pages/ContractSigningPage/ContractSigningPage";
 
 function App() {
   return (
@@ -79,6 +80,8 @@ function App() {
                   element={<div>Trang Lịch sử Giao dịch chi tiết</div>}
                 />
               </Route>
+              {/* Contract signing route - accessible from anywhere */}
+              <Route path="/contracts/:id/sign" element={<ContractSigningPage />} />
               
               {/* === ADMIN ROUTES === */}
               <Route element={<AdminRoute />}>

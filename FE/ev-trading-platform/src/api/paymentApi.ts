@@ -1,5 +1,5 @@
 import axiosClient from './axiosClient';
-import { Payment } from '../types/api';
+import { Payment, CreateListingPaymentDto, CreateListingPaymentResponse } from '../types/api';
 
 const paymentApi = {
   // Create VNPay payment URL
@@ -9,6 +9,12 @@ const paymentApi = {
     orderDescription?: string;
   }) => {
     return axiosClient.post<{ paymentUrl: string }>('/payment/create-payment-url', data);
+  },
+
+  // Create payment URL for listing purchase (Buy Now)
+  // POST /api/payment/create-payment-url
+  createListingPaymentUrl: (data: CreateListingPaymentDto) => {
+    return axiosClient.post<CreateListingPaymentResponse>('/payment/create-payment-url', data);
   },
 
   // Create payment URL for auction (after auction ended)

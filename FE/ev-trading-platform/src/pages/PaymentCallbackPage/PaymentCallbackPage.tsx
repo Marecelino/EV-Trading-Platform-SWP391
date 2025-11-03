@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle, XCircle, Loader } from "lucide-react";
 import paymentApi from "../../api/paymentApi";
+import transactionApi from "../../api/transactionApi";
+import contactApi from "../../api/contactApi";
+import type { ITransaction, Contact } from "../../types";
 import "./PaymentCallbackPage.scss";
 
 type StatusState = "loading" | "success" | "failed" | "pending";
@@ -48,19 +51,10 @@ const PaymentCallbackPage = () => {
       if (rspCode === "00") {
         // Payment successful
         setStatus("success");
-        setMessage(message || "Đã thanh toán thành công, tin đăng của bạn sẽ được duyệt trong chốc lát");
-        // Redirect immediately to my-listings with success message
-        const timerId = window.setTimeout(
-          () => navigate("/dashboard/my-listings", { 
-            replace: true,
-            state: { 
-              paymentSuccess: true,
-              message: "Đã thanh toán thành công, tin đăng của bạn sẽ được duyệt trong chốc lát"
-            }
-          }),
-          2000
-        );
-        timersRef.current.push(timerId);
+        setMessage(message || "Đã thanh toán thành công");
+        
+        // Try to fetch transaction and contract for buy now flow
+        handlePaymentSuccess(orderId);
       } else {
         // Payment failed
         setStatus("failed");
@@ -132,19 +126,26 @@ const PaymentCallbackPage = () => {
         if (successCode) {
           // Payment successful - backend should have updated payment status to COMPLETED
           setStatus("success");
-          setMessage(responseData?.message || "Đã thanh toán thành công, tin đăng của bạn sẽ được duyệt trong chốc lát");
-          // Redirect to my-listings with success message
-          const timerId = window.setTimeout(
-            () => navigate("/dashboard/my-listings", { 
-              replace: true,
-              state: { 
-                paymentSuccess: true,
-                message: "Đã thanh toán thành công, tin đăng của bạn sẽ được duyệt trong chốc lát"
-              }
-            }),
-            2000
-          );
-          timersRef.current.push(timerId);
+          setMessage(responseData?.message || "Đã thanh toán thành công");
+          
+          // Try to fetch transaction and contract for buy now flow
+          const paymentId = responseData?.orderId || vnp_TxnRef;
+          if (paymentId) {
+            handlePaymentSuccess(paymentId);
+          } else {
+            // Fallback to listing creation flow
+            const timerId = window.setTimeout(
+              () => navigate("/dashboard/my-listings", { 
+                replace: true,
+                state: { 
+                  paymentSuccess: true,
+                  message: "Đã thanh toán thành công, tin đăng của bạn sẽ được duyệt trong chốc lát"
+                }
+              }),
+              2000
+            );
+            timersRef.current.push(timerId);
+          }
         } else {
           // Payment failed or cancelled
           setStatus("failed");
@@ -214,6 +215,93 @@ const PaymentCallbackPage = () => {
         return <XCircle className="status-icon error" />;
       default:
         return <Loader className="status-icon loading" />;
+    }
+  };
+
+  // Handle successful payment - fetch transaction and contract
+  const handlePaymentSuccess = async (paymentId: string) => {
+    try {
+      // Fetch transaction using payment_reference
+      const transactionRes = await transactionApi.getTransactions({ 
+        payment_reference: paymentId 
+      });
+      
+      const transactionData = transactionRes.data;
+      let transactions: ITransaction[] = [];
+      
+      // Handle response structure
+      if (transactionData && typeof transactionData === 'object') {
+        if ('data' in transactionData && Array.isArray(transactionData.data)) {
+          transactions = transactionData.data as ITransaction[];
+        } else if (Array.isArray(transactionData)) {
+          transactions = transactionData as ITransaction[];
+        } else if ('data' in transactionData && transactionData.data && Array.isArray((transactionData as { data?: unknown }).data)) {
+          transactions = ((transactionData as { data: ITransaction[] }).data);
+        }
+      }
+      
+      if (transactions.length > 0) {
+        const transaction = transactions[0];
+        
+        // Fetch contract from transaction
+        try {
+          const contractRes = await contactApi.getContactByTransactionId(transaction._id);
+          const contractData = contractRes.data;
+          
+          let contract: Contact | null = null;
+          if (contractData && typeof contractData === 'object') {
+            contract = ('data' in contractData && contractData.data) ? (contractData.data as Contact) : (contractData as Contact);
+          }
+          
+          if (contract && contract._id) {
+            // Contract exists - navigate to contract signing page
+            setMessage("Thanh toán thành công! Vui lòng ký hợp đồng để hoàn tất giao dịch.");
+            const timerId = window.setTimeout(
+              () => navigate(`/contracts/${contract._id}/sign`, { replace: true }),
+              2000
+            );
+            timersRef.current.push(timerId);
+            return;
+          }
+        } catch (contractError) {
+          console.log("No contract found yet, redirecting to dashboard");
+        }
+        
+        // No contract yet, redirect to dashboard
+        const timerId = window.setTimeout(
+          () => navigate("/dashboard/transactions", { replace: true }),
+          2000
+        );
+        timersRef.current.push(timerId);
+      } else {
+        // No transaction found - likely listing creation payment
+        // Redirect to my-listings
+        const timerId = window.setTimeout(
+          () => navigate("/dashboard/my-listings", { 
+            replace: true,
+            state: { 
+              paymentSuccess: true,
+              message: "Đã thanh toán thành công, tin đăng của bạn sẽ được duyệt trong chốc lát"
+            }
+          }),
+          2000
+        );
+        timersRef.current.push(timerId);
+      }
+    } catch (error) {
+      console.error("Error fetching transaction/contract:", error);
+      // Fallback to listing creation flow
+      const timerId = window.setTimeout(
+        () => navigate("/dashboard/my-listings", { 
+          replace: true,
+          state: { 
+            paymentSuccess: true,
+            message: "Đã thanh toán thành công"
+          }
+        }),
+        2000
+      );
+      timersRef.current.push(timerId);
     }
   };
 

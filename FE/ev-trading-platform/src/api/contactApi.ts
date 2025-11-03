@@ -1,5 +1,5 @@
 import axiosClient from './axiosClient';
-import { CreateContactDto, UpdateContactDto } from '../types/api';
+import { CreateContactDto, UpdateContactDto, AcceptContractDto } from '../types/api';
 
 const contactApi = {
   getContacts: () => {
@@ -24,6 +24,18 @@ const contactApi = {
 
   deleteContact: (id: string) => {
     return axiosClient.delete(`/contacts/${id}`);
+  },
+
+  // Accept/Sign contract with typed consent
+  acceptContract: (id: string, data: AcceptContractDto) => {
+    return axiosClient.post<{ status: string; signed_document_url: string }>(`/contacts/${id}/accept`, data);
+  },
+
+  // Download contract PDF
+  downloadContract: (id: string, asUrl: boolean = false) => {
+    const headers = asUrl ? { Accept: 'application/json' } : { Accept: 'application/pdf' };
+    const url = asUrl ? `/contacts/${id}/download?json=1` : `/contacts/${id}/download`;
+    return axiosClient.get(url, { headers, responseType: asUrl ? 'json' : 'blob' });
   },
 };
 

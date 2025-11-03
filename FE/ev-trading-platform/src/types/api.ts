@@ -400,3 +400,28 @@ export interface CreateAuctionResponse {
   paymentUrl: string;
 }
 
+// ============================================================================
+// BUY NOW PAYMENT DTOs
+// ============================================================================
+
+export interface CreateListingPaymentDto {
+  listing_id: string; // Required - MongoDB ObjectId
+  amount?: number; // Optional - Backend validates against listing.price
+  payment_method?: string; // Default: "VNPAY"
+  bank_code?: string; // Optional - Bank code for VNPay
+}
+
+export interface CreateListingPaymentResponse {
+  payment: Payment;
+  paymentUrl: string;
+}
+
+// ============================================================================
+// CONTRACT DTOs
+// ============================================================================
+
+export interface AcceptContractDto {
+  name: string; // Required - Signer's name
+  email: string; // Required - Signer's email (validated)
+}
+

@@ -531,7 +531,7 @@ const ProductDetailPage: React.FC = () => {
 
       <aside className="sidebar">
         {/* === THÔNG TIN NGƯỜI BÁN === */}
-        {seller && <SellerInfoCard seller={seller} />}
+        {seller && <SellerInfoCard seller={seller} product={product} />}
         {!seller && product.seller_id && (
           <div className="content-card">
             <h4>Thông tin người bán</h4>

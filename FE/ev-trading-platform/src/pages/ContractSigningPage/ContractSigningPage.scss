@@ -1,0 +1,325 @@
+// src/pages/ContractSigningPage/ContractSigningPage.scss
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.contract-signing-page {
+  padding-top: 40px;
+  padding-bottom: 60px;
+  min-height: calc(100vh - 200px);
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 $spacing-4;
+
+    @include desktop {
+      padding: 0 $spacing-6;
+    }
+  }
+
+  .header {
+    margin-bottom: $spacing-6;
+    
+    h1 {
+      display: flex;
+      align-items: center;
+      gap: $spacing-3;
+      color: $text-primary;
+      font-size: $font-size-3xl;
+      font-weight: $font-weight-bold;
+      margin: 0;
+    }
+  }
+}
+
+// ========================================
+// CONTENT CARD
+// ========================================
+.content-card {
+  @include card($padding: $spacing-6, $radius: $radius-lg, $shadow: true);
+  margin-bottom: $spacing-6;
+
+  h2 {
+    margin-top: 0;
+    margin-bottom: $spacing-5;
+    color: $text-primary;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-xl;
+    padding-bottom: $spacing-3;
+    border-bottom: 2px solid $border-light;
+  }
+
+  @include mobile {
+    padding: $spacing-4;
+  }
+}
+
+// ========================================
+// LOADING & ERROR STATES
+// ========================================
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  gap: $spacing-4;
+
+  .spinner {
+    animation: spin 1s linear infinite;
+    color: $primary-color;
+  }
+
+  .error-icon {
+    color: $error-color;
+  }
+
+  h2 {
+    margin: 0;
+    color: $text-primary;
+    font-size: $font-size-2xl;
+  }
+
+  p {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-base;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ========================================
+// CONTRACT INFO SECTION
+// ========================================
+.contract-info {
+  .info-section {
+    margin-bottom: $spacing-6;
+    padding-bottom: $spacing-5;
+    border-bottom: 1px solid $border-light;
+
+    &:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: $spacing-2;
+      margin: 0 0 $spacing-4 0;
+      color: $text-primary;
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  .info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-3 0;
+    gap: $spacing-4;
+
+    @include mobile {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-2;
+    }
+
+    .label {
+      font-weight: $font-weight-medium;
+      color: $text-secondary;
+      font-size: $font-size-base;
+    }
+
+    .value {
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+      font-size: $font-size-base;
+      text-align: right;
+
+      @include mobile {
+        text-align: left;
+      }
+    }
+  }
+}
+
+// ========================================
+// SIGNING FORM
+// ========================================
+.signing-form {
+  .form-description {
+    margin: 0 0 $spacing-5 0;
+    color: $text-secondary;
+    font-size: $font-size-base;
+    line-height: 1.6;
+  }
+
+  .error-alert {
+    display: flex;
+    align-items: center;
+    gap: $spacing-2;
+    padding: $spacing-3 $spacing-4;
+    margin-bottom: $spacing-5;
+    background-color: $error-bg;
+    border: 1px solid $error-border;
+    border-radius: $radius-md;
+    color: $error-color;
+    font-size: $font-size-sm;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: $spacing-5;
+
+    label {
+      margin-bottom: $spacing-2;
+      font-weight: $font-weight-medium;
+      color: $text-primary;
+      font-size: $font-size-base;
+
+      .required {
+        color: $error-color;
+        margin-left: 2px;
+      }
+    }
+
+    input {
+      padding: $spacing-3 $spacing-4;
+      border: 1px solid $border-color;
+      border-radius: $radius-md;
+      font-size: $font-size-base;
+      font-family: inherit;
+      transition: all 0.2s ease;
+      background: $white-color;
+      width: 100%;
+
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+      }
+
+      &::placeholder {
+        color: $text-muted;
+      }
+
+      &:disabled {
+        background: $background-alt;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    gap: $spacing-3;
+    margin-top: $spacing-6;
+    padding-top: $spacing-5;
+    border-top: 1px solid $border-light;
+
+    @include mobile {
+      flex-direction: column-reverse;
+    }
+
+    .spinner {
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+// ========================================
+// SUCCESS MESSAGE
+// ========================================
+.success-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: $spacing-8 $spacing-6;
+  gap: $spacing-4;
+
+  .success-icon {
+    color: $success-color;
+    margin-bottom: $spacing-2;
+  }
+
+  h2 {
+    margin: 0;
+    color: $text-primary;
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+  }
+
+  p {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-base;
+    line-height: 1.6;
+    max-width: 500px;
+  }
+
+  .document-url {
+    margin: $spacing-2 0;
+    
+    a {
+      color: $primary-color;
+      text-decoration: none;
+      font-weight: $font-weight-medium;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: $primary-dark;
+        text-decoration: underline;
+      }
+    }
+  }
+
+  .actions {
+    display: flex;
+    gap: $spacing-3;
+    margin-top: $spacing-4;
+
+    @include mobile {
+      flex-direction: column;
+      width: 100%;
+    }
+  }
+}
+
+// ========================================
+// RESPONSIVE
+// ========================================
+@include mobile {
+  .contract-signing-page {
+    padding-top: $spacing-4;
+    padding-bottom: $spacing-6;
+
+    .container {
+      padding: 0 $spacing-3;
+    }
+
+    .header h1 {
+      font-size: $font-size-2xl;
+    }
+  }
+}
+
