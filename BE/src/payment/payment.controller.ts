@@ -7,10 +7,12 @@ import {
   Get,
   Query,
   BadRequestException,
+  Res,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Public } from '../auth/decorators/public.decorator';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { PaymentService } from './payment.service';
 import {
   CreatePaymentDto,
@@ -22,7 +24,10 @@ import {
 @ApiBearerAuth()
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) { }
+  constructor(
+    private readonly paymentService: PaymentService,
+    private readonly configService: ConfigService,
+  ) { }
 
   @Post('create-payment-url')
   @ApiOperation({ summary: 'Create VNPay payment URL' })
@@ -77,11 +82,12 @@ export class PaymentController {
   // VNPay redirects the browser to this URL using GET with query params.
   // Support GET so browser redirects (and manual testing via browser) work.
   @Get('vnpay-return')
-  @ApiOperation({ summary: 'Handle VNPay return (GET)' })
+  @ApiOperation({ summary: 'Handle VNPay return (GET) - Redirects to frontend' })
   @Public()
   async handleVNPayReturnGet(
     @Query() vnpayData: Record<string, any>,
     @Req() req: Request,
+    @Res() res: Response,
   ) {
     // Log raw URL for debugging (includes original query string encoding)
     try {
@@ -92,7 +98,34 @@ export class PaymentController {
     } catch {
       // ignore
     }
-    return this.paymentService.verifyReturnUrl(vnpayData);
+
+    // Process payment verification
+    let paymentResult;
+    try {
+      paymentResult = await this.paymentService.verifyReturnUrl(vnpayData);
+    } catch (error) {
+      // If verification fails, still redirect to frontend with error info
+      paymentResult = {
+        orderId: vnpayData.vnp_TxnRef || '',
+        rspCode: vnpayData.vnp_ResponseCode || '99',
+        message: error instanceof Error ? error.message : 'Payment verification failed',
+      };
+    }
+
+    // Get frontend URL from config
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ||
+      'http://localhost:5173';
+    const baseUrl = frontendUrl.replace(/\/$/, '');
+
+    // Build redirect URL with payment result as query params
+    const redirectUrl = new URL(`${baseUrl}/payment/callback`);
+    redirectUrl.searchParams.set('orderId', paymentResult.orderId || '');
+    redirectUrl.searchParams.set('rspCode', paymentResult.rspCode || '99');
+    redirectUrl.searchParams.set('message', paymentResult.message || '');
+
+    // Redirect to frontend
+    return res.redirect(redirectUrl.toString());
   }
 
   // Also keep POST handler (some integrations may POST)
