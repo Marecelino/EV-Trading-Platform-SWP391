@@ -417,6 +417,23 @@ export interface CreateListingPaymentResponse {
 }
 
 // ============================================================================
+// AUCTION PAYMENT DTOs
+// ============================================================================
+
+export interface CreateAuctionPaymentDto {
+  auction_id: string; // Required - MongoDB ObjectId
+  amount?: number; // Optional - Must match auction.current_price if provided
+  payment_method?: string; // Default: "VNPAY"
+  bank_code?: string; // Optional - Bank code for VNPay
+  user_id?: string; // Optional - Backend can extract from JWT token
+}
+
+export interface CreateAuctionPaymentResponse {
+  payment: Payment;
+  paymentUrl: string;
+}
+
+// ============================================================================
 // CONTRACT DTOs
 // ============================================================================
 

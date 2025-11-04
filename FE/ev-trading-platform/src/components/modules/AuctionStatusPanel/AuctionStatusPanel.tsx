@@ -3,13 +3,15 @@ import { useAuth } from "../../../contexts/AuthContext";
 import type { Auction } from "../../../types";
 import { ApiErrorResponse } from "../../../types/api";
 import Button from "../../common/Button/Button";
+import paymentApi from "../../../api/paymentApi";
+import BuyNowConfirmModal from "./BuyNowConfirmModal";
 import "./AuctionStatusPanel.scss";
 
 interface AuctionStatusPanelProps {
   auction: Auction;
+  auctionId?: string; // Auction ID for payment creation
   onBidPlaced: (amount: number, userId: string) => Promise<void>;
-  onBuyNow: () => void;
-  onPayment?: () => Promise<void>; // For payment after auction ended (winner)
+  onPayment?: () => Promise<void>;
 }
 
 interface TimeLeft {
@@ -23,8 +25,8 @@ interface TimeLeft {
 
 const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
   auction,
+  auctionId,
   onBidPlaced,
-  onBuyNow,
   onPayment,
 }) => {
   const { user } = useAuth();
@@ -32,8 +34,10 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previousPrice, setPreviousPrice] = useState(auction.current_price);
+  const [showBuyNowModal, setShowBuyNowModal] = useState(false);
+  const [isProcessingBuyNow, setIsProcessingBuyNow] = useState(false);
 
-  // --- LOGIC ĐẾM NGƯỢC THỜI GIAN ---
+  // Calculate time left
   const calculateTimeLeft = (): TimeLeft => {
     const difference = +new Date(auction.end_time) - +new Date();
     let timeLeft: TimeLeft = {
@@ -61,16 +65,27 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
 
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
-  // Memoized minimum next bid
+  // Minimum next bid
   const minNextBid = useMemo(
     () => auction.current_price + auction.min_increment,
     [auction.current_price, auction.min_increment]
   );
 
-  // Calculate quick bid options
+  // Quick bid options
   const quickBidOptions = useMemo(() => {
-    return [
-      { label: minNextBid.toLocaleString("vi-VN"), value: minNextBid, recommended: true },
+    type QuickBidOption = {
+      label: string;
+      value: number;
+      recommended: boolean;
+      isBuyNow?: boolean;
+    };
+    
+    const options: QuickBidOption[] = [
+      { 
+        label: minNextBid.toLocaleString("vi-VN"), 
+        value: minNextBid, 
+        recommended: true 
+      },
       {
         label: `+${auction.min_increment.toLocaleString("vi-VN")}`,
         value: minNextBid + auction.min_increment,
@@ -82,9 +97,21 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
         recommended: false,
       },
     ];
-  }, [minNextBid, auction.min_increment]);
+    
+    // Add buy now option if available and status is live
+    if (auction.buy_now_price && auction.status === 'live') {
+      options.push({
+        label: `Mua ngay ${auction.buy_now_price.toLocaleString("vi-VN")}`,
+        value: auction.buy_now_price,
+        recommended: false,
+        isBuyNow: true,
+      });
+    }
+    
+    return options;
+  }, [minNextBid, auction.min_increment, auction.buy_now_price, auction.status]);
 
-  // Calculate bid confidence (simple heuristic)
+  // Bid confidence
   const bidConfidence = useMemo(() => {
     const amount = Number(bidAmount);
     if (isNaN(amount) || amount < minNextBid) return 0;
@@ -93,7 +120,7 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
     return Math.min(100, 50 + percentageAboveMin);
   }, [bidAmount, minNextBid]);
 
-  // Determine timer urgency class
+  // Timer urgency class
   const getTimerUrgencyClass = (): string => {
     if (timeLeft.finished) return "";
     const oneHour = 3600;
@@ -111,6 +138,7 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auction.end_time]);
 
   // Track price changes
@@ -131,8 +159,8 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
     if (typeof auction.seller_id === 'object' && auction.seller_id?._id === user._id) return false;
     if (typeof auction.seller_id === 'string' && auction.seller_id === user._id) return false;
     if (auction.status !== 'live') return false;
-    if (auction.payment_status !== 'completed') return false; // Must have paid listing fee
-    if (new Date(auction.end_time) <= new Date()) return false; // Time must not have ended
+    if (auction.payment_status !== 'completed') return false;
+    if (new Date(auction.end_time) <= new Date()) return false;
     return true;
   }, [user, auction]);
 
@@ -140,7 +168,7 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
     setError(null);
     const amount = Number(bidAmount);
 
-    // --- VALIDATION ---
+    // Validation
     if (!user) {
       setError("Bạn cần đăng nhập để tham gia đấu giá.");
       return;
@@ -175,8 +203,6 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
       await onBidPlaced(amount, user._id);
       setBidAmount("");
     } catch (err: unknown) {
-      // CRITICAL FIX: Use proper error types instead of 'any'
-      // Enhanced error handling with type-safe error structure
       const axiosError = err as {
         response?: {
           data?: ApiErrorResponse & {
@@ -192,7 +218,6 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
       const errorCode = errorData?.code;
       const errorMessage = errorData?.message || errorData?.error;
       
-      // Map backend error messages to Vietnamese
       if (errorMessage?.includes('Auction is not live')) {
         setError("Phiên đấu giá chưa được kích hoạt.");
       } else if (errorMessage?.includes('Auction has ended')) {
@@ -201,13 +226,14 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
         setError("Bạn không thể tự đấu giá sản phẩm của mình.");
       } else {
         switch (errorCode) {
-          case "BID_TOO_LOW":
+          case "BID_TOO_LOW": {
             const currentPrice = errorData?.data?.currentPrice || auction.current_price;
             const newMinBid = currentPrice + auction.min_increment;
             setError(
               `Giá đã tăng lên. Mức tối thiểu mới là ${newMinBid.toLocaleString("vi-VN")} ₫`
             );
             break;
+          }
           case "AUCTION_ENDED":
             setError("Phiên đấu giá đã kết thúc.");
             break;
@@ -223,30 +249,76 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
     }
   };
 
-  const handleBuyNow = async () => {
+  // Handle buy now button click - show confirmation modal
+  const handleBuyNow = () => {
     if (!user) {
       setError("Bạn cần đăng nhập để mua ngay.");
       return;
     }
     if (!auction.buy_now_price) return;
     
-    const confirmMessage = `Bạn có chắc muốn mua ngay với giá ${auction.buy_now_price.toLocaleString("vi-VN")} ₫?`;
-    if (!window.confirm(confirmMessage)) return;
-    
-    setIsSubmitting(true);
-    try {
-      await onBidPlaced(auction.buy_now_price, user._id);
-      setBidAmount("");
-    } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: ApiErrorResponse } };
-      const errorMessage = axiosError.response?.data?.message || axiosError.response?.data?.error || "Đã có lỗi xảy ra khi mua ngay.";
-      setError(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
+    setError(null);
+    setShowBuyNowModal(true);
   };
 
-  const handleQuickBid = (value: number) => {
+  // Handle buy now confirmation - complete flow: bid → payment → redirect
+  const handleConfirmBuyNow = async () => {
+    if (!user || !auction.buy_now_price) return;
+
+    setIsProcessingBuyNow(true);
+    setError(null);
+
+    try {
+      // Step 1: Place bid with buy_now_price
+      // Note: onBidPlaced will return the updated auction data
+      // We need to check if auction ended after bid
+      await onBidPlaced(auction.buy_now_price, user._id);
+
+      // Step 2: Wait a moment for backend to process and update auction status
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Step 3: Create payment URL (auction should be ended now)
+      const auctionIdToUse = auctionId || auction._id;
+      
+      if (!auctionIdToUse) {
+        throw new Error("Không tìm thấy ID phiên đấu giá");
+      }
+
+      const paymentResponse = await paymentApi.createAuctionPaymentUrl({
+        auction_id: auctionIdToUse,
+        amount: auction.buy_now_price, // Must match current_price (which is now buy_now_price)
+        payment_method: "VNPAY",
+      });
+
+      const paymentUrl = paymentResponse.data?.paymentUrl;
+      
+      if (!paymentUrl) {
+        throw new Error("Không nhận được link thanh toán");
+      }
+
+      // Step 4: Redirect to VNPay
+      window.location.href = paymentUrl;
+      
+    } catch (err: unknown) {
+      console.error("Error in buy now flow:", err);
+      setIsProcessingBuyNow(false);
+      setShowBuyNowModal(false);
+      
+      const axiosError = err as { response?: { data?: ApiErrorResponse } };
+      const errorMessage = axiosError.response?.data?.message || 
+                          axiosError.response?.data?.error || 
+                          (err instanceof Error ? err.message : "Đã có lỗi xảy ra khi mua ngay.");
+      setError(errorMessage);
+    }
+    // Note: Don't set isProcessingBuyNow to false after redirect as we're leaving the page
+  };
+
+  const handleQuickBid = (value: number, isBuyNow: boolean = false) => {
+    if (isBuyNow) {
+      // If buy now option clicked, trigger buy now flow
+      handleBuyNow();
+      return;
+    }
     setBidAmount(String(value));
     setError(null);
   };
@@ -254,7 +326,7 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
   const isAuctionEnded = auction.status === 'ended' || auction.status === 'cancelled' || timeLeft.finished;
   const priceChange = auction.current_price - previousPrice;
 
-  // Get status message based on auction status
+  // Status message
   const getStatusMessage = (): string => {
     switch (auction.status) {
       case 'draft':
@@ -274,12 +346,10 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
     }
   };
 
-  // Check if current user is the highest bidder (winner)
+  // Check if current user is winner
   const isWinner = useMemo(() => {
     if (!user || auction.status !== 'ended' || !auction.bids || auction.bids.length === 0) return false;
-    // Get highest bid (first bid in array if sorted by amount DESC, or check all bids)
     const highestBid = auction.bids.reduce((max, bid) => {
-      const bidUserId = typeof bid.user_id === 'object' ? bid.user_id._id : bid.user_id;
       return bid.amount > max.amount ? bid : max;
     }, auction.bids[0]);
     const highestBidUserId = typeof highestBid.user_id === 'object' ? highestBid.user_id._id : highestBid.user_id;
@@ -289,10 +359,12 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
   return (
     <div
       className={`auction-panel content-card ${isAuctionEnded ? "ended" : ""} status-${auction.status}`}
+      role="region"
+      aria-label="Bảng điều khiển đấu giá"
     >
       {/* Status Message */}
       {auction.status !== 'live' && (
-        <div className="status-message">
+        <div className="status-message" role="status" aria-live="polite">
           <span>{getStatusMessage()}</span>
         </div>
       )}
@@ -308,22 +380,23 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
             role="timer"
             aria-live="polite"
             aria-atomic="true"
+            aria-label={`${timeLeft.days} ngày ${timeLeft.hours} giờ ${timeLeft.minutes} phút ${timeLeft.seconds} giây`}
           >
             <div className="time-segment">
               <span className="value">{timeLeft.days}</span>
               <span className="label">ngày</span>
             </div>
-            <span className="separator">:</span>
+            <span className="separator" aria-hidden="true">:</span>
             <div className="time-segment">
               <span className="value">{timeLeft.hours.toString().padStart(2, "0")}</span>
               <span className="label">giờ</span>
             </div>
-            <span className="separator">:</span>
+            <span className="separator" aria-hidden="true">:</span>
             <div className="time-segment">
               <span className="value">{timeLeft.minutes.toString().padStart(2, "0")}</span>
               <span className="label">phút</span>
             </div>
-            <span className="separator">:</span>
+            <span className="separator" aria-hidden="true">:</span>
             <div className="time-segment">
               <span className="value">{timeLeft.seconds.toString().padStart(2, "0")}</span>
               <span className="label">giây</span>
@@ -332,43 +405,71 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
         )}
       </div>
 
-      {/* Price Info Section */}
+      {/* Price Info */}
       <div className="price-info">
         <span>
           {isAuctionEnded ? "Giá chiến thắng" : "Giá cao nhất hiện tại"}
         </span>
-        <p>{auction.current_price.toLocaleString("vi-VN")}</p>
+        <p aria-label={`${auction.current_price.toLocaleString("vi-VN")} đồng`}>
+          {auction.current_price.toLocaleString("vi-VN")}
+        </p>
         
-        {/* Price change indicator */}
         {!isAuctionEnded && priceChange > 0 && (
-          <div className="price-change">
+          <div className="price-change" role="status" aria-live="polite">
             +{priceChange.toLocaleString("vi-VN")} ₫ từ lượt trước
           </div>
         )}
       </div>
 
-      {/* Bid Form - Only show for logged-in users and live auctions that can accept bids */}
-      {user && canBid && (
-        <div className="bid-form">
+      {/* Scrollable Content Wrapper */}
+      <div className="panel-content">
+        {/* Auction Info Section */}
+        <div className="auction-info">
+          <div className="info-row">
+            <span className="info-label">Giá khởi điểm:</span>
+            <strong className="info-value">{auction.starting_price.toLocaleString("vi-VN")} ₫</strong>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Bước giá tối thiểu:</span>
+            <strong className="info-value">{auction.min_increment.toLocaleString("vi-VN")} ₫</strong>
+          </div>
+          {auction.buy_now_price && (
+            <div className="info-row buy-now-price">
+              <span className="info-label">Giá mua ngay:</span>
+              <strong className="info-value">{auction.buy_now_price.toLocaleString("vi-VN")} ₫</strong>
+            </div>
+          )}
+        </div>
+
+        {/* Bid Form */}
+        {user && canBid && (
+          <div className="bid-form">
           {/* Quick Bid Buttons */}
-          <div className="quick-bids">
-            {quickBidOptions.map((option, index) => (
-              <button
-                key={index}
-                onClick={() => handleQuickBid(option.value)}
-                className={option.recommended ? "recommended" : ""}
-                disabled={isSubmitting}
-                aria-label={`Đặt giá ${option.value.toLocaleString("vi-VN")} đồng`}
-              >
-                {option.label}
-              </button>
-            ))}
+          <div className="quick-bids" role="group" aria-label="Tùy chọn đặt giá nhanh">
+            {quickBidOptions.map((option, index) => {
+              const isBuyNow = 'isBuyNow' in option && option.isBuyNow === true;
+              return (
+                <button
+                  key={index}
+                  onClick={() => handleQuickBid(option.value, isBuyNow)}
+                  className={`${option.recommended ? "recommended" : ""} ${isBuyNow ? "buy-now-option" : ""}`}
+                  disabled={isSubmitting || isProcessingBuyNow}
+                  aria-label={
+                    isBuyNow 
+                      ? `Mua ngay với giá ${option.value.toLocaleString("vi-VN")} đồng`
+                      : `Đặt giá ${option.value.toLocaleString("vi-VN")} đồng${option.recommended ? ' (đề xuất)' : ''}`
+                  }
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Custom Bid Input */}
           <input
             type="number"
-            placeholder={`≥ ${minNextBid.toLocaleString("vi-VN")} ₫`}
+            placeholder={`Tối thiểu ${minNextBid.toLocaleString("vi-VN")} ₫`}
             value={bidAmount}
             onChange={(e) => setBidAmount(e.target.value)}
             disabled={isSubmitting}
@@ -382,11 +483,15 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
             Bước giá tối thiểu: {auction.min_increment.toLocaleString("vi-VN")} ₫
           </p>
 
-          {/* Bid Confidence Indicator */}
+          {/* Bid Confidence */}
           {bidAmount && Number(bidAmount) >= minNextBid && (
-            <div className="bid-confidence">
+            <div className="bid-confidence" role="status" aria-live="polite">
               <span>Khả năng thắng:</span>
-              <progress value={bidConfidence} max="100" />
+              <progress 
+                value={bidConfidence} 
+                max="100"
+                aria-label={`Khả năng thắng ${Math.round(bidConfidence)} phần trăm`}
+              />
               <span>{Math.round(bidConfidence)}%</span>
             </div>
           )}
@@ -407,53 +512,69 @@ const AuctionStatusPanel: React.FC<AuctionStatusPanelProps> = ({
           >
             {isSubmitting ? "Đang xử lý..." : "Đặt giá"}
           </Button>
-        </div>
-      )}
+          </div>
+        )}
 
-      {/* Buy Now Button - Only show for live auctions */}
-      {auction.buy_now_price && auction.status === 'live' && canBid && (
-        <Button
-          variant="secondary"
-          className="btn-buy-now"
-          onClick={handleBuyNow}
-          disabled={isSubmitting}
-          aria-label={`Mua ngay với giá ${auction.buy_now_price.toLocaleString("vi-VN")} đồng`}
-        >
-          Mua ngay {auction.buy_now_price.toLocaleString("vi-VN")} ₫
-        </Button>
-      )}
-
-      {/* Payment Button for Winner */}
-      {isWinner && auction.status === 'ended' && onPayment && (
-        <Button
-          variant="primary"
-          className="btn-payment"
-          onClick={onPayment}
-          aria-label="Thanh toán để hoàn tất giao dịch"
-        >
-          Thanh toán {auction.current_price.toLocaleString("vi-VN")} ₫
-        </Button>
-      )}
-
-      {/* Winner Info for Ended Auction */}
-      {auction.status === 'ended' && !isWinner && auction.bids && auction.bids.length > 0 && (
-        <div className="winner-info">
-          <p>Người thắng đấu giá: {(() => {
-            const highestBid = auction.bids.reduce((max, bid) => bid.amount > max.amount ? bid : max, auction.bids[0]);
-            const bidder = typeof highestBid.user_id === 'object' ? highestBid.user_id : null;
-            return bidder?.full_name || 'Người dùng ẩn';
-          })()}</p>
-        </div>
-      )}
-
-      {/* Not Logged In Message */}
-      {!user && auction.status === 'live' && (
-        <div className="login-prompt">
-          <p>Đăng nhập để tham gia đấu giá</p>
-          <Button onClick={() => window.location.href = "/login"}>
-            Đăng nhập ngay
+        {/* Buy Now Button */}
+        {auction.buy_now_price && auction.status === 'live' && canBid && (
+          <Button
+            variant="secondary"
+            className="btn-buy-now"
+            onClick={handleBuyNow}
+            disabled={isSubmitting}
+            aria-label={`Mua ngay với giá ${auction.buy_now_price.toLocaleString("vi-VN")} đồng`}
+          >
+            Mua ngay {auction.buy_now_price.toLocaleString("vi-VN")} ₫
           </Button>
-        </div>
+        )}
+
+        {/* Payment Button for Winner */}
+        {isWinner && auction.status === 'ended' && onPayment && (
+          <Button
+            variant="primary"
+            className="btn-payment"
+            onClick={onPayment}
+            aria-label="Thanh toán để hoàn tất giao dịch"
+          >
+            Thanh toán {auction.current_price.toLocaleString("vi-VN")} ₫
+          </Button>
+        )}
+
+        {/* Winner Info */}
+        {auction.status === 'ended' && !isWinner && auction.bids && auction.bids.length > 0 && (
+          <div className="winner-info" role="status">
+            <p>Người thắng đấu giá: {(() => {
+              const highestBid = auction.bids.reduce((max, bid) => bid.amount > max.amount ? bid : max, auction.bids[0]);
+              const bidder = typeof highestBid.user_id === 'object' ? highestBid.user_id : null;
+              return bidder?.full_name || 'Người dùng ẩn';
+            })()}</p>
+          </div>
+        )}
+
+        {/* Login Prompt */}
+        {!user && auction.status === 'live' && (
+          <div className="login-prompt">
+            <p>Đăng nhập để tham gia đấu giá</p>
+            <Button onClick={() => window.location.href = "/login"}>
+              Đăng nhập ngay
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Buy Now Confirmation Modal */}
+      {auction.buy_now_price && (
+        <BuyNowConfirmModal
+          isOpen={showBuyNowModal}
+          onClose={() => {
+            if (!isProcessingBuyNow) {
+              setShowBuyNowModal(false);
+            }
+          }}
+          onConfirm={handleConfirmBuyNow}
+          buyNowPrice={auction.buy_now_price}
+          isLoading={isProcessingBuyNow}
+        />
       )}
     </div>
   );

@@ -5,8 +5,8 @@ import type { User, Product } from '../../../types';
 import Button from '../../common/Button/Button';
 import { useAuth } from '../../../contexts/AuthContext';
 import paymentApi from '../../../api/paymentApi';
-import './SellerInfoCard.scss';
-import StarRating from '../../common/StarRating/StarRating'; 
+import StarRating from '../../common/StarRating/StarRating';
+import './SellerInfoCard.scss'; 
 
 interface SellerInfoCardProps {
   seller: User;

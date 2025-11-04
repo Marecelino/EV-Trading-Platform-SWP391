@@ -1,79 +1,234 @@
 // src/components/modules/AuctionStatusPanel/AuctionStatusPanel.scss
+// Modern Auction Status Panel Design - 2025
 @import '../../../styles/variables';
 @import '../../../styles/mixins';
 
 .auction-panel {
-  border: 2px solid $primary-color;
+  border: 2px solid rgba($primary-color, 0.2);
   background: linear-gradient(135deg, 
-    lighten($primary-color, 48%) 0%, 
+    rgba($primary-color, 0.03) 0%, 
     $white-color 100%);
-  border-radius: $radius-lg;
+  border-radius: $radius-xl;
   position: relative;
   overflow: hidden;
-  transition: all $duration-base $ease-in-out;
-  box-shadow: $shadow-md;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.05),
+    0 10px 20px -5px rgba($primary-color, 0.1);
   
-  // Active auction indicator
+  // Modern live indicator bar
   &::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
+    height: 3px;
     background: linear-gradient(90deg, 
       $primary-color 0%, 
-      $secondary-color 50%, 
+      lighten($primary-color, 10%) 50%, 
       $primary-color 100%);
     background-size: 200% 100%;
-    animation: shimmer 3s linear infinite;
+    animation: shimmer 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
   
   // Hover effect for active auction
   &:not(.ended):hover {
-    transform: translateY(-4px);
-    box-shadow: $shadow-xl;
-    border-color: darken($primary-color, 10%);
+    transform: translateY(-3px);
+    box-shadow: 
+      0 8px 12px rgba(0, 0, 0, 0.08),
+      0 20px 40px -10px rgba($primary-color, 0.2);
+    border-color: rgba($primary-color, 0.3);
   }
 
   // ========================================
   // ENDED STATE
   // ========================================
   &.ended {
-    border-color: $gray-300;
-    background: linear-gradient(135deg, $gray-100 0%, $white-color 100%);
+    border-color: rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, 
+      rgba(0, 0, 0, 0.02) 0%, 
+      $white-color 100%);
     
     &::before {
-      background: $gray-300;
+      background: rgba(0, 0, 0, 0.1);
       animation: none;
     }
 
-    .timer {
-      &__label {
-        font-weight: $font-weight-semibold;
-        color: $text-muted;
-        
-        &::before {
-          content: '⏹️ ';
-          margin-right: $spacing-1;
-        }
-      }
-      
-      &__time {
-        color: $gray-500;
-      }
+    .timer__label {
+      font-weight: $font-weight-semibold;
+      color: rgba(0, 0, 0, 0.5);
     }
 
     .price-info {
-      border-bottom-color: $gray-200;
+      border-bottom-color: rgba(0, 0, 0, 0.08);
       
       span::before {
-        content: '🏆 ';
-        margin-right: $spacing-1;
+        content: '';
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        margin-right: 6px;
+        vertical-align: middle;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2327AE60' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E") no-repeat center;
+        background-size: contain;
       }
       
       p {
         color: $success-color;
+      }
+    }
+  }
+
+  // ========================================
+  // SCROLLABLE CONTENT WRAPPER
+  // ========================================
+  .panel-content {
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    padding-right: $spacing-2;
+    
+    // Modern minimal scrollbar
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.02);
+      border-radius: $radius-full;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba($primary-color, 0.3);
+      border-radius: $radius-full;
+      transition: background 0.2s ease;
+      
+      &:hover {
+        background: rgba($primary-color, 0.5);
+      }
+    }
+    
+    // Firefox scrollbar
+    scrollbar-width: thin;
+    scrollbar-color: rgba($primary-color, 0.3) rgba(0, 0, 0, 0.02);
+    
+    @include mobile {
+      max-height: 500px;
+    }
+  }
+
+  // ========================================
+  // AUCTION INFO SECTION
+  // ========================================
+  .auction-info {
+    margin-bottom: $spacing-5;
+    padding: $spacing-4;
+    background: linear-gradient(135deg,
+      rgba($primary-color, 0.04) 0%,
+      rgba($primary-color, 0.01) 100%);
+    border-radius: $radius-md;
+    border: 1px solid rgba($primary-color, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-3;
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: $spacing-2 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .info-label {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        color: $text-secondary;
+      }
+
+      .info-value {
+        font-size: $font-size-base;
+        font-weight: $font-weight-bold;
+        color: $text-primary;
+      }
+
+      &.buy-now-price {
+        background: linear-gradient(135deg,
+          rgba($success-color, 0.08) 0%,
+          rgba($success-color, 0.03) 100%);
+        border-radius: $radius-base;
+        padding: $spacing-3;
+        margin-top: $spacing-2;
+        border: 1px solid rgba($success-color, 0.2);
+
+        .info-label {
+          color: darken($success-color, 10%);
+          font-weight: $font-weight-semibold;
+        }
+
+        .info-value {
+          color: $success-color;
+          font-size: $font-size-lg;
+        }
+      }
+    }
+
+    @include mobile {
+      padding: $spacing-3;
+      gap: $spacing-2;
+
+      .info-row {
+        padding: $spacing-2 0;
+
+        .info-label {
+          font-size: $font-size-xs;
+        }
+
+        .info-value {
+          font-size: $font-size-sm;
+        }
+
+        &.buy-now-price .info-value {
+          font-size: $font-size-base;
+        }
+      }
+    }
+  }
+
+  // ========================================
+  // STATUS MESSAGE
+  // ========================================
+  .status-message {
+    padding: $spacing-3 $spacing-4;
+    background: linear-gradient(135deg,
+      rgba($info-color, 0.1) 0%,
+      rgba($info-color, 0.05) 100%);
+    border-bottom: 1px solid rgba($info-color, 0.15);
+    margin: -2px -2px $spacing-4 -2px;
+    border-radius: $radius-xl $radius-xl 0 0;
+    
+    span {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.875rem;
+      font-weight: $font-weight-semibold;
+      color: $info-color;
+      
+      // Info icon (SVG)
+      &::before {
+        content: '';
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232563eb'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E") no-repeat center;
+        background-size: contain;
+        flex-shrink: 0;
       }
     }
   }
@@ -85,91 +240,126 @@
     text-align: center;
     margin-bottom: $spacing-5;
     padding: $spacing-5 $spacing-4;
-    background-color: rgba($white-color, 0.7);
+    background: linear-gradient(135deg,
+      rgba($white-color, 0.8) 0%,
+      rgba($white-color, 0.4) 100%);
     border-radius: $radius-md;
+    backdrop-filter: blur(10px);
     
     &__label {
-      font-size: $font-size-base;
-      color: $text-secondary;
+      font-size: 0.875rem;
+      color: rgba(0, 0, 0, 0.6);
       display: block;
       margin-bottom: $spacing-3;
-      font-weight: $font-weight-medium;
+      font-weight: $font-weight-semibold;
       text-transform: uppercase;
-      letter-spacing: $letter-spacing-wide;
+      letter-spacing: 0.08em;
     }
     
     &__time {
-      @include countdown-timer(2.5rem, $primary-color);
       font-family: $monospace-font;
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: $spacing-2;
+      gap: $spacing-3;
       
-      // Time segments
       .time-segment {
         display: inline-flex;
         flex-direction: column;
         align-items: center;
-        min-width: 60px;
+        min-width: 64px;
+        padding: $spacing-2;
+        background: linear-gradient(135deg,
+          rgba($primary-color, 0.05) 0%,
+          rgba($primary-color, 0.02) 100%);
+        border-radius: $radius-base;
+        border: 1px solid rgba($primary-color, 0.1);
         
         .value {
-          font-size: 2.5rem;
+          font-size: 2rem;
           font-weight: $font-weight-extrabold;
           line-height: 1;
-          background: linear-gradient(135deg, $primary-color, darken($primary-color, 15%));
+          background: linear-gradient(135deg, 
+            $primary-color 0%, 
+            darken($primary-color, 12%) 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
         }
         
         .label {
-          font-size: $font-size-xs;
-          color: $text-muted;
-          margin-top: $spacing-1;
-          font-weight: $font-weight-normal;
+          font-size: 0.75rem;
+          color: rgba(0, 0, 0, 0.5);
+          margin-top: 6px;
+          font-weight: $font-weight-medium;
           text-transform: lowercase;
+          letter-spacing: 0.02em;
         }
       }
       
       .separator {
-        font-size: 2rem;
-        color: $primary-color;
-        opacity: 0.5;
-        animation: blink 1s ease-in-out infinite;
+        font-size: 1.5rem;
+        color: rgba($primary-color, 0.4);
+        font-weight: $font-weight-bold;
+        animation: blink 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
       }
     }
     
     // Urgent timer (< 1 hour)
     &.urgent {
+      background: linear-gradient(135deg,
+        rgba($timer-urgent, 0.08) 0%,
+        rgba($timer-urgent, 0.04) 100%);
+      border: 1px solid rgba($timer-urgent, 0.2);
+      
       .timer__time {
-        color: $timer-urgent;
-        animation: pulse 1s ease-in-out infinite;
-        
-        .value {
-          background: linear-gradient(135deg, $timer-urgent, darken($timer-urgent, 15%));
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+        .time-segment {
+          background: linear-gradient(135deg,
+            rgba($timer-urgent, 0.1) 0%,
+            rgba($timer-urgent, 0.05) 100%);
+          border-color: rgba($timer-urgent, 0.2);
+          
+          .value {
+            background: linear-gradient(135deg, 
+              $timer-urgent 0%, 
+              darken($timer-urgent, 12%) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
         }
       }
       
       &::after {
-        content: '⚠️ Sắp kết thúc!';
+        content: 'Sắp kết thúc!';
         display: block;
-        margin-top: $spacing-2;
+        margin-top: $spacing-3;
+        padding: $spacing-2 $spacing-3;
+        background-color: rgba($timer-urgent, 0.1);
         color: $timer-urgent;
-        font-size: $font-size-sm;
+        font-size: 0.875rem;
         font-weight: $font-weight-bold;
-        animation: pulse 1s ease-in-out infinite;
+        border-radius: $radius-base;
+        border: 1px solid rgba($timer-urgent, 0.2);
+        animation: pulse 1.5s ease-in-out infinite;
       }
     }
     
     // Warning timer (< 24 hours)
     &.warning {
-      .timer__time .value {
-        background: linear-gradient(135deg, $timer-warning, darken($timer-warning, 15%));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+      .timer__time .time-segment {
+        background: linear-gradient(135deg,
+          rgba($timer-warning, 0.08) 0%,
+          rgba($timer-warning, 0.04) 100%);
+        border-color: rgba($timer-warning, 0.15);
+        
+        .value {
+          background: linear-gradient(135deg, 
+            $timer-warning 0%, 
+            darken($timer-warning, 12%) 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
       }
     }
   }
@@ -179,31 +369,32 @@
   // ========================================
   .price-info {
     text-align: center;
-    margin-bottom: $spacing-5;
-    padding-bottom: $spacing-5;
-    border-bottom: 2px dashed lighten($primary-color, 35%);
+    margin-bottom: $spacing-4;
+    padding-bottom: $spacing-4;
+    border-bottom: 2px dashed rgba(0, 0, 0, 0.08);
     position: relative;
     
     span {
-      font-size: $font-size-base;
-      font-weight: $font-weight-medium;
-      color: $text-secondary;
+      font-size: 0.875rem;
+      font-weight: $font-weight-semibold;
+      color: rgba(0, 0, 0, 0.6);
       text-transform: uppercase;
-      letter-spacing: $letter-spacing-wide;
+      letter-spacing: 0.08em;
       display: block;
-      margin-bottom: $spacing-2;
+      margin-bottom: $spacing-3;
     }
     
     p {
-      font-size: 3rem;
+      font-size: 2.5rem;
       font-weight: $font-weight-extrabold;
       color: $text-primary;
       margin: 0;
       line-height: 1;
       position: relative;
       display: inline-block;
+      letter-spacing: -0.02em;
       
-      // Animated gradient
+      // Gradient text effect
       background: linear-gradient(135deg, 
         $text-primary 0%, 
         $primary-color 100%);
@@ -211,39 +402,37 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
       
-      &::before {
-        
-        margin-right: $spacing-2;
-        -webkit-text-fill-color: initial;
-        opacity: 0.7;
-      }
-      
       // Currency symbol
       &::after {
         content: ' ₫';
         font-size: 0.6em;
-        opacity: 0.8;
-        -webkit-text-fill-color: $text-muted;
+        opacity: 0.7;
+        -webkit-text-fill-color: rgba(0, 0, 0, 0.5);
+        margin-left: 4px;
       }
     }
     
     // Price change indicator
     .price-change {
-      font-size: $font-size-sm;
+      font-size: 0.875rem;
       color: $success-color;
-      margin-top: $spacing-2;
+      margin-top: $spacing-3;
       font-weight: $font-weight-semibold;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      background-color: rgba($success-color, 0.1);
+      border-radius: 20px;
       
+      // Arrow up icon (SVG)
       &::before {
-        content: '↗️ ';
-      }
-      
-      &.down {
-        color: $error-color;
-        
-        &::before {
-          content: '↘️ ';
-        }
+        content: '';
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2327AE60'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M5 10l7-7m0 0l7 7m-7-7v18'/%3E%3C/svg%3E") no-repeat center;
+        background-size: contain;
       }
     }
   }
@@ -254,7 +443,7 @@
   .bid-form {
     display: flex;
     flex-direction: column;
-    gap: $spacing-3;
+    gap: $spacing-4;
     margin-bottom: $spacing-4;
   }
 
@@ -268,16 +457,17 @@
     button {
       @include button-base;
       padding: $spacing-3 $spacing-2;
-      font-size: $font-size-sm;
+      font-size: 0.875rem;
       font-weight: $font-weight-semibold;
-      border: 2px solid $border-color;
+      border: 1.5px solid rgba(0, 0, 0, 0.12);
       background-color: $white-color;
       border-radius: $radius-base;
-      transition: all $duration-fast $ease-in-out;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
       overflow: hidden;
+      color: $text-primary;
       
-      // Ripple effect on click
+      // Hover ripple effect
       &::after {
         content: '';
         position: absolute;
@@ -286,7 +476,7 @@
         width: 0;
         height: 0;
         border-radius: 50%;
-        background: rgba($primary-color, 0.3);
+        background: rgba($primary-color, 0.2);
         transform: translate(-50%, -50%);
         transition: width 0.6s, height 0.6s;
       }
@@ -298,10 +488,12 @@
 
       &:hover {
         border-color: $primary-color;
-        background-color: lighten($primary-color, 48%);
+        background: linear-gradient(135deg,
+          rgba($primary-color, 0.08) 0%,
+          rgba($primary-color, 0.04) 100%);
         color: $primary-color;
         transform: translateY(-2px);
-        box-shadow: $shadow-sm;
+        box-shadow: 0 4px 12px rgba($primary-color, 0.15);
       }
       
       &:active {
@@ -311,12 +503,49 @@
       // Recommended bid
       &.recommended {
         border-color: $primary-color;
-        background-color: lighten($primary-color, 45%);
+        background: linear-gradient(135deg,
+          rgba($primary-color, 0.12) 0%,
+          rgba($primary-color, 0.06) 100%);
+        font-weight: $font-weight-bold;
+        color: $primary-color;
+        
+        // Star icon (SVG)
+        &::before {
+          content: '';
+          display: inline-block;
+          width: 14px;
+          height: 14px;
+          margin-right: 6px;
+          vertical-align: middle;
+          background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2327AE60' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E") no-repeat center;
+          background-size: contain;
+        }
+      }
+
+      // Buy Now option
+      &.buy-now-option {
+        border-color: $success-color;
+        background: linear-gradient(135deg, $success-color, darken($success-color, 8%));
+        color: $white-color;
         font-weight: $font-weight-bold;
         
+        // Lightning icon
         &::before {
-          
-          margin-right: $spacing-1;
+          content: '⚡';
+          display: inline-block;
+          margin-right: 4px;
+          font-size: 0.875rem;
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        &:hover:not(:disabled) {
+          background: linear-gradient(135deg, darken($success-color, 5%), darken($success-color, 12%));
+          box-shadow: 0 4px 16px rgba($success-color, 0.4);
+          transform: translateY(-2px);
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0);
         }
       }
     }
@@ -326,22 +555,23 @@
   input[type="number"] {
     @include input-base;
     padding: $spacing-4;
-    font-size: $font-size-xl;
+    font-size: 1.125rem;
     text-align: center;
-    border: 2px solid $border-color;
+    border: 2px solid rgba(0, 0, 0, 0.1);
     border-radius: $radius-md;
     font-weight: $font-weight-bold;
     background-color: $white-color;
-    transition: all $duration-base $ease-in-out;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:focus {
       border-color: $primary-color;
-      box-shadow: 0 0 0 4px rgba($primary-color, 0.1);
-      transform: scale(1.02);
+      box-shadow: 0 0 0 4px rgba($primary-color, 0.08);
+      transform: scale(1.01);
+      outline: none;
     }
     
     &::placeholder {
-      color: $text-muted;
+      color: rgba(0, 0, 0, 0.4);
       font-weight: $font-weight-normal;
     }
     
@@ -358,37 +588,54 @@
   }
     
   .min-bid-note {
-    font-size: $font-size-sm;
+    font-size: 0.875rem;
     text-align: center;
-    color: $text-secondary;
+    color: rgba(0, 0, 0, 0.6);
     margin: 0;
-    padding: $spacing-2 $spacing-3;
-    background-color: lighten($info-color, 48%);
+    padding: $spacing-3;
+    background: linear-gradient(135deg,
+      rgba($info-color, 0.05) 0%,
+      rgba($info-color, 0.02) 100%);
     border-radius: $radius-base;
-    border-left: 3px solid $info-color;
+    border-left: 3px solid rgba($info-color, 0.4);
+    font-weight: $font-weight-medium;
     
+    // Info icon (SVG)
     &::before {
-      content: 'ℹ️ ';
-      margin-right: $spacing-1;
+      content: '';
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+      vertical-align: middle;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232563eb'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E") no-repeat center;
+      background-size: contain;
     }
   }
 
   // Error message
   .error-message {
-    font-size: $font-size-sm;
+    font-size: 0.875rem;
     color: $error-color;
     text-align: center;
     margin: 0;
     padding: $spacing-3;
-    background-color: $error-bg;
+    background-color: rgba($error-color, 0.08);
     border-radius: $radius-base;
-    border: 1px solid $error-border;
+    border: 1px solid rgba($error-color, 0.2);
     font-weight: $font-weight-medium;
-    animation: shake 0.5s ease-in-out;
+    animation: shake 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     
+    // Warning icon (SVG)
     &::before {
-      content: '⚠️ ';
-      margin-right: $spacing-1;
+      content: '';
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+      vertical-align: middle;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ef4444'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'/%3E%3C/svg%3E") no-repeat center;
+      background-size: contain;
     }
   }
 
@@ -397,16 +644,12 @@
     @include button-primary;
     width: 100%;
     padding: $spacing-4;
-    font-size: $font-size-xl;
+    font-size: 1.0625rem;
     font-weight: $font-weight-bold;
     border-radius: $radius-md;
     position: relative;
     overflow: hidden;
-    
-    &::before {
-      
-      margin-right: $spacing-2;
-    }
+    box-shadow: 0 4px 12px rgba($primary-color, 0.25);
     
     // Shine effect
     &::after {
@@ -422,7 +665,7 @@
         rgba(255, 255, 255, 0.3),
         transparent
       );
-      transition: left 0.5s;
+      transition: left 0.6s;
     }
     
     &:hover::after {
@@ -430,8 +673,11 @@
     }
     
     &:disabled {
-      &::before {
-        content: '⏳ ';
+      opacity: 0.6;
+      cursor: not-allowed;
+      
+      &:hover {
+        transform: none;
       }
     }
   }
@@ -442,44 +688,82 @@
     width: 100%;
     margin-top: $spacing-3;
     padding: $spacing-4;
-    background: linear-gradient(135deg, $buy-now-color 0%, darken($buy-now-color, 10%) 100%);
+    background: linear-gradient(135deg, 
+      $buy-now-color 0%, 
+      darken($buy-now-color, 8%) 100%);
     color: $white-color;
-    font-size: $font-size-lg;
+    font-size: 1.0625rem;
     font-weight: $font-weight-bold;
     border: none;
     border-radius: $radius-md;
-    box-shadow: $shadow-md;
+    box-shadow: 0 4px 12px rgba($buy-now-color, 0.3);
     position: relative;
     overflow: hidden;
     
+    // Lightning icon (SVG)
     &::before {
-      content: '⚡ ';
-      margin-right: $spacing-2;
-      font-size: $font-size-xl;
+      content: '';
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      margin-right: 8px;
+      vertical-align: middle;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 24 24'%3E%3Cpath d='M13 2L3 14h8l-2 8 10-12h-8l2-8z'/%3E%3C/svg%3E") no-repeat center;
+      background-size: contain;
     }
 
     &:hover {
-      background: linear-gradient(135deg, darken($buy-now-color, 5%) 0%, darken($buy-now-color, 15%) 100%);
+      background: linear-gradient(135deg, 
+        darken($buy-now-color, 3%) 0%, 
+        darken($buy-now-color, 12%) 100%);
       transform: translateY(-2px);
-      box-shadow: $shadow-lg;
+      box-shadow: 0 6px 16px rgba($buy-now-color, 0.4);
     }
     
     &:active {
       transform: translateY(0);
     }
+  }
+
+  // Payment button
+  .btn-payment {
+    margin-top: $spacing-4;
+    box-shadow: 0 4px 12px rgba($primary-color, 0.25);
+  }
+
+  // Winner info
+  .winner-info {
+    text-align: center;
+    padding: $spacing-4;
+    background: linear-gradient(135deg,
+      rgba($success-color, 0.08) 0%,
+      rgba($success-color, 0.04) 100%);
+    border-radius: $radius-md;
+    border: 1px solid rgba($success-color, 0.2);
     
-    // Pulse animation
-    &::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      transform: translate(-50%, -50%) scale(0);
-      animation: ripple 2s ease-out infinite;
+    p {
+      margin: 0;
+      font-weight: $font-weight-semibold;
+      color: $success-color;
+      font-size: 0.9375rem;
+    }
+  }
+
+  // Login prompt
+  .login-prompt {
+    text-align: center;
+    padding: $spacing-5;
+    background: linear-gradient(135deg,
+      rgba($primary-color, 0.05) 0%,
+      rgba($primary-color, 0.02) 100%);
+    border-radius: $radius-md;
+    border: 1px solid rgba($primary-color, 0.15);
+    
+    p {
+      margin: 0 0 $spacing-4 0;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+      font-size: 1rem;
     }
   }
 
@@ -489,14 +773,17 @@
     align-items: center;
     justify-content: space-between;
     padding: $spacing-3;
-    background-color: lighten($success-color, 48%);
+    background: linear-gradient(135deg,
+      rgba($success-color, 0.06) 0%,
+      rgba($success-color, 0.03) 100%);
     border-radius: $radius-base;
     margin-top: $spacing-3;
-    font-size: $font-size-sm;
+    font-size: 0.875rem;
+    border: 1px solid rgba($success-color, 0.15);
     
     span:first-child {
       font-weight: $font-weight-medium;
-      color: $text-secondary;
+      color: rgba(0, 0, 0, 0.6);
     }
     
     progress {
@@ -508,17 +795,21 @@
       overflow: hidden;
       
       &::-webkit-progress-bar {
-        background-color: $gray-200;
+        background-color: rgba(0, 0, 0, 0.08);
         border-radius: $radius-full;
       }
       
       &::-webkit-progress-value {
-        background: linear-gradient(90deg, $success-color, $primary-color);
+        background: linear-gradient(90deg, 
+          $success-color, 
+          lighten($success-color, 10%));
         border-radius: $radius-full;
       }
       
       &::-moz-progress-bar {
-        background: linear-gradient(90deg, $success-color, $primary-color);
+        background: linear-gradient(90deg, 
+          $success-color, 
+          lighten($success-color, 10%));
         border-radius: $radius-full;
       }
     }
@@ -540,22 +831,29 @@
       padding: $spacing-4 $spacing-3;
       
       &__time {
+        gap: $spacing-2;
+        
         .time-segment {
-          min-width: 50px;
+          min-width: 52px;
+          padding: $spacing-2;
           
           .value {
-            font-size: 2rem;
+            font-size: 1.625rem;
+          }
+          
+          .label {
+            font-size: 0.6875rem;
           }
         }
         
         .separator {
-          font-size: 1.5rem;
+          font-size: 1.25rem;
         }
       }
     }
     
     .price-info p {
-      font-size: 2.5rem;
+      font-size: 2rem;
     }
     
     .quick-bids {
@@ -563,18 +861,24 @@
       
       button {
         padding: $spacing-2;
-        font-size: 0.8rem;
+        font-size: 0.8125rem;
+        
+        &.recommended::before {
+          width: 12px;
+          height: 12px;
+          margin-right: 4px;
+        }
       }
     }
     
     input[type="number"] {
-      font-size: $font-size-lg;
+      font-size: 1rem;
       padding: $spacing-3;
     }
     
     .btn,
     .btn-buy-now {
-      font-size: $font-size-base;
+      font-size: 0.9375rem;
       padding: $spacing-3;
     }
   }
@@ -605,9 +909,11 @@
 @keyframes pulse {
   0%, 100% {
     transform: scale(1);
+    opacity: 1;
   }
   50% {
     transform: scale(1.05);
+    opacity: 0.85;
   }
 }
 
@@ -616,21 +922,10 @@
     transform: translateX(0);
   }
   25% {
-    transform: translateX(-10px);
+    transform: translateX(-8px);
   }
   75% {
-    transform: translateX(10px);
-  }
-}
-
-@keyframes ripple {
-  0% {
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(2);
-    opacity: 0;
+    transform: translateX(8px);
   }
 }
 
@@ -642,8 +937,7 @@
   .auction-panel {
     &::before,
     .timer__time .separator,
-    .btn::after,
-    .btn-buy-now::after {
+    .btn::after {
       animation: none !important;
     }
   }
@@ -657,6 +951,29 @@
     .price-info {
       border-width: 2px;
       border-style: solid;
+    }
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .auction-panel {
+    background: linear-gradient(135deg, 
+      rgba($primary-color, 0.1) 0%, 
+      #1e1e1e 100%);
+    border-color: rgba($primary-color, 0.3);
+    
+    .timer,
+    .price-info,
+    input[type="number"],
+    .quick-bids button {
+      background-color: #2a2a2a;
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #e5e5e5;
+    }
+    
+    .price-info p {
+      -webkit-text-fill-color: #e5e5e5;
     }
   }
 }

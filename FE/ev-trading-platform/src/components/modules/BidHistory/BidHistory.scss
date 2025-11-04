@@ -1,75 +1,113 @@
 // src/components/modules/BidHistory/BidHistory.scss
+// Modern Bid History Design - 2025
 @import '../../../styles/variables';
 @import '../../../styles/mixins';
 
 .bid-history {
   position: relative;
   
-  // Header với badge count
+  // Modern header with badge
   h3 {
     margin-top: 0;
-    margin-bottom: $spacing-4;
-    @include flex-between;
-    font-size: $font-size-xl;
-    font-weight: $font-weight-bold;
+    margin-bottom: $spacing-5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 1.375rem;
+    font-weight: 700;
     color: $text-primary;
+    letter-spacing: -0.01em;
     
     .bid-count {
-      @include badge-info;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 28px;
+      padding: 0 12px;
+      background: linear-gradient(135deg, $primary-color, darken($primary-color, 5%));
+      color: $white-color;
+      border-radius: 20px;
       font-size: $font-size-sm;
-      margin-left: $spacing-2;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba($primary-color, 0.25);
     }
   }
 
-  // Container cho list với custom scrollbar
+  // Modern list container with subtle scrollbar
   .bid-list {
     list-style: none;
     padding: 0;
     margin: 0;
-    max-height: 400px;
+    max-height: 500px;
     overflow-y: auto;
-    @include custom-scrollbar(6px, $gray-100, $primary-color);
-    
-    // Smooth scroll behavior
+    overflow-x: hidden;
     scroll-behavior: smooth;
+    padding-right: $spacing-2;
     
-    // Fade effect ở bottom
+    // Modern minimal scrollbar
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.02);
+      border-radius: $radius-full;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba($primary-color, 0.3);
+      border-radius: $radius-full;
+      transition: background 0.2s ease;
+      
+      &:hover {
+        background: rgba($primary-color, 0.5);
+      }
+    }
+    
+    // Firefox scrollbar
+    scrollbar-width: thin;
+    scrollbar-color: rgba($primary-color, 0.3) rgba(0, 0, 0, 0.02);
+    
+    // Fade gradient at bottom
     &::after {
       content: '';
       position: sticky;
       bottom: 0;
       left: 0;
       right: 0;
-      height: 40px;
-      background: linear-gradient(to top, $white-color, transparent);
+      height: 60px;
+      background: linear-gradient(to top, 
+        $white-color 0%, 
+        rgba($white-color, 0.8) 50%,
+        transparent 100%);
       pointer-events: none;
+      z-index: 1;
     }
   }
 
-  // Individual bid item
+  // Modern bid item design
   .bid-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: $spacing-4 0;
-    border-bottom: 1px solid $border-light;
+    padding: $spacing-4 $spacing-3;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     position: relative;
-    transition: all $duration-base $ease-in-out;
-    animation: slideInRight 0.3s ease-out backwards;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
     
-    // Staggered animation delay
+    // Staggered animation
     @for $i from 1 through 10 {
       &:nth-child(#{$i}) {
         animation-delay: #{$i * 0.05}s;
       }
     }
 
-    // Hover effect
+    // Modern hover effect
     &:hover {
-      background-color: $gray-50;
-      padding-left: $spacing-3;
-      padding-right: $spacing-3;
-      margin: 0 (-$spacing-3);
+      background-color: rgba($primary-color, 0.03);
+      transform: translateX(4px);
       
       .bid-amount {
         color: $primary-color;
@@ -77,31 +115,32 @@
       }
     }
 
-    // WINNING BID (First child) - Most prominent
+    // WINNING BID - Modern highlighted style
     &:first-child {
       background: linear-gradient(135deg, 
-        lighten($success-color, 45%) 0%, 
-        lighten($success-color, 48%) 100%);
-      border: 2px solid $success-color;
-      border-radius: $radius-md;
-      margin: 0 (-$spacing-6);
-      padding: $spacing-5 $spacing-6;
-      margin-bottom: $spacing-3;
+        rgba($success-color, 0.08) 0%, 
+        rgba($success-color, 0.04) 100%);
+      border: 2px solid rgba($success-color, 0.3);
+      border-radius: $radius-lg;
+      margin: 0 0 $spacing-4 0;
+      padding: $spacing-5 $spacing-4;
       position: relative;
       overflow: hidden;
       
-      // Crown icon for winner
+      // Winner badge
       &::before {
-        content: '👑';
+        content: '';
         position: absolute;
-        top: -5px;
-        right: 10px;
-        font-size: 2.5rem;
-        opacity: 0.3;
-        transform: rotate(25deg);
+        top: 12px;
+        right: 12px;
+        width: 32px;
+        height: 32px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2327AE60' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E") no-repeat center;
+        background-size: contain;
+        opacity: 0.4;
       }
       
-      // Winning indicator
+      // Success accent line
       &::after {
         content: '';
         position: absolute;
@@ -109,49 +148,53 @@
         top: 0;
         bottom: 0;
         width: 4px;
-        background: linear-gradient(to bottom, $success-color, lighten($success-color, 20%));
+        background: linear-gradient(to bottom, 
+          $success-color, 
+          lighten($success-color, 15%));
+        border-radius: 4px 0 0 4px;
       }
 
       .bid-user {
         .bid-info span:first-child {
           font-weight: $font-weight-bold;
           color: $success-color;
-          font-size: $font-size-lg;
+          font-size: 1.0625rem;
           
+          // Winner badge icon (SVG)
           &::after {
-            content: ' 🏆';
-            margin-left: $spacing-1;
+            content: '';
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            margin-left: $spacing-2;
+            vertical-align: middle;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2327AE60' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/%3E%3C/svg%3E") no-repeat center;
+            background-size: contain;
           }
         }
       }
       
       .bid-amount {
         font-weight: $font-weight-extrabold;
-        font-size: $font-size-2xl;
+        font-size: 1.625rem;
         color: $success-color;
-        text-shadow: 0 2px 4px rgba($success-color, 0.2);
-        
-        &::before {
-          
-          margin-right: $spacing-2;
-          animation: pulse 2s ease-in-out infinite;
-        }
+        text-shadow: 0 2px 8px rgba($success-color, 0.15);
       }
 
       &:hover {
-        transform: scale(1.02);
-        box-shadow: 0 8px 16px rgba($success-color, 0.2);
+        transform: scale(1.02) translateX(0);
+        box-shadow: 0 8px 24px rgba($success-color, 0.15);
       }
     }
 
-    // Recent bids (top 3) - Highlight
+    // Recent bids highlight (top 3)
     &:nth-child(2),
     &:nth-child(3) {
-      background-color: lighten($primary-color, 48%);
-      padding-left: $spacing-3;
-      padding-right: $spacing-3;
-      margin: 0 (-$spacing-3);
-      border-left: 3px solid $primary-color;
+      background-color: rgba($primary-color, 0.04);
+      border-left: 3px solid rgba($primary-color, 0.5);
+      padding-left: $spacing-4;
+      margin-left: -#{$spacing-1};
+      border-radius: $radius-base;
     }
 
     // User info section
@@ -160,125 +203,144 @@
       align-items: center;
       gap: $spacing-3;
       flex: 1;
-      min-width: 0; // Allow text truncation
+      min-width: 0;
       
       img {
-        width: $avatar-size-base;
-        height: $avatar-size-base;
+        width: 42px;
+        height: 42px;
         border-radius: $radius-full;
         object-fit: cover;
         border: 2px solid $white-color;
-        box-shadow: $shadow-sm;
-        transition: all $duration-base $ease-in-out;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         
         &:hover {
           transform: scale(1.1);
-          box-shadow: $shadow-md;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
       }
       
       .bid-info {
         display: flex;
         flex-direction: column;
-        gap: $spacing-1;
+        gap: 4px;
         min-width: 0;
         
         span:first-child {
           font-weight: $font-weight-semibold;
           color: $text-primary;
           font-size: $font-size-base;
-          @include truncate-text;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         
         .bid-time {
-          font-size: $font-size-xs;
-          color: $text-muted;
+          font-size: 0.8125rem;
+          color: rgba(0, 0, 0, 0.5);
           display: flex;
           align-items: center;
-          gap: $spacing-1;
+          gap: 4px;
           
+          // Clock icon (SVG)
           &::before {
-            content: '🕐';
-            font-size: 0.9em;
+            content: '';
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='rgba(0,0,0,0.4)'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E") no-repeat center;
+            background-size: contain;
+            flex-shrink: 0;
           }
         }
       }
     }
     
-    // Bid amount
+    // Bid amount styling
     .bid-amount {
-      font-size: $font-size-xl;
+      font-size: 1.125rem;
       font-weight: $font-weight-bold;
       color: $text-primary;
       white-space: nowrap;
-      transition: all $duration-base $ease-in-out;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       align-items: center;
-      gap: $spacing-1;
+      gap: 4px;
       
+      // Currency symbol
       &::after {
         content: '₫';
-        font-size: 0.8em;
-        opacity: 0.7;
-        margin-left: $spacing-1;
+        font-size: 0.875rem;
+        opacity: 0.6;
+        margin-left: 2px;
       }
     }
   }
 
-  // Bid Statistics
+  // Modern Bid Statistics Card
   .bid-stats {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: $spacing-4;
-    padding: $spacing-3;
-    background-color: $gray-50;
-    border-radius: $radius-base;
-    margin-bottom: $spacing-4;
+    padding: $spacing-4;
+    background: linear-gradient(135deg, 
+      rgba($primary-color, 0.04) 0%, 
+      rgba($primary-color, 0.02) 100%);
+    border-radius: $radius-md;
+    margin-bottom: $spacing-5;
+    border: 1px solid rgba($primary-color, 0.1);
     
     .stat-item {
-      flex: 1;
       display: flex;
       flex-direction: column;
-      gap: $spacing-1;
+      gap: 6px;
       
       .stat-label {
-        font-size: $font-size-xs;
-        color: $text-muted;
+        font-size: 0.8125rem;
+        color: rgba(0, 0, 0, 0.5);
         font-weight: $font-weight-medium;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
       }
       
       .stat-value {
-        font-size: $font-size-base;
+        font-size: 1.0625rem;
         color: $text-primary;
         font-weight: $font-weight-bold;
       }
     }
   }
 
-  // Empty state
+  // Modern empty state
   .no-bids {
     text-align: center;
     padding: $spacing-12 $spacing-6;
-    color: $text-muted;
-    font-style: italic;
+    color: rgba(0, 0, 0, 0.4);
     
+    // Empty state icon (SVG)
     &::before {
-      
+      content: '';
       display: block;
-      font-size: 4rem;
-      margin-bottom: $spacing-4;
+      width: 80px;
+      height: 80px;
+      margin: 0 auto $spacing-5;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='rgba(0,0,0,0.2)'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'/%3E%3C/svg%3E") no-repeat center;
+      background-size: contain;
       opacity: 0.3;
       animation: float 3s ease-in-out infinite;
     }
     
     p {
-      font-size: $font-size-lg;
+      font-size: 1rem;
       margin: 0;
+      font-weight: 500;
       
       strong {
         display: block;
-        margin-top: $spacing-2;
+        margin-top: $spacing-3;
         color: $primary-color;
         font-weight: $font-weight-bold;
+        font-size: 1.0625rem;
       }
     }
   }
@@ -296,7 +358,12 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      @include spinner(40px, $primary-color);
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba($primary-color, 0.1);
+      border-top-color: $primary-color;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
       z-index: 10;
     }
   }
@@ -309,59 +376,78 @@
 @include mobile {
   .bid-history {
     h3 {
-      font-size: $font-size-lg;
+      font-size: 1.25rem;
+      
+      .bid-count {
+        min-width: 28px;
+        height: 24px;
+        padding: 0 10px;
+        font-size: 0.8125rem;
+      }
     }
     
     .bid-list {
-      max-height: 300px;
+      max-height: 400px;
     }
     
     .bid-item {
-      padding: $spacing-3 0;
+      padding: $spacing-3 $spacing-2;
       
       &:first-child {
-        margin: 0 (-$spacing-4);
-        padding: $spacing-4;
+        margin: 0 0 $spacing-3 0;
+        padding: $spacing-4 $spacing-3;
         
         &::before {
-          font-size: 2rem;
-          right: 5px;
+          width: 28px;
+          height: 28px;
+          top: 10px;
+          right: 10px;
         }
       }
       
       &:nth-child(2),
       &:nth-child(3) {
-        margin: 0 (-$spacing-2);
-        padding-left: $spacing-2;
-        padding-right: $spacing-2;
+        padding-left: $spacing-3;
+        margin-left: 0;
       }
       
       .bid-user {
         gap: $spacing-2;
         
         img {
-          width: $avatar-size-sm;
-          height: $avatar-size-sm;
+          width: 38px;
+          height: 38px;
         }
         
         .bid-info {
           span:first-child {
-            font-size: $font-size-sm;
+            font-size: 0.9375rem;
           }
           
           .bid-time {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
+            
+            &::before {
+              width: 12px;
+              height: 12px;
+            }
           }
         }
       }
       
       .bid-amount {
-        font-size: $font-size-lg;
+        font-size: 1rem;
         
         &:first-child .bid-amount {
-          font-size: $font-size-xl;
+          font-size: 1.25rem;
         }
       }
+    }
+    
+    .bid-stats {
+      grid-template-columns: 1fr;
+      gap: $spacing-3;
+      padding: $spacing-3;
     }
   }
 }
@@ -373,7 +459,7 @@
 @keyframes slideInRight {
   from {
     opacity: 0;
-    transform: translateX(20px);
+    transform: translateX(30px);
   }
   to {
     opacity: 1;
@@ -386,18 +472,13 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-12px);
   }
 }
 
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.8;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -417,7 +498,6 @@
   }
 }
 
-// High contrast mode
 @media (prefers-contrast: high) {
   .bid-history {
     .bid-item {
@@ -425,6 +505,55 @@
       
       &:first-child {
         border: 3px solid $success-color;
+      }
+    }
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .bid-history {
+    h3 {
+      color: #f5f5f5;
+    }
+    
+    .bid-list::after {
+      background: linear-gradient(to top, 
+        #1e1e1e 0%, 
+        rgba(#1e1e1e, 0.8) 50%,
+        transparent 100%);
+    }
+    
+    .bid-item {
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      
+      .bid-user {
+        img {
+          border-color: #2a2a2a;
+        }
+        
+        .bid-info span:first-child {
+          color: #e5e5e5;
+        }
+      }
+      
+      .bid-amount {
+        color: #e5e5e5;
+      }
+    }
+    
+    .bid-stats {
+      background: linear-gradient(135deg, 
+        rgba($primary-color, 0.15) 0%, 
+        rgba($primary-color, 0.08) 100%);
+      border-color: rgba($primary-color, 0.2);
+      
+      .stat-value {
+        color: #e5e5e5;
       }
     }
   }

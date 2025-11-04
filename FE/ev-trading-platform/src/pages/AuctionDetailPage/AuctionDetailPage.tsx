@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import auctionApi from "../../api/auctionApi";
 import paymentApi from "../../api/paymentApi";
-import type { Auction, Product as ListingData } from "../../types";
+import type { Auction, Product as ListingData, EVDetail, BatteryDetail } from "../../types";
 
 // Import các component cần thiết
 import ImageGallery from "../../components/modules/ImageGallery/ImageGallery";
@@ -10,6 +10,21 @@ import SpecificationTable from "../../components/modules/SpecificationTable/Spec
 import SellerInfoCard from "../../components/modules/SellerInfoCard/SellerInfoCard";
 import AuctionStatusPanel from "../../components/modules/AuctionStatusPanel/AuctionStatusPanel";
 import BidHistory from "../../components/modules/BidHistory/BidHistory";
+import KeySpecsBar from "../../components/modules/KeySpecsBar/KeySpecsBar";
+
+// Import icons
+import {
+  MapPin,
+  Tag,
+  Eye,
+  Calendar,
+  CheckCircle,
+  Shield,
+  List,
+  Gauge,
+  Battery,
+  ShieldCheck,
+} from "lucide-react";
 
 import "./AuctionDetailPage.scss";
 
@@ -347,12 +362,6 @@ const AuctionDetailPage: React.FC = () => {
     }
   };
 
-  // handleBuyNow is now handled by AuctionStatusPanel component
-  const handleBuyNow = () => {
-    // This is a placeholder - actual implementation is in AuctionStatusPanel
-    // where it has access to user context
-  };
-
   // Handle payment for winner after auction ended
   // According to backend: POST /api/payment/auction/create-payment-url
   // Requires: auction_id (required), amount? (must match current_price if provided), payment_method?, user_id?
@@ -403,15 +412,253 @@ const AuctionDetailPage: React.FC = () => {
     );
 
   const { listing, auction } = auctionData;
-  const details = listing.ev_details || listing.battery_details;
+
+  // Helper: Create details object from flat fields or nested details
+  const getDetails = (): EVDetail | BatteryDetail | null => {
+    // Check camelCase first (backend response), then snake_case (backward compatibility)
+    if (listing.evDetail) {
+      return listing.evDetail;
+    }
+    if (listing.ev_details) {
+      return listing.ev_details;
+    }
+    if (listing.batteryDetail) {
+      return listing.batteryDetail;
+    }
+    if (listing.battery_details) {
+      return listing.battery_details;
+    }
+    // If flat fields exist on listing, construct detail object
+    if (listing.category === 'ev' && auction.evDetail) {
+      if (auction.evDetail) {
+        return auction.evDetail as EVDetail;
+      }
+    }
+    if (listing.category === 'battery' && auction.batteryDetail) {
+      if (auction.batteryDetail) {
+        return auction.batteryDetail as BatteryDetail;
+      }
+    }
+    return null;
+  };
+
+  const details = getDetails();
+
+  // Helper: Get location string
+  const getLocationString = (): string => {
+    if (typeof listing.location === 'string') {
+      return listing.location;
+    }
+    if (listing.location && typeof listing.location === 'object') {
+      const parts = [];
+      if ((listing.location as { district?: string }).district) parts.push((listing.location as { district: string }).district);
+      if ((listing.location as { city?: string }).city) parts.push((listing.location as { city: string }).city);
+      if ((listing.location as { address?: string }).address) parts.push((listing.location as { address: string }).address);
+      return parts.length > 0 ? parts.join(', ') : '';
+    }
+    return '';
+  };
+
+  // Helper: Get condition text
+  const getConditionText = (condition: string) => {
+    const map: Record<string, string> = {
+      new: "Mới",
+      like_new: "Như mới",
+      excellent: "Xuất sắc",
+      good: "Tốt",
+      fair: "Khá",
+      poor: "Kém",
+    };
+    return map[condition] || condition;
+  };
+
+  // Helper component for Highlights
+  const HighlightsCard: React.FC<{
+    title: string;
+    items: string[];
+    icon: React.ReactNode;
+  }> = ({ title, items, icon }) => {
+    if (!items || items.length === 0) return null;
+    return (
+      <div className="content-card highlights-card">
+        <h3>
+          {icon} {title}
+        </h3>
+        <ul className="highlights-list">
+          {items.map((item, index) => (
+            <li key={index}>
+              <CheckCircle size={16} className="check-icon" /> {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
 
   return (
     <div className="auction-detail-page container">
       <div className="main-content">
+        {/* === TIÊU ĐỀ & THÔNG TIN ĐẤU GIÁ === */}
         <div className="content-card header-card">
+          {listing.is_verified && (
+            <span className="status-badge verified">
+              <CheckCircle size={14} /> Đã kiểm định
+            </span>
+          )}
           <h1>{listing.title}</h1>
-          <span className="auction-label">Sản phẩm đang được đấu giá</span>
+          <span className="auction-label">
+            {auction.status === 'scheduled' && 'Sản phẩm sắp đấu giá'}
+            {auction.status === 'live' && 'Sản phẩm đang được đấu giá'}
+            {auction.status === 'ended' && 'Phiên đấu giá đã kết thúc'}
+            {auction.status === 'cancelled' && 'Phiên đấu giá đã bị hủy'}
+            {auction.status === 'pending' && 'Đang chờ duyệt'}
+            {auction.status === 'draft' && 'Bản nháp'}
+            {!['scheduled', 'live', 'ended', 'cancelled', 'pending', 'draft'].includes(auction.status) && 'Sản phẩm đang được đấu giá'}
+          </span>
+
+          {/* Meta Info Section */}
+          <div className="meta-info">
+            <div className="meta-item">
+              <Tag className="icon" size={18} />
+              <span className="label">Tình trạng:</span>
+              <span className="value">
+                {getConditionText(listing.condition)}
+              </span>
+            </div>
+            <div className="meta-item">
+              <MapPin className="icon" size={18} />
+              <span className="label">Khu vực:</span>
+              <span className="value">
+                {getLocationString() || 'N/A'}
+              </span>
+            </div>
+            {listing.views !== undefined && listing.views > 0 && (
+              <div className="meta-item">
+                <Eye className="icon" size={18} />
+                <span className="label">Lượt xem:</span>
+                <span className="value">{listing.views}</span>
+              </div>
+            )}
+            {(listing.created_at || listing.createdAt || auction.createdAt) && (
+              <div className="meta-item">
+                <Calendar className="icon" size={18} />
+                <span className="label">Ngày đăng:</span>
+                <span className="value">
+                  {(() => {
+                    try {
+                      const dateStr = listing.createdAt || listing.created_at || auction.createdAt || '';
+                      const date = new Date(dateStr);
+                      return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString("vi-VN");
+                    } catch {
+                      return 'N/A';
+                    }
+                  })()}
+                </span>
+              </div>
+            )}
+            {/* Auction Start Time */}
+            {auction.start_time && (
+              <div className="meta-item">
+                <Calendar className="icon" size={18} />
+                <span className="label">Bắt đầu đấu giá:</span>
+                <span className="value">
+                  {new Date(auction.start_time).toLocaleString("vi-VN")}
+                </span>
+              </div>
+            )}
+            {/* Display EV fields from nested evDetail/ev_details OR flat fields */}
+            {(listing.evDetail || listing.ev_details || listing.category === 'ev' || auction.evDetail) && (
+              <>
+                {(() => {
+                  const evDetail = (listing.evDetail || listing.ev_details || auction.evDetail) as EVDetail | undefined;
+                  return evDetail?.year && (
+                    <div className="meta-item">
+                      <Calendar className="icon" size={18} />
+                      <span className="label">Năm sản xuất:</span>
+                      <span className="value">{evDetail.year}</span>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const evDetail = (listing.evDetail || listing.ev_details || auction.evDetail) as EVDetail | undefined;
+                  return evDetail?.mileage_km !== undefined && (
+                    <div className="meta-item">
+                      <Gauge className="icon" size={18} />
+                      <span className="label">Đã đi:</span>
+                      <span className="value">{evDetail.mileage_km.toLocaleString("vi-VN")} km</span>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const evDetail = (listing.evDetail || listing.ev_details || auction.evDetail) as EVDetail | undefined;
+                  return evDetail?.battery_capacity_kwh !== undefined && (
+                    <div className="meta-item">
+                      <Battery className="icon" size={18} />
+                      <span className="label">Dung lượng pin:</span>
+                      <span className="value">{evDetail.battery_capacity_kwh} kWh</span>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const evDetail = (listing.evDetail || listing.ev_details || auction.evDetail) as EVDetail | undefined;
+                  return evDetail?.range_km !== undefined && (
+                    <div className="meta-item">
+                      <Gauge className="icon" size={18} />
+                      <span className="label">Quãng đường:</span>
+                      <span className="value">{evDetail.range_km.toLocaleString("vi-VN")} km</span>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+            {/* Display Battery fields */}
+            {(listing.batteryDetail || listing.battery_details || listing.category === 'battery' || auction.batteryDetail) && (
+              <>
+                {(() => {
+                  const batteryDetail = (listing.batteryDetail || listing.battery_details || auction.batteryDetail) as BatteryDetail | undefined;
+                  return batteryDetail?.capacity_kwh !== undefined && (
+                    <div className="meta-item">
+                      <Battery className="icon" size={18} />
+                      <span className="label">Dung lượng:</span>
+                      <span className="value">{batteryDetail.capacity_kwh} kWh</span>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const batteryDetail = (listing.batteryDetail || listing.battery_details || auction.batteryDetail) as BatteryDetail | undefined;
+                  return batteryDetail?.soh_percent !== undefined && (
+                    <div className="meta-item">
+                      <ShieldCheck className="icon" size={18} />
+                      <span className="label">Sức khỏe pin (SOH):</span>
+                      <span className="value">{batteryDetail.soh_percent}%</span>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const batteryDetail = (listing.batteryDetail || listing.battery_details || auction.batteryDetail) as BatteryDetail | undefined;
+                  return batteryDetail?.battery_type && (
+                    <div className="meta-item">
+                      <ShieldCheck className="icon" size={18} />
+                      <span className="label">Loại pin:</span>
+                      <span className="value">{batteryDetail.battery_type}</span>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const batteryDetail = (listing.batteryDetail || listing.battery_details || auction.batteryDetail) as BatteryDetail | undefined;
+                  return batteryDetail?.manufacture_year !== undefined && (
+                    <div className="meta-item">
+                      <Calendar className="icon" size={18} />
+                      <span className="label">Năm sản xuất:</span>
+                      <span className="value">{batteryDetail.manufacture_year}</span>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+          </div>
         </div>
+        {/* === BỘ SƯU TẬP ẢNH === */}
         <div className="content-card">
           {listing.images && listing.images.length > 0 ? (
             <ImageGallery images={listing.images} />
@@ -421,10 +668,64 @@ const AuctionDetailPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* === THANH THÔNG SỐ CHÍNH === */}
+        {details && (
+          <div className="content-card">
+            <KeySpecsBar details={details} />
+          </div>
+        )}
+
+        {/* === MÔ TẢ === */}
         <div className="content-card">
           <h2>Mô tả chi tiết</h2>
-          <p style={{ whiteSpace: "pre-wrap" }}>{listing.description}</p>
+          <p style={{ whiteSpace: "pre-wrap" }}>
+            {(() => {
+              const desc = listing.description || '';
+              // Check if description looks like placeholder/gibberish (all lowercase letters, no spaces, short)
+              if (desc.length < 10 || /^[a-z]{10,}$/i.test(desc.replace(/\s/g, ''))) {
+                return "Người bán không cung cấp mô tả chi tiết.";
+              }
+              return desc || "Người bán không cung cấp mô tả chi tiết.";
+            })()}
+          </p>
         </div>
+
+        {/* === ĐẶC ĐIỂM NỔI BẬT === */}
+        {(() => {
+          const evDetail = (listing.evDetail || listing.ev_details || auction.evDetail) as EVDetail | undefined;
+          return evDetail?.features && evDetail.features.length > 0 && (
+            <HighlightsCard
+              title="Tính năng & Tiện ích"
+              items={evDetail.features}
+              icon={<List size={20} />}
+            />
+          );
+        })()}
+        {(() => {
+          const batteryDetail = (listing.batteryDetail || listing.battery_details || auction.batteryDetail) as BatteryDetail | undefined;
+          if (!batteryDetail) return null;
+          return (
+            <>
+              {batteryDetail.compatible_models && batteryDetail.compatible_models.length > 0 && (
+                <HighlightsCard
+                  title="Model tương thích"
+                  items={batteryDetail.compatible_models}
+                  icon={<List size={20} />}
+                />
+              )}
+              {batteryDetail.certification && batteryDetail.certification.length > 0 && (
+                <HighlightsCard
+                  title="Chứng nhận & Tiêu chuẩn"
+                  items={batteryDetail.certification}
+                  icon={<Shield size={20} />}
+                />
+              )}
+            </>
+          );
+        })()}
+
+        {/* === THÔNG SỐ KỸ THUẬT CHI TIẾT === */}
         {details && (
           <div className="content-card">
             <SpecificationTable details={details} />
@@ -434,8 +735,8 @@ const AuctionDetailPage: React.FC = () => {
       <aside className="sidebar">
         <AuctionStatusPanel
           auction={auction}
+          auctionId={id}
           onBidPlaced={handleBidPlaced}
-          onBuyNow={handleBuyNow}
           onPayment={handlePayment}
         />
         <BidHistory bids={auction.bids} />

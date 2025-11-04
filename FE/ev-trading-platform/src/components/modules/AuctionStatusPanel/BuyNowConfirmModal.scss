@@ -1,0 +1,371 @@
+// src/components/modules/AuctionStatusPanel/BuyNowConfirmModal.scss
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+// ========================================
+// MODAL OVERLAY
+// ========================================
+.buy-now-confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: $spacing-4;
+  animation: fadeIn 0.2s ease-out;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+// ========================================
+// MODAL CONTENT
+// ========================================
+.buy-now-confirm-modal-content {
+  background-color: $white-color;
+  border-radius: $radius-lg;
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+
+  @include mobile {
+    max-width: 100%;
+    border-radius: $radius-md;
+    max-height: 95vh;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+
+// ========================================
+// MODAL HEADER
+// ========================================
+.buy-now-confirm-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-6 $spacing-6 $spacing-4;
+  border-bottom: 2px solid $border-light;
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $text-primary;
+    display: flex;
+    align-items: center;
+    gap: $spacing-3;
+
+    @include mobile {
+      font-size: $font-size-xl;
+    }
+
+    svg {
+      color: $primary-color;
+    }
+  }
+
+  .buy-now-confirm-modal-close {
+    width: 36px;
+    height: 36px;
+    border-radius: $radius-full;
+    border: none;
+    background-color: $gray-100;
+    color: $text-secondary;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+
+    &:hover:not(:disabled) {
+      background-color: $error-bg;
+      color: $error-color;
+      transform: rotate(90deg);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+// ========================================
+// MODAL BODY
+// ========================================
+.buy-now-confirm-modal-body {
+  padding: $spacing-6;
+
+  .confirm-message {
+    text-align: center;
+    margin-bottom: $spacing-6;
+
+    .question {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-medium;
+      color: $text-primary;
+      margin: 0 0 $spacing-4 0;
+      line-height: 1.6;
+
+      @include mobile {
+        font-size: $font-size-base;
+      }
+
+      .price-highlight {
+        font-size: $font-size-xl;
+        font-weight: $font-weight-bold;
+        color: $primary-color;
+        background: linear-gradient(135deg, $primary-color, darken($primary-color, 10%));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+
+        @include mobile {
+          font-size: $font-size-lg;
+        }
+      }
+    }
+
+    .warning-info {
+      display: flex;
+      align-items: flex-start;
+      gap: $spacing-2;
+      padding: $spacing-3 $spacing-4;
+      background-color: lighten($warning-color, 45%);
+      border-left: 3px solid $warning-color;
+      border-radius: $radius-base;
+      margin-top: $spacing-4;
+
+      svg {
+        color: $warning-color;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      span {
+        font-size: $font-size-sm;
+        color: $text-secondary;
+        line-height: 1.5;
+        text-align: left;
+      }
+    }
+  }
+
+  .price-display {
+    background: linear-gradient(135deg, 
+      lighten($primary-color, 48%) 0%, 
+      $white-color 100%);
+    border: 2px solid $primary-color;
+    border-radius: $radius-md;
+    padding: $spacing-5;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+
+    // Decorative accent
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 100px;
+      height: 100px;
+      background: radial-gradient(circle, rgba($primary-color, 0.1), transparent);
+      border-radius: 50%;
+    }
+
+    .price-label {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+      color: $text-secondary;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: $spacing-2;
+      position: relative;
+      z-index: 1;
+    }
+
+    .price-value {
+      font-size: $font-size-3xl;
+      font-weight: $font-weight-extrabold;
+      background: linear-gradient(135deg, $primary-color, darken($primary-color, 15%));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-family: $monospace-font;
+      position: relative;
+      z-index: 1;
+
+      @include mobile {
+        font-size: $font-size-2xl;
+      }
+    }
+  }
+}
+
+// ========================================
+// MODAL FOOTER
+// ========================================
+.buy-now-confirm-modal-footer {
+  padding: $spacing-5 $spacing-6 $spacing-6;
+  border-top: 1px solid $border-light;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
+
+  .confirm-btn,
+  .cancel-btn {
+    width: 100%;
+    padding: $spacing-4;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-2;
+    transition: all 0.2s ease;
+
+    @include mobile {
+      font-size: $font-size-base;
+      padding: $spacing-3;
+    }
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    &:not(:disabled):hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    &:not(:disabled):active {
+      transform: translateY(0);
+    }
+  }
+
+  .confirm-btn {
+    background: linear-gradient(135deg, $primary-color, darken($primary-color, 8%));
+    color: $white-color;
+    border: none;
+
+    &:not(:disabled):hover {
+      background: linear-gradient(135deg, darken($primary-color, 5%), darken($primary-color, 12%));
+      box-shadow: 0 6px 20px rgba($primary-color, 0.4);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: $white-color;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+  }
+
+  .cancel-btn {
+    background-color: $white-color;
+    color: $text-secondary;
+    border: 2px solid $border-color;
+
+    &:not(:disabled):hover {
+      background-color: $gray-50;
+      border-color: $text-secondary;
+    }
+  }
+}
+
+// ========================================
+// ANIMATIONS
+// ========================================
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ========================================
+// RESPONSIVE
+// ========================================
+@include mobile {
+  .buy-now-confirm-modal-overlay {
+    padding: $spacing-2;
+    align-items: flex-end;
+  }
+
+  .buy-now-confirm-modal-content {
+    border-radius: $radius-lg $radius-lg 0 0;
+  }
+
+  .buy-now-confirm-modal-header {
+    padding: $spacing-5 $spacing-4 $spacing-3;
+  }
+
+  .buy-now-confirm-modal-body {
+    padding: $spacing-4;
+
+    .price-display {
+      padding: $spacing-4;
+    }
+  }
+
+  .buy-now-confirm-modal-footer {
+    padding: $spacing-4;
+  }
+}
+
+// ========================================
+// ACCESSIBILITY
+// ========================================
+@media (prefers-reduced-motion: reduce) {
+  .buy-now-confirm-modal-overlay,
+  .buy-now-confirm-modal-content,
+  .buy-now-confirm-modal-content * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
