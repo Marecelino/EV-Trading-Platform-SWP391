@@ -6,7 +6,7 @@ import { ContactsService } from './contacts.service';
 
 @Injectable()
 export class ContactsPdfService {
-  constructor(private readonly contactsService: ContactsService) { }
+  constructor(private readonly contactsService: ContactsService) {}
 
   /**
    * Render a simple PDF snapshot for a contract and save it under uploads/contracts.
@@ -18,13 +18,15 @@ export class ContactsPdfService {
     if (!contract) throw new NotFoundException('Contract not found');
 
     // Normalize/compose a full contract object that contains the fields you showed
-    const tx = (contract as any).transaction || (contract as any).transaction_id || null;
+    const tx =
+      (contract as any).transaction || (contract as any).transaction_id || null;
 
     const normalizeRef = (ref: any) => {
       if (!ref && ref !== 0) return null;
       if (typeof ref === 'string') {
         const s = ref.trim();
-        if (!s || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined') return null;
+        if (!s || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined')
+          return null;
         return { _id: s };
       }
       if (typeof ref === 'object') {
@@ -49,29 +51,33 @@ export class ContactsPdfService {
       signed_document_url: (contract as any).signed_document_url,
       transaction_id: tx
         ? {
-          _id: tx._id || tx,
-          listing_id: normalizeRef(tx.listing_id),
-          buyer_id: normalizeRef(tx.buyer_id),
-          seller_id: normalizeRef(tx.seller_id),
-          price: tx.price,
-          payment_method: tx.payment_method,
-          payment_reference: tx.payment_reference,
-          status: tx.status,
-          notes: tx.notes,
-          commission_rate: tx.commission_rate,
-          platform_fee: tx.platform_fee,
-          seller_payout: tx.seller_payout,
-          createdAt: tx.createdAt,
-          updatedAt: tx.updatedAt,
-          commission_id: tx.commission_id,
-          contract_id: tx.contract_id,
-        }
+            _id: tx._id || tx,
+            listing_id: normalizeRef(tx.listing_id),
+            buyer_id: normalizeRef(tx.buyer_id),
+            seller_id: normalizeRef(tx.seller_id),
+            price: tx.price,
+            payment_method: tx.payment_method,
+            payment_reference: tx.payment_reference,
+            status: tx.status,
+            notes: tx.notes,
+            platform_fee: tx.platform_fee,
+            seller_payout: tx.seller_payout,
+            createdAt: tx.createdAt,
+            updatedAt: tx.updatedAt,
+            commission_id: tx.commission_id,
+            contract_id: tx.contract_id,
+          }
         : null,
     };
 
     // If nested listing has brand populated, keep it
-    if (fullContract.transaction_id?.listing_id && (fullContract.transaction_id.listing_id as any).brand_id) {
-      fullContract.transaction_id.listing_id.brand_id = (fullContract.transaction_id.listing_id as any).brand_id;
+    if (
+      fullContract.transaction_id?.listing_id &&
+      (fullContract.transaction_id.listing_id as any).brand_id
+    ) {
+      fullContract.transaction_id.listing_id.brand_id = (
+        fullContract.transaction_id.listing_id as any
+      ).brand_id;
     }
 
     // Ensure buyer/seller name/phone/email are accessible even if not populated
@@ -112,7 +118,9 @@ export class ContactsPdfService {
       const stream = fs.createWriteStream(filePath);
       doc.pipe(stream);
 
-      doc.fontSize(12).text('CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM', { align: 'center' });
+      doc
+        .fontSize(12)
+        .text('CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM', { align: 'center' });
       doc.moveDown(0.1);
       doc.fontSize(10).text('Độc lập - Tự do - Hạnh phúc', { align: 'center' });
       doc.moveDown(0.8);
@@ -133,21 +141,32 @@ export class ContactsPdfService {
       const sellerEmail = seller?.email || (contract as any).seller_email || '';
       const sellerPhone = seller?.phone || (contract as any).seller_phone || '';
 
-      doc.text(`Bên mua: ${buyerName}${buyerPhone ? ' (sđt: ' + buyerPhone + ')' : ''}${buyerEmail ? ' - ' + buyerEmail : ''}`);
-      doc.text(`Bên bán: ${sellerName}${sellerPhone ? ' (sđt: ' + sellerPhone + ')' : ''}${sellerEmail ? ' - ' + sellerEmail : ''}`);
+      doc.text(
+        `Bên mua: ${buyerName}${buyerPhone ? ' (sđt: ' + buyerPhone + ')' : ''}${buyerEmail ? ' - ' + buyerEmail : ''}`,
+      );
+      doc.text(
+        `Bên bán: ${sellerName}${sellerPhone ? ' (sđt: ' + sellerPhone + ')' : ''}${sellerEmail ? ' - ' + sellerEmail : ''}`,
+      );
 
       // Amount / listing / brand
-      const amount = fullContract.transaction_id?.price ?? (contract as any).amount ?? '';
+      const amount =
+        fullContract.transaction_id?.price ?? (contract as any).amount ?? '';
       doc.text(`Số tiền: ${amount}`);
 
-      const listingTitle = listing?.title || (contract as any).listing_title || '';
-      const listingDesc = listing?.description || (contract as any).listing_description || '';
-      const brandName = listing?.brand_id?.name || (contract as any).brand_name || '';
+      const listingTitle =
+        listing?.title || (contract as any).listing_title || '';
+      const listingDesc =
+        listing?.description || (contract as any).listing_description || '';
+      const brandName =
+        listing?.brand_id?.name || (contract as any).brand_name || '';
 
       if (brandName) doc.text(`Hãng xe: ${brandName}`);
       if (listingTitle) doc.text(`Tin bán: ${listingTitle}`);
       if (listingDesc) {
-        const shortDesc = listingDesc.length > 300 ? listingDesc.slice(0, 300) + '...' : listingDesc;
+        const shortDesc =
+          listingDesc.length > 300
+            ? listingDesc.slice(0, 300) + '...'
+            : listingDesc;
         doc.text(`Chi tiết tin: ${shortDesc}`);
       }
 
@@ -161,10 +180,15 @@ export class ContactsPdfService {
       doc.text('Xác nhận ký:', { underline: false });
       doc.moveDown(1);
 
-      const isSigned = !!fullContract.signed_at || fullContract.status === 'signed' || fullContract.status === 'SIGNED';
+      const isSigned =
+        !!fullContract.signed_at ||
+        fullContract.status === 'signed' ||
+        fullContract.status === 'SIGNED';
       if (isSigned) {
         const audit: any[] = fullContract.audit_events || [];
-        const sigEvents = audit.filter((e: any) => e && e.event === 'signature_confirmed');
+        const sigEvents = audit.filter(
+          (e: any) => e && e.event === 'signature_confirmed',
+        );
 
         const buyerIdent = (buyerName || '').toString();
         const buyerEmailForMatch = buyerEmail || '';
@@ -173,19 +197,31 @@ export class ContactsPdfService {
         for (const ev of sigEvents) {
           if (!ev || !ev.by) continue;
           const by = ev.by.toString();
-          if (by === buyerEmailForMatch || by === buyerIdent || by.includes(buyerIdent) || buyerIdent.includes(by)) {
+          if (
+            by === buyerEmailForMatch ||
+            by === buyerIdent ||
+            by.includes(buyerIdent) ||
+            buyerIdent.includes(by)
+          ) {
             signerFound = ev;
             break;
           }
         }
 
-        const signedAt = fullContract.signed_at ? new Date(fullContract.signed_at) : signerFound?.at ? new Date(signerFound.at) : null;
+        const signedAt = fullContract.signed_at
+          ? new Date(fullContract.signed_at)
+          : signerFound?.at
+            ? new Date(signerFound.at)
+            : null;
 
         doc.fontSize(12).text(`Bên mua (ký điện tử): ${buyerName || ''}`);
-        if (signedAt) doc.fontSize(10).text(`Ngày ký: ${signedAt.toLocaleString('vi-VN')}`);
+        if (signedAt)
+          doc.fontSize(10).text(`Ngày ký: ${signedAt.toLocaleString('vi-VN')}`);
 
         if (sigEvents.length > 0) {
-          const hashes = sigEvents.map((e: any) => e.meta?.signature_hash).filter(Boolean);
+          const hashes = sigEvents
+            .map((e: any) => e.meta?.signature_hash)
+            .filter(Boolean);
           if (hashes.length > 0) {
             doc.moveDown(0.5);
             doc.fontSize(9).text(`Mã chứng thực chữ ký: ${hashes[0]}`);

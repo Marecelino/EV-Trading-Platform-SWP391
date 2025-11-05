@@ -67,15 +67,6 @@ export class CreateTransactionDto {
   status?: TransactionStatus;
 
   @ApiPropertyOptional({
-    description:
-      'Commission rate applied to the transaction (percentage based value, e.g., 0.05 for 5%)',
-  })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  commission_rate?: number;
-
-  @ApiPropertyOptional({
     description: 'Calculated platform fee collected by the marketplace',
   })
   @IsOptional()

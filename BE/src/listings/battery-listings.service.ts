@@ -27,10 +27,11 @@ export class BatteryListingsService {
     private readonly batteryDetailModel: Model<any>,
     @InjectModel(Brand.name)
     private readonly brandModel: Model<BrandDocument>,
-    @InjectModel(Payment.name) private readonly paymentModel: Model<PaymentDocument>,
+    @InjectModel(Payment.name)
+    private readonly paymentModel: Model<PaymentDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly paymentService: PaymentService,
-  ) { }
+  ) {}
 
   private escapeRegex(input: string) {
     return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -78,11 +79,13 @@ export class BatteryListingsService {
 
     // Create listing fee payment record
     try {
-      const listingFeeAmount = 15000; // VND
+      const listingFeeAmount = 150000; // VND
       const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@example.com';
       let platformSellerId: any = (saved as any).seller_id;
       try {
-        const admin = await this.userModel.findOne({ email: adminEmail }).lean();
+        const admin = await this.userModel
+          .findOne({ email: adminEmail })
+          .lean();
         if (admin && admin._id) platformSellerId = admin._id;
       } catch (e) {
         // ignore — fallback to listing's seller_id
@@ -102,17 +105,24 @@ export class BatteryListingsService {
       (saved as any)._listingFeePayment = payment;
       try {
         const ip = ipAddress ?? '127.0.0.1';
-        const { paymentUrl } = await this.paymentService.createVNPayUrlForPayment(
-          (payment._id as any).toString(),
-          requestBuyer,
-          ip,
-        );
+        const { paymentUrl } =
+          await this.paymentService.createVNPayUrlForPayment(
+            (payment._id as any).toString(),
+            requestBuyer,
+            ip,
+          );
         (saved as any)._listingFeePayment.paymentUrl = paymentUrl;
       } catch (err) {
-        console.warn('Failed to build VNPay URL for listing fee payment', err?.message || err);
+        console.warn(
+          'Failed to build VNPay URL for listing fee payment',
+          err?.message || err,
+        );
       }
     } catch (err) {
-      console.warn('Failed to create listing fee payment record', err?.message || err);
+      console.warn(
+        'Failed to create listing fee payment record',
+        err?.message || err,
+      );
     }
 
     // create BatteryDetail
@@ -130,7 +140,8 @@ export class BatteryListingsService {
 
     // Trả về cả listing and batteryDetail (include payment info if present)
     const listingObj: any = saved.toObject();
-    if ((saved as any)._listingFeePayment) listingObj._listingFeePayment = (saved as any)._listingFeePayment;
+    if ((saved as any)._listingFeePayment)
+      listingObj._listingFeePayment = (saved as any)._listingFeePayment;
     return {
       listing: listingObj,
       batteryDetail: batteryDetail.toObject(),

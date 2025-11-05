@@ -57,9 +57,6 @@ export class Payment {
   commission_id?: Types.ObjectId;
 
   @Prop({ default: 0 })
-  commission_rate?: number;
-
-  @Prop({ default: 0 })
   platform_fee?: number;
 
   @Prop({ default: 0 })

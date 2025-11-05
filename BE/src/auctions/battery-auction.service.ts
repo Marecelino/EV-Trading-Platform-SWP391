@@ -32,10 +32,11 @@ export class BatteryAuctionService {
     @InjectModel(BatteryDetail.name)
     private readonly batteryDetailModel: Model<any>,
     @InjectModel(Brand.name) private readonly brandModel: Model<BrandDocument>,
-    @InjectModel(Payment.name) private readonly paymentModel: Model<PaymentDocument>,
+    @InjectModel(Payment.name)
+    private readonly paymentModel: Model<PaymentDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly paymentService: PaymentService,
-  ) { }
+  ) {}
 
   private escapeRegex(input: string) {
     return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -55,9 +56,9 @@ export class BatteryAuctionService {
       payload['brand_id'] = brand._id;
     }
 
-  payload['category'] = CategoryEnum.BATTERY;
-  // New auctions start as DRAFT; payment must be completed to move to PENDING
-  payload['status'] = status ?? AuctionStatus.DRAFT;
+    payload['category'] = CategoryEnum.BATTERY;
+    // New auctions start as DRAFT; payment must be completed to move to PENDING
+    payload['status'] = status ?? AuctionStatus.DRAFT;
     if (payload['starting_price'] === undefined) {
       throw new BadRequestException('starting_price is required for auction');
     }
@@ -77,11 +78,13 @@ export class BatteryAuctionService {
 
     // Create a listing fee payment record (seller pays listing fee)
     try {
-      const listingFeeAmount = 15000; // VND
+      const listingFeeAmount = 150000; // VND
       const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@example.com';
       let platformSellerId: any = (saved as any).seller_id;
       try {
-        const admin = await this.userModel.findOne({ email: adminEmail }).lean();
+        const admin = await this.userModel
+          .findOne({ email: adminEmail })
+          .lean();
         if (admin && admin._id) platformSellerId = admin._id;
       } catch (e) {
         // ignore — fallback to auction's seller_id
@@ -105,20 +108,27 @@ export class BatteryAuctionService {
       // Try to build VNPay URL via PaymentService (preferred) using requester context
       try {
         const ip = ipAddress ?? '127.0.0.1';
-        const { paymentUrl } = await this.paymentService.createVNPayUrlForPayment(
-          (payment._id as any).toString(),
-          requestBuyer,
-          ip,
-        );
+        const { paymentUrl } =
+          await this.paymentService.createVNPayUrlForPayment(
+            (payment._id as any).toString(),
+            requestBuyer,
+            ip,
+          );
         (saved as any)._listingFeePayment.paymentUrl = paymentUrl;
       } catch (e) {
         // Non-fatal: frontend can request URL separately via GET /payment/:id/url
         // eslint-disable-next-line no-console
-        console.warn('Failed to build VNPay URL for listing fee payment', e?.message || e);
+        console.warn(
+          'Failed to build VNPay URL for listing fee payment',
+          e?.message || e,
+        );
       }
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.warn('Failed to create listing fee payment record', err?.message || err);
+      console.warn(
+        'Failed to create listing fee payment record',
+        err?.message || err,
+      );
     }
 
     // Upsert BatteryDetail: match by auction_id or listing_id (if provided)
