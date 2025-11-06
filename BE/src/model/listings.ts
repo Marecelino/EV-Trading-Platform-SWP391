@@ -76,7 +76,7 @@ export class Listing {
     enum: ListingStatus,
     default: ListingStatus.DRAFT,
   })
-    status: ListingStatus;
+  status: ListingStatus;
   @Prop({
     type: String,
     enum: PaymentListingStatus,

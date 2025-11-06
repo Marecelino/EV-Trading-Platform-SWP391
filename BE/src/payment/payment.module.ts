@@ -9,7 +9,6 @@ import { ListingsModule } from '../listings/listings.module';
 import { AuctionsModule } from '../auctions/auctions.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { ContactsModule } from '../contacts/contacts.module';
-import { CommissionsModule } from '../commissions/commissions.module';
 import { SignnowModule } from '../signnow/signnow.module';
 import { User, UserSchema } from '../model/users.schema';
 
@@ -24,11 +23,10 @@ import { User, UserSchema } from '../model/users.schema';
     forwardRef(() => AuctionsModule),
     TransactionsModule,
     ContactsModule,
-    CommissionsModule,
     SignnowModule,
   ],
   controllers: [PaymentController],
   providers: [PaymentService],
   exports: [PaymentService],
 })
-export class PaymentModule { }
+export class PaymentModule {}

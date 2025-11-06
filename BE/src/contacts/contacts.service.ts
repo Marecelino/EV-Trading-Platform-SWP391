@@ -100,7 +100,7 @@ export class ContactsService {
     return this.contractModel.findOne({ document_url: { $regex: escaped, $options: 'i' } }).exec();
   }
   // ...existing code...
-  
+
   async update(
     id: string,
     updateContactDto: UpdateContactDto,

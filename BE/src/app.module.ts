@@ -26,6 +26,8 @@ import { AppService } from './app.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { BrandsModule } from './brands/brands.module';
 import { BatteryDetailsModule } from './battery-details/battery-details.module';
+import { Commission } from './model/commissions';
+import { CommissionsModule } from './commissions/commissions.module';
 
 @Module({
   imports: [
@@ -78,10 +80,11 @@ import { BatteryDetailsModule } from './battery-details/battery-details.module';
     PaymentModule,
     // SignnowModule,
     TransactionsModule,
+    CommissionsModule,
     ReviewsModule,
     ContactsModule,
     EvdetailsModule,
-    PriceSuggestionsModule,
+    // PriceSuggestionsModule,
     FavoritesModule,
     TransactionComplaintsModule,
     // ReportsModule,
