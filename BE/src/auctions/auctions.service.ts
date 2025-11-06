@@ -66,6 +66,57 @@ export class AuctionsService {
           startedToLive: startedCount,
           endedToClosed: endedCount,
         });
+        // Best-effort: for auctions that were just moved to ENDED, attempt to
+        // create a VNPay payment for the highest bidder and notify them so they
+        // can complete payment. We only consider auctions that ended in the
+        // recent past (5 minutes) to reduce duplicate processing.
+        try {
+          const recentWindowMs = 5 * 60 * 1000; // 5 minutes
+          const from = new Date(now.getTime() - recentWindowMs);
+          const endedAuctions = await this.auctionModel
+            .find({
+              status: AuctionStatus.ENDED,
+              end_time: { $gte: from, $lte: now },
+            })
+            .limit(50)
+            .lean();
+
+          for (const a of endedAuctions || []) {
+            try {
+              const bids = (a as any).bids || [];
+              if (!bids || bids.length === 0) continue;
+
+              const topBid = bids[0];
+              const winnerId = (topBid.user_id || topBid.user)?.toString?.() ?? String(topBid.user_id || topBid.user || '');
+              if (!winnerId) continue;
+
+              // Create payment + VNPay URL (best-effort). Use fallback IP.
+              try {
+                const { payment, paymentUrl } = await this.paymentService.createVNPayUrlForAuction(
+                  { auction_id: a._id, payment_method: PaymentMethod.VNPAY },
+                  winnerId,
+                  '127.0.0.1',
+                );
+
+                const actionUrl = paymentUrl || `/payment/${String(payment._id)}/url`;
+
+                await this.notificationsService.create({
+                  user_id: winnerId,
+                  message: `Bạn đã thắng đấu giá "${(a as any).title || ''}". Vui lòng hoàn tất thanh toán.`,
+                  type: NotificationType.WIN_AUCTION as any,
+                  related_id: String(a._id),
+                  action_url: actionUrl as any,
+                });
+              } catch (err) {
+                console.warn('Auto-create payment/notify failed for ended auction (continuing)', err?.message || err);
+              }
+            } catch (err) {
+              console.warn('Error processing recently ended auction (continuing)', err?.message || err);
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to auto-create payments for recently ended auctions', err?.message || err);
+        }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
