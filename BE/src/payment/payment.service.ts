@@ -108,7 +108,7 @@ export class PaymentService {
     const vnpayResponse = this.vnpay.buildPaymentUrl({
       vnp_Amount: Math.round(amount), // Amount in smallest currency unit (integer)
       vnp_IpAddr: ipAddress,
-      vnp_OrderInfo: `Thanh toan cho đơn hàng #${createPaymentDto.listing_id}`,
+      vnp_OrderInfo: `Thanh toan cho tin đăng bán #${createPaymentDto.listing_id}`,
       vnp_TxnRef: orderId, // Use payment._id as transaction reference
       vnp_OrderType: ProductCode.Other,
       vnp_ReturnUrl: this.returnUrl, // Use the value initialized in constructor
@@ -302,7 +302,7 @@ export class PaymentService {
       listing.seller_id instanceof Types.ObjectId
         ? listing.seller_id.toString()
         : (listing.seller_id as any)?._id?.toString() ||
-          String(listing.seller_id);
+        String(listing.seller_id);
 
     if (listingSellerId === buyerId) {
       throw new BadRequestException('Buyer cannot be the seller');
@@ -550,15 +550,15 @@ export class PaymentService {
       const [buyer, seller] = await Promise.all([
         buyerId
           ? this.userModel
-              .findById(buyerId)
-              .lean()
-              .catch(() => null)
+            .findById(buyerId)
+            .lean()
+            .catch(() => null)
           : Promise.resolve(null),
         sellerId
           ? this.userModel
-              .findById(sellerId)
-              .lean()
-              .catch(() => null)
+            .findById(sellerId)
+            .lean()
+            .catch(() => null)
           : Promise.resolve(null),
       ]);
 
@@ -663,8 +663,9 @@ export class PaymentService {
     payment: PaymentDocument,
     source: 'IPN' | 'RETURN',
   ) {
-    // Listing fee payments don't create transactions or contracts. They only
-    // update the listing/auction payment status so the listing can become PENDING.
+    // For listing-fee payments: create a Transaction record for bookkeeping
+    // but DO NOT create a Commission (platform fee is the revenue). Then
+    // update listing/auction status and attach the transaction to the payment.
     let listing: any = null;
     try {
       if (payment.listing_id) {
@@ -674,6 +675,42 @@ export class PaymentService {
       }
     } catch (err) {
       console.warn('Listing not found during listing-fee finalization', err);
+    }
+
+    // Create a minimal transaction (no commission)
+    let transaction: any = null;
+    try {
+      const createTransactionDto: any = {
+        buyer_id: (payment.buyer_id as any)?.toString?.() ?? String((payment as any).buyer_id || ''),
+        seller_id: (payment.seller_id as any)?.toString?.() ?? String((payment as any).seller_id || ''),
+        price: payment.amount,
+        payment_method: PaymentMethod.VNPAY,
+        payment_reference: (payment._id as Types.ObjectId).toString(),
+        notes: `Listing fee auto-created from VNPay ${source}`,
+      } as any;
+
+      if (payment.listing_id) createTransactionDto.listing_id = payment.listing_id.toString();
+      if ((payment as any).auction_id) createTransactionDto.auction_id = (payment as any).auction_id.toString();
+
+      transaction = await this.transactionsService.create(createTransactionDto);
+
+      // Mark transaction as completed immediately since payment completed
+      try {
+        transaction.status = TransactionStatus.COMPLETED;
+        await transaction.save();
+      } catch (err) {
+        console.warn('Failed to save listing-fee transaction status', { transactionId: transaction._id, error: err?.message || err });
+      }
+
+      // Attach transaction reference to payment and persist
+      try {
+        (payment as any).transaction_id = transaction._id;
+        await payment.save();
+      } catch (err) {
+        console.warn('Failed to attach transaction to listing-fee payment', { paymentId: payment._id, error: err?.message || err });
+      }
+    } catch (err) {
+      console.warn('Failed to create transaction for listing-fee payment (continuing)', err?.message || err);
     }
 
     const listingId =
@@ -743,7 +780,7 @@ export class PaymentService {
       );
     }
 
-    // No transaction or commission created for listing fee. Return the payment only.
-    return { payment };
+    // Return payment and the created transaction (if any). No commission created.
+    return { payment, transaction };
   }
 }

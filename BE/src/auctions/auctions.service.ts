@@ -23,7 +23,7 @@ export class AuctionsService {
     @InjectModel(Favorite.name)
     private readonly favoriteModel: Model<FavoriteDocument>,
     private readonly notificationsService: NotificationsService,
-  ) {}
+  ) { }
 
   /**
    * Auto-transition auctions based on current time.
@@ -308,7 +308,7 @@ export class AuctionsService {
             ((updatedDoc as any).listing_id &&
               String(
                 ((updatedDoc as any).listing_id as any)?._id ??
-                  (updatedDoc as any).listing_id,
+                (updatedDoc as any).listing_id,
               )) ||
             null;
           if (listingId) {
@@ -411,7 +411,7 @@ export class AuctionsService {
           ((updatedDoc as any).listing_id &&
             String(
               ((updatedDoc as any).listing_id as any)?._id ??
-                (updatedDoc as any).listing_id,
+              (updatedDoc as any).listing_id,
             )) ||
           null;
         if (listingId) {
@@ -635,9 +635,11 @@ export class AuctionsService {
       auction.current_price = dto.amount;
 
       // Check buy now price
+      let endedByThisBid = false;
       if (auction.buy_now_price && dto.amount >= auction.buy_now_price) {
         auction.status = AuctionStatus.ENDED;
         auction.end_time = now;
+        endedByThisBid = true;
       }
 
       await auction.save();
@@ -670,6 +672,23 @@ export class AuctionsService {
           .findOne({ auction_id: auctionId })
           .lean();
         result = { ...result, batteryDetail };
+      }
+
+      // If this bid ended the auction (e.g., buy-now), notify the winning bidder
+      // so they know they won. Do not block the bid flow if notification fails.
+      try {
+        if (endedByThisBid) {
+          const auctionIdStr = String(auctionId);
+          await this.notificationsService.create({
+            user_id: userId,
+            message: `Bạn đã thắng đấu giá "${(auction as any).title || ''}". Vui lòng kiểm tra chi tiết và hoàn tất thanh toán.`,
+            type: NotificationType.WIN_AUCTION as any,
+            related_id: auctionIdStr,
+            action_url: `/auctions/${auctionIdStr}`,
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to notify winning bidder (continuing)', err?.message || err);
       }
 
       // Notifications to favorites from placeBid have been disabled.
@@ -734,7 +753,7 @@ export class AuctionsService {
           ((saved as any).listing_id &&
             String(
               ((saved as any).listing_id as any)?._id ??
-                (saved as any).listing_id,
+              (saved as any).listing_id,
             )) ||
           null;
         if (listingId) {

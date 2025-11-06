@@ -79,7 +79,7 @@ export class BatteryListingsService {
 
     // Create listing fee payment record
     try {
-      const listingFeeAmount = 150000; // VND
+      const listingFeeAmount = 15000; // VND
       const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@example.com';
       let platformSellerId: any = (saved as any).seller_id;
       try {

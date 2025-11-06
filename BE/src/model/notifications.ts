@@ -15,6 +15,7 @@ export enum NotificationType {
   FAVORITE_AUCTION_BID = 'favorite_auction_bid',
   FAVORITE_AUCTION_SOLD = 'favorite_auction_sold',
   FAVORITE_LISTING_SOLD = 'favorite_listing_sold',
+  WIN_AUCTION = 'win_auction',
 }
 
 export type NotificationDocument = HydratedDocument<Notification>;
