@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -10,6 +12,8 @@ import { Auction, AuctionStatus } from '../model/auctions';
 import { PaymentListingStatus } from '../model/listings';
 import { Favorite, FavoriteDocument } from '../model/favorites';
 import { NotificationType } from '../model/notifications';
+import { PaymentService } from '../payment/payment.service';
+import { PaymentMethod } from '../payment/schemas/payment.schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UpdateAuctionDto } from './dto/update-auction.dto';
 import { CreateBidDto } from './dto/create-bid.dto';
@@ -23,6 +27,8 @@ export class AuctionsService {
     @InjectModel(Favorite.name)
     private readonly favoriteModel: Model<FavoriteDocument>,
     private readonly notificationsService: NotificationsService,
+    @Inject(forwardRef(() => PaymentService))
+    private readonly paymentService: PaymentService,
   ) { }
 
   /**
@@ -787,6 +793,42 @@ export class AuctionsService {
           'Failed to create favorite notifications for auction end',
           err,
         );
+      }
+
+      // If there is a winning bid, create a payment record for the winner
+      try {
+        const bids = (saved as any).bids || [];
+        if (bids.length > 0) {
+          const topBid = bids[0];
+          const winnerId = (topBid.user_id || topBid.user)?.toString?.() ?? String(topBid.user_id || topBid.user || '');
+          if (winnerId) {
+            // create VNPay payment record + url for the winner (best-effort)
+            try {
+              const { payment, paymentUrl } = await this.paymentService.createVNPayUrlForAuction(
+                { auction_id: saved._id, payment_method: PaymentMethod.VNPAY },
+                winnerId,
+                '127.0.0.1',
+              );
+
+              // Notify the winner with a link to complete payment
+              try {
+                await this.notificationsService.create({
+                  user_id: winnerId,
+                  message: `Bạn đã thắng đấu giá "${(saved as any).title || ''}". Vui lòng hoàn tất thanh toán.`,
+                  type: NotificationType.TRANSACTION_COMPLETED as any,
+                  related_id: String(saved._id),
+                  action_url: paymentUrl as any,
+                });
+              } catch (err) {
+                console.warn('Failed to notify winner about payment (continuing)', err?.message || err);
+              }
+            } catch (err) {
+              console.warn('Failed to create payment for auction winner (continuing)', err?.message || err);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Error while attempting to auto-create winner payment', err?.message || err);
       }
 
       return saved;
