@@ -11,7 +11,7 @@ import priceSuggestionApi from "../../api/priceSuggestionApi";
 import favoriteApi from "../../api/favoriteApi";
 import evDetailApi from "../../api/evDetailApi";
 import batteryDetailApi from "../../api/batteryDetailApi";
-import authApi from "../../api/authApi";
+import authApi, { extractUserFromResponse } from "../../api/authApi";
 import type { Product, User, EVDetail, BatteryDetail } from "../../types";
 import PriceSuggestion from "../../components/modules/PriceSuggestion/PriceSuggestion";
 import { useAuth } from "../../contexts/AuthContext";
@@ -116,52 +116,42 @@ const ProductDetailPage: React.FC = () => {
 
             setProduct(productData);
 
-            // Try to fetch seller data if not populated
+            // Try to fetch seller data - handle both populated objects and string IDs
             try {
-              if (typeof productData.seller_id === 'string') {
-                // If seller_id is just a string, fetch seller data from API
-                  try {
-                    const sellerRes = await authApi.getUserById(productData.seller_id);
-                    console.log("Seller response:", sellerRes.data);
-                    // CRITICAL FIX: Handle response structure properly
-                    // getUserById returns AxiosResponse<User>, so sellerRes.data is User or wrapped
-                    const sellerResponseData = sellerRes.data as User | { 
-                      data?: User; 
-                      success?: boolean 
-                    };
-                    
-                    let sellerData: User | null = null;
-                    if (sellerResponseData && typeof sellerResponseData === 'object' && 'data' in sellerResponseData && sellerResponseData.data) {
-                      sellerData = sellerResponseData.data;
-                    } else if (sellerResponseData && typeof sellerResponseData === 'object' && '_id' in sellerResponseData) {
-                      sellerData = sellerResponseData as User;
-                    }
-                    
-                    if (sellerData) {
-                      setSeller(sellerData);
-                    }
-                } catch (apiError) {
-                  // Fallback to mock data if API fails
-                  console.log("API failed, using mock seller data:", apiError);
-                  const mockSeller: User = {
-                    _id: productData.seller_id,
-                    email: 'seller@example.com',
-                    full_name: 'Người bán',
-                    role: 'member',
-                    status: 'active',
-                    rating: {
-                      average: 4.5,
-                      count: 10
-                    }
-                  };
-                  setSeller(mockSeller);
+              let sellerData: User | null = null;
+              
+              // First, try to extract seller from populated object (may be in _doc format)
+              if (productData.seller_id && typeof productData.seller_id === 'object') {
+                // Use helper to extract and normalize seller data (handles _doc structure)
+                sellerData = extractUserFromResponse(productData.seller_id);
+                if (sellerData) {
+                  console.log("Extracted seller from productData.seller_id:", sellerData);
+                  setSeller(sellerData);
+                } else {
+                  console.warn("Could not extract seller data from populated object:", productData.seller_id);
                 }
-              } else if (productData.seller_id && typeof productData.seller_id === 'object') {
-                // If seller_id is already populated as User object
-                setSeller(productData.seller_id as User);
+              }
+              
+              // If seller_id is a string and we haven't extracted seller data yet, fetch from API
+              if (!sellerData && typeof productData.seller_id === 'string') {
+                try {
+                  const sellerRes = await authApi.getUserById(productData.seller_id);
+                  console.log("Seller response from API:", sellerRes.data);
+                  
+                  // Use helper function to extract user data from various response structures
+                  const fetchedSellerData = extractUserFromResponse(sellerRes.data);
+                  if (fetchedSellerData) {
+                    setSeller(fetchedSellerData);
+                  } else {
+                    console.warn("Could not extract seller data from API response:", sellerRes.data);
+                  }
+                } catch (apiError) {
+                  console.error("Error fetching seller data from API:", apiError);
+                  // Don't set mock data - let the UI show loading state or error
+                }
               }
             } catch (sellerError) {
-              console.log("Could not fetch seller data:", sellerError);
+              console.error("Error processing seller data:", sellerError);
             }
 
             // Try to get price suggestion

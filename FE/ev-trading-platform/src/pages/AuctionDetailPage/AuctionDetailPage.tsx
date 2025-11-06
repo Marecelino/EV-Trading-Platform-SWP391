@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import auctionApi from "../../api/auctionApi";
 import paymentApi from "../../api/paymentApi";
-import type { Auction, Product as ListingData, EVDetail, BatteryDetail } from "../../types";
+import authApi, { extractUserFromResponse } from "../../api/authApi";
+import type { Auction, Product as ListingData, EVDetail, BatteryDetail, User } from "../../types";
 
 // Import các component cần thiết
 import ImageGallery from "../../components/modules/ImageGallery/ImageGallery";
@@ -36,6 +37,7 @@ interface AuctionPageData {
 const AuctionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [auctionData, setAuctionData] = useState<AuctionPageData | null>(null);
+  const [seller, setSeller] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   //...
@@ -287,6 +289,54 @@ const AuctionDetailPage: React.FC = () => {
         auction,
         listing,
       });
+
+      // Fetch seller data - handle both populated objects and string IDs
+      try {
+        // First, try to extract seller from populated objects (may be in _doc format)
+        let sellerData: User | null = null;
+        
+        if (typeof listing.seller_id === 'object' && listing.seller_id !== null) {
+          // Use helper to extract and normalize seller data (handles _doc structure)
+          sellerData = extractUserFromResponse(listing.seller_id);
+          console.log("Extracted seller from listing.seller_id:", sellerData);
+        } else if (typeof auction.seller_id === 'object' && auction.seller_id !== null) {
+          // Use helper to extract and normalize seller data (handles _doc structure)
+          sellerData = extractUserFromResponse(auction.seller_id);
+          console.log("Extracted seller from auction.seller_id:", sellerData);
+        }
+        
+        // If we successfully extracted seller data, use it
+        if (sellerData) {
+          setSeller(sellerData);
+        } else {
+          // If seller_id is a string, fetch from API
+          const sellerId = typeof listing.seller_id === 'string' 
+            ? listing.seller_id 
+            : typeof auction.seller_id === 'string' 
+            ? auction.seller_id 
+            : null;
+
+          if (sellerId) {
+            try {
+              const sellerRes = await authApi.getUserById(sellerId);
+              console.log("Seller response from API:", sellerRes.data);
+              
+              const fetchedSellerData = extractUserFromResponse(sellerRes.data);
+              if (fetchedSellerData) {
+                setSeller(fetchedSellerData);
+              } else {
+                console.warn("Could not extract seller data from API response:", sellerRes.data);
+              }
+            } catch (sellerError) {
+              console.error("Error fetching seller data from API:", sellerError);
+            }
+          } else {
+            console.warn("No seller_id found in listing or auction");
+          }
+        }
+      } catch (sellerError) {
+        console.error("Error processing seller data:", sellerError);
+      }
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu đấu giá:", error);
       setAuctionData(null);
@@ -740,9 +790,15 @@ const AuctionDetailPage: React.FC = () => {
           onPayment={handlePayment}
         />
         <BidHistory bids={auction.bids} />
-        {/* Đảm bảo seller_id đã được populate thành object User */}
-        {typeof listing.seller_id === "object" && (
-          <SellerInfoCard seller={listing.seller_id} />
+        {/* Display seller info card if seller data is available */}
+        {seller && (
+          <SellerInfoCard seller={seller} product={listing} />
+        )}
+        {!seller && (listing.seller_id || auction.seller_id) && (
+          <div className="content-card">
+            <h4>Thông tin người bán</h4>
+            <p>Đang tải thông tin người bán...</p>
+          </div>
         )}
       </aside>
     </div>
