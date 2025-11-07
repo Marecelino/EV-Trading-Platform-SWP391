@@ -66,6 +66,57 @@ export class AuctionsService {
           startedToLive: startedCount,
           endedToClosed: endedCount,
         });
+        // Best-effort: for auctions that were just moved to ENDED, attempt to
+        // create a VNPay payment for the highest bidder and notify them so they
+        // can complete payment. We only consider auctions that ended in the
+        // recent past (5 minutes) to reduce duplicate processing.
+        try {
+          const recentWindowMs = 5 * 60 * 1000; // 5 minutes
+          const from = new Date(now.getTime() - recentWindowMs);
+          const endedAuctions = await this.auctionModel
+            .find({
+              status: AuctionStatus.ENDED,
+              end_time: { $gte: from, $lte: now },
+            })
+            .limit(50)
+            .lean();
+
+          for (const a of endedAuctions || []) {
+            try {
+              const bids = (a as any).bids || [];
+              if (!bids || bids.length === 0) continue;
+
+              const topBid = bids[0];
+              const winnerId = (topBid.user_id || topBid.user)?.toString?.() ?? String(topBid.user_id || topBid.user || '');
+              if (!winnerId) continue;
+
+              // Create payment + VNPay URL (best-effort). Use fallback IP.
+              try {
+                const { payment, paymentUrl } = await this.paymentService.createVNPayUrlForAuction(
+                  { auction_id: a._id, payment_method: PaymentMethod.VNPAY },
+                  winnerId,
+                  '127.0.0.1',
+                );
+
+                const actionUrl = paymentUrl || `/payment/${String(payment._id)}/url`;
+
+                await this.notificationsService.create({
+                  user_id: winnerId,
+                  message: `Bạn đã thắng đấu giá "${(a as any).title || ''}". Vui lòng hoàn tất thanh toán.`,
+                  type: NotificationType.WIN_AUCTION as any,
+                  related_id: String(a._id),
+                  action_url: actionUrl as any,
+                });
+              } catch (err) {
+                console.warn('Auto-create payment/notify failed for ended auction (continuing)', err?.message || err);
+              }
+            } catch (err) {
+              console.warn('Error processing recently ended auction (continuing)', err?.message || err);
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to auto-create payments for recently ended auctions', err?.message || err);
+        }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -685,13 +736,42 @@ export class AuctionsService {
       try {
         if (endedByThisBid) {
           const auctionIdStr = String(auctionId);
-          await this.notificationsService.create({
-            user_id: userId,
-            message: `Bạn đã thắng đấu giá "${(auction as any).title || ''}". Vui lòng kiểm tra chi tiết và hoàn tất thanh toán.`,
-            type: NotificationType.WIN_AUCTION as any,
-            related_id: auctionIdStr,
-            action_url: `/auctions/${auctionIdStr}`,
-          });
+          // Try to create a VNPay payment + URL for the winner so they can pay immediately.
+          // This is best-effort: any failure should not block the bid flow.
+          try {
+            const { payment, paymentUrl } = await this.paymentService.createVNPayUrlForAuction(
+              { auction_id: auction._id, payment_method: PaymentMethod.VNPAY },
+              userId,
+              // placeBid does not receive req.ip today; use localhost fallback.
+              // Consider updating the controller to forward req.ip into placeBid for accurate client IP.
+              '127.0.0.1',
+            );
+
+            const actionUrl = paymentUrl || `/payment/${String(payment._id)}/url`;
+
+            await this.notificationsService.create({
+              user_id: userId,
+              message: `Bạn đã thắng đấu giá "${(auction as any).title || ''}". Vui lòng kiểm tra chi tiết và hoàn tất thanh toán.`,
+              type: NotificationType.WIN_AUCTION as any,
+              related_id: auctionIdStr,
+              action_url: actionUrl as any,
+            });
+          } catch (err) {
+            // If payment creation fails, fall back to notifying with an auction link.
+            console.warn('Failed to create payment for winning bidder (continuing)', err?.message || err);
+            try {
+              const auctionIdStr = String(auctionId);
+              await this.notificationsService.create({
+                user_id: userId,
+                message: `Bạn đã thắng đấu giá "${(auction as any).title || ''}". Vui lòng kiểm tra chi tiết và hoàn tất thanh toán.`,
+                type: NotificationType.WIN_AUCTION as any,
+                related_id: auctionIdStr,
+                action_url: `/auctions/${auctionIdStr}`,
+              });
+            } catch (err2) {
+              console.warn('Failed to notify winning bidder after payment creation failure (continuing)', err2?.message || err2);
+            }
+          }
         }
       } catch (err) {
         console.warn('Failed to notify winning bidder (continuing)', err?.message || err);
@@ -815,7 +895,7 @@ export class AuctionsService {
                 await this.notificationsService.create({
                   user_id: winnerId,
                   message: `Bạn đã thắng đấu giá "${(saved as any).title || ''}". Vui lòng hoàn tất thanh toán.`,
-                  type: NotificationType.TRANSACTION_COMPLETED as any,
+                  type: NotificationType.WIN_AUCTION as any,
                   related_id: String(saved._id),
                   action_url: paymentUrl as any,
                 });
