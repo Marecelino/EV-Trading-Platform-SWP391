@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, User, FolderKanban, LogOut, Heart } from "lucide-react";
 import Button from "../common/Button/Button";
+import NotificationBell from "../common/NotificationBell/NotificationBell";
 import "./Header.scss";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -61,6 +62,9 @@ const Header: React.FC = () => {
               <Link to="/listings/create">
                 <Button variant="primary">Đăng tin</Button>
               </Link>
+
+              {/* Notification Bell */}
+              <NotificationBell />
 
               {/* user menu */}
               <div

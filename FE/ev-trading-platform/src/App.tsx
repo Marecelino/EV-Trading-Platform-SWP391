@@ -1,7 +1,10 @@
 // src/App.tsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import UserLayout from "./layouts/UserLayout";
 import { AuthProvider } from "./contexts/AuthContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import HomePage from "./pages/HomePage";
 import ProductListPage from "./pages/ProductList/ProductListPage";
 import LoginPage from "./pages/LoginPage/LoginPage";
@@ -37,9 +40,10 @@ import ContractSigningPage from "./pages/ContractSigningPage/ContractSigningPage
 function App() {
   return (
     <AuthProvider>
-      <FavoritesProvider>
-        <ComparisonProvider>
-          <Router>
+      <NotificationProvider>
+        <FavoritesProvider>
+          <ComparisonProvider>
+            <Router>
             <Routes>
               <Route
                 path="/auth/social/callback"
@@ -128,8 +132,21 @@ function App() {
               </Route>
             </Routes>
           </Router>
+          <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
         </ComparisonProvider>
       </FavoritesProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

@@ -442,3 +442,50 @@ export interface AcceptContractDto {
   email: string; // Required - Signer's email (validated)
 }
 
+// ============================================================================
+// NOTIFICATION TYPES
+// ============================================================================
+
+export enum NotificationType {
+  LISTING_APPROVED = 'listing_approved',
+  LISTING_REJECTED = 'listing_rejected',
+  NEW_MESSAGE = 'new_message',
+  TRANSACTION_COMPLETED = 'transaction_completed',
+  PRICE_SUGGESTION = 'price_suggestion',
+  SYSTEM_ANNOUNCEMENT = 'system_announcement',
+  REVIEW_RECEIVED = 'review_received',
+  COMPLAINT_SUBMITTED = 'complaint_submitted',
+  COMPLAINT_UPDATED = 'complaint_updated',
+  FAVORITE_AUCTION_BID = 'favorite_auction_bid',
+  FAVORITE_AUCTION_SOLD = 'favorite_auction_sold',
+  FAVORITE_LISTING_SOLD = 'favorite_listing_sold',
+  WIN_AUCTION = 'win_auction',
+}
+
+export interface Notification {
+  _id: string;
+  user_id: string;
+  message: string; // max 500 chars
+  type: NotificationType;
+  is_read: boolean;
+  related_id?: string;
+  action_url?: string; // URL to redirect on click
+  read_at?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaginatedNotificationsResponse {
+  data: Notification[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface MarkAllNotificationsReadDto {
+  user_id: string;
+}
+
