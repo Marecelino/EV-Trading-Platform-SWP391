@@ -26,6 +26,8 @@ import { ContractStatus } from '../model/contacts';
 import { SignnowService } from '../signnow/signnow.service';
 import { ListingStatus, PaymentListingStatus } from '../model/listings';
 import { TransactionStatus } from '../model/transactions';
+import { CommissionsService } from '../commissions/commissions.service';
+import { CommissionStatus } from '../model/commissions';
 import { User, UserDocument } from '../model/users.schema';
 @Injectable()
 export class PaymentService {
@@ -45,6 +47,7 @@ export class PaymentService {
     private readonly transactionsService: TransactionsService,
     private readonly contactsService: ContactsService,
     private readonly signnowService: SignnowService,
+    private readonly commissionsService: CommissionsService,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
   ) {
     // Initialize VNPay config values
@@ -459,8 +462,14 @@ export class PaymentService {
       console.warn('Listing not found during payment finalization', err);
     }
 
-    const platformFee = 0;
-    const sellerPayout = payment.amount;
+    // Determine commission rate and compute platform fee and seller payout.
+    // Business rule: if amount < 100,000,000 VND then 2% commission.
+    const COMMISSION_THRESHOLD = 100000000; // 100 million VND
+    const defaultRate = Number(this.configService.get('COMMISSION_DEFAULT_RATE')) || 0.02;
+    const rate = typeof payment.amount === 'number' && payment.amount < COMMISSION_THRESHOLD ? 0.02 : defaultRate;
+
+    const platformFee = Math.max(Math.round((payment.amount || 0) * rate), 0);
+    const sellerPayout = Math.max((payment.amount || 0) - platformFee, 0);
 
     const createTransactionDto: any = {
       buyer_id: payment.buyer_id.toString(),
@@ -478,8 +487,7 @@ export class PaymentService {
     if ((payment as any).auction_id)
       createTransactionDto.auction_id = (payment as any).auction_id.toString();
 
-    const transaction =
-      await this.transactionsService.create(createTransactionDto);
+    const transaction = await this.transactionsService.create(createTransactionDto);
 
     // Attach transaction metadata to payment and persist
     (payment as any).transaction_id = transaction._id;
@@ -502,6 +510,54 @@ export class PaymentService {
         paymentId: payment._id,
         error: err?.message || err,
       });
+    }
+
+    // Create commission record for this transaction when platformFee > 0
+    try {
+      if (platformFee > 0) {
+        // Avoid duplicate commission by checking existing commission for transaction
+        let commission: any = null;
+        try {
+          commission = await this.commissionsService.findByTransactionId(
+            (transaction._id as any).toString(),
+          );
+        } catch (err) {
+          // Not found -> proceed to create
+        }
+
+        if (!commission) {
+          const createCommissionDto: any = {
+            transaction_id: (transaction._id as any).toString(),
+            percentage: rate * 100,
+            amount: platformFee,
+            status: CommissionStatus.PENDING,
+          };
+
+          try {
+            commission = await this.commissionsService.create(createCommissionDto);
+          } catch (err) {
+            this.logger.warn('Failed to create commission (continuing)', err?.message || err);
+          }
+        }
+
+        if (commission && commission._id) {
+          try {
+            (transaction as any).commission_id = commission._id;
+            await transaction.save();
+          } catch (err) {
+            this.logger.warn('Failed to attach commission to transaction', err?.message || err);
+          }
+
+          try {
+            (payment as any).commission_id = commission._id;
+            await payment.save();
+          } catch (err) {
+            this.logger.warn('Failed to attach commission to payment', err?.message || err);
+          }
+        }
+      }
+    } catch (err) {
+      this.logger.warn('Commission creation flow failed (continuing)', err?.message || err);
     }
 
     const listingId =
@@ -705,6 +761,12 @@ export class PaymentService {
       // Attach transaction reference to payment and persist
       try {
         (payment as any).transaction_id = transaction._id;
+        // For listing-fee payments, ensure platform fee and commission are zero
+        payment.platform_fee = 0;
+        payment.seller_payout = 0;
+        try {
+          (payment as any).commission_id = undefined;
+        } catch {}
         await payment.save();
       } catch (err) {
         console.warn('Failed to attach transaction to listing-fee payment', { paymentId: payment._id, error: err?.message || err });

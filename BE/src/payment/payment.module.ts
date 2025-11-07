@@ -10,6 +10,7 @@ import { AuctionsModule } from '../auctions/auctions.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { ContactsModule } from '../contacts/contacts.module';
 import { SignnowModule } from '../signnow/signnow.module';
+import { CommissionsModule } from '../commissions/commissions.module';
 import { User, UserSchema } from '../model/users.schema';
 
 @Module({
@@ -21,6 +22,7 @@ import { User, UserSchema } from '../model/users.schema';
     ConfigModule,
     forwardRef(() => ListingsModule),
     forwardRef(() => AuctionsModule),
+  forwardRef(() => CommissionsModule),
     TransactionsModule,
     ContactsModule,
     SignnowModule,
