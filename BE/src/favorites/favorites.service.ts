@@ -151,11 +151,15 @@ export class FavoritesService {
       throw new BadRequestException('Provide exactly one of listing_id or auction_id');
     }
 
-    // Remove old favorite of the same type for this user (if exists)
-    let removeQuery: any = { user_id };
-    if (listing_id) removeQuery.listing_id = { $exists: true };
-    if (auction_id) removeQuery.auction_id = { $exists: true };
-    await this.favoriteModel.deleteMany(removeQuery);
+    // Check if favorite already exists to provide better error message
+    const existingFavorite = await this.favoriteModel.findOne({
+      user_id,
+      ...(listing_id ? { listing_id } : { auction_id }),
+    });
+
+    if (existingFavorite) {
+      throw new ConflictException('Favorite already exists');
+    }
 
     // Build insert document without including fields that are undefined/null
     const insertDoc: any = { user_id };
