@@ -164,8 +164,11 @@ export interface PriceSuggestion {
 
 export interface Favorite {
   _id: string;
-  listing_id: Product | string;
   user_id: User | string;
+  listing_id?: Product | string; // Populated Product object when fetched from API
+  auction_id?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface User {

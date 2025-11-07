@@ -19,9 +19,6 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
-  // CRITICAL FIX: Store both favorite IDs and a map of listing_id -> favorite_id for deletion
-  const [favoriteIdMap, setFavoriteIdMap] = useState<Map<string, string>>(new Map());
-
   const fetchFavorites = useCallback(async () => {
     if (user) {
       setIsLoading(true);
@@ -29,49 +26,44 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.log("=== FETCHING FAVORITES ===");
         console.log("User ID:", user._id);
         
-        // CRITICAL FIX: Use params object instead of positional arguments
         const response = await favoriteApi.getFavorites({ user_id: user._id, page: 1, limit: 1000 });
         console.log("=== FAVORITES API RESPONSE ===");
         console.log("Full response:", response);
         console.log("Response data:", response.data);
         
-        // CRITICAL FIX: Improve response parsing to handle both nested and direct structures
+        // Backend returns { data: Favorite[], meta: {...} }
+        const responseData = response.data;
         let favoritesData: Favorite[] = [];
-        // Response can be Favorite[] or { data: Favorite[] } or PaginatedResponse
-        const responseData = response.data as Favorite[] | { data: Favorite[] } | { data: { data: Favorite[] } };
+        
         if (responseData && typeof responseData === 'object' && 'data' in responseData) {
-          const nestedData = (responseData as { data: Favorite[] | { data: Favorite[] } }).data;
-          if (Array.isArray(nestedData)) {
-            favoritesData = nestedData;
-          } else if (nestedData && typeof nestedData === 'object' && 'data' in nestedData && Array.isArray((nestedData as { data: Favorite[] }).data)) {
-            favoritesData = (nestedData as { data: Favorite[] }).data;
+          const data = (responseData as { data: Favorite[] }).data;
+          if (Array.isArray(data)) {
+            favoritesData = data;
           }
         } else if (Array.isArray(responseData)) {
           favoritesData = responseData;
         }
         
-        // Build sets: listing IDs for quick lookup, and map for favorite ID lookup
+        // Build set of listing IDs for quick lookup
         const ids = new Set<string>();
-        const idMap = new Map<string, string>();
         
         favoritesData.forEach((fav: Favorite) => {
-          const listingId = fav.listing_id as string;
-          if (listingId) {
-            ids.add(listingId);
-            // Store mapping: listing_id -> favorite._id for deletion
-            if (fav._id) {
-              idMap.set(listingId, fav._id);
+          // Handle populated listing_id (can be Product object or string)
+          if (fav.listing_id) {
+            const listingId = typeof fav.listing_id === 'object' 
+              ? (fav.listing_id as { _id: string })._id 
+              : fav.listing_id as string;
+            if (listingId) {
+              ids.add(listingId);
             }
           }
         });
         
         setFavoriteIds(ids);
-        setFavoriteIdMap(idMap);
         console.log(`Loaded ${ids.size} favorite IDs`);
       } catch (error) {
         console.error("Failed to fetch favorites", error);
         setFavoriteIds(new Set());
-        setFavoriteIdMap(new Map());
       } finally {
         setIsLoading(false);
       }
@@ -90,7 +82,6 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!user) return;
 
     const newFavoriteIds = new Set(favoriteIds);
-    const newFavoriteIdMap = new Map(favoriteIdMap);
     
     try {
       // First check if it's already a favorite
@@ -101,24 +92,10 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.log("Listing ID:", listingId);
         console.log("User ID:", user._id);
         
-        // CRITICAL FIX: Get favorite ID from map (we stored it during fetch)
-        const favoriteId = favoriteIdMap.get(listingId);
-        
-        if (!favoriteId) {
-          console.warn("Favorite ID not found for listing, cannot delete");
-          // Still remove from local state if not found on server
-          newFavoriteIds.delete(listingId);
-          newFavoriteIdMap.delete(listingId);
-          setFavoriteIds(newFavoriteIds);
-          setFavoriteIdMap(newFavoriteIdMap);
-          return;
-        }
-        
         try {
-          // CRITICAL FIX: deleteFavorite requires favorite ID, not listing ID
-          await favoriteApi.deleteFavorite(favoriteId, { user_id: user._id });
+          // Use listing ID directly for deletion (backend endpoint: DELETE /favorites/listing/:listingId)
+          await favoriteApi.unfavoriteListing(listingId, { user_id: user._id });
           newFavoriteIds.delete(listingId);
-          newFavoriteIdMap.delete(listingId);
           console.log("Favorite removed successfully");
         } catch (error: unknown) {
           // If delete fails, it might be because favorite doesn't exist
@@ -126,7 +103,6 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           if (axiosError.response?.status === 404) {
             console.log("Favorite not found on server, removing from local state");
             newFavoriteIds.delete(listingId);
-            newFavoriteIdMap.delete(listingId);
           } else {
             throw error;
           }
@@ -137,40 +113,31 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.log("User ID:", user._id);
         
         try {
-          // CRITICAL FIX: Use CreateFavoriteDto structure
-          const response = await favoriteApi.createFavorite({ user_id: user._id, listing_id: listingId });
+          // Use new API method: POST /favorites/listing
+          const response = await favoriteApi.favoriteListing({ 
+            user_id: user._id, 
+            listing_id: listingId 
+          });
           
           // Update local state with the new favorite
           newFavoriteIds.add(listingId);
-          
-          // Store the favorite ID if returned in response
-          if (response.data?._id) {
-            newFavoriteIdMap.set(listingId, response.data._id);
-          }
-          
           console.log("Favorite added successfully");
         } catch (error: unknown) {
           // Handle 409 Conflict - favorite already exists
-          const axiosError = error as { response?: { status?: number; data?: { id?: string } } };
+          const axiosError = error as { response?: { status?: number } };
           if (axiosError.response?.status === 409) {
             console.log("Favorite already exists on server, adding to local state");
             newFavoriteIds.add(listingId);
-            // Try to extract favorite ID from error response if available
-            if (axiosError.response?.data?.id) {
-              newFavoriteIdMap.set(listingId, axiosError.response.data.id);
-            }
           } else {
             throw error; // Re-throw other errors
           }
         }
       }
       setFavoriteIds(newFavoriteIds);
-      setFavoriteIdMap(newFavoriteIdMap);
     } catch (error) {
       console.error("Error toggling favorite:", error);
       // Revert optimistic update on error
       setFavoriteIds(favoriteIds);
-      setFavoriteIdMap(favoriteIdMap);
     }
   };
 
