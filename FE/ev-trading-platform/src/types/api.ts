@@ -241,12 +241,45 @@ export interface UpdateTransactionStatusDto {
 // REVIEW DTOs
 // ============================================================================
 
+export type ReviewDirection = 'buyer_to_seller' | 'seller_to_buyer';
+
+export interface ReviewStats {
+  _id: string;
+  averageRating: number;
+  totalReviews: number;
+  ratingBreakdown?: { rating: number; count: number }[];
+}
+
+export interface GetReviewsParams {
+  reviewee_id?: string;
+  reviewer_id?: string;
+  transaction_id?: string;
+  is_visible?: boolean;
+  minRating?: number;
+  maxRating?: number;
+  page?: number;
+  limit?: number;
+  review_type?: ReviewDirection;
+}
+
+export interface PaginatedReviewsResponse<T = unknown> {
+  data: T[];
+  meta?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages?: number;
+  };
+  stats?: ReviewStats[];
+  success?: boolean;
+}
+
 export interface CreateReviewDto {
-  reviewer_id: string;
   reviewee_id: string;
+  transaction_id: string;
   rating: number; // min: 1, max: 5
   comment: string; // minLength: 10, maxLength: 500
-  transaction_id?: string;
+  // Note: review_type is auto-detected by backend from transaction, not required in request
 }
 
 // ============================================================================

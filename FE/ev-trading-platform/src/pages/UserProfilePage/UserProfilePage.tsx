@@ -1,71 +1,238 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import transactionApi from '../../api/transactionApi';
 import reviewApi from '../../api/reviewApi';
 import authApi from '../../api/authApi';
-import type { ITransaction, Review, User, Product } from '../../types';
-import { UpdateUserDto, ChangePasswordDto } from '../../types/api';
+import type { ITransaction, Review, User } from '../../types';
+import { UpdateUserDto, ChangePasswordDto, ReviewStats } from '../../types/api';
 import { Edit } from 'lucide-react';
+import { toast } from 'react-toastify';
 import './UserProfilePage.scss';
 import EditProfileModal from '../../components/modals/EditProfileModal/EditProfileModal';
+import {
+  ReviewFormModal,
+  ReviewList,
+  TransactionReviewCard,
+  type TransactionRole,
+} from '../../components/modules/Reviews';
 
 // CRITICAL FIX: Type guard function to properly narrow the union type
 function isChangePasswordDto(data: UpdateUserDto | ChangePasswordDto): data is ChangePasswordDto {
   return 'currentPassword' in data && 'newPassword' in data;
 }
 
-type TransactionFilter = 'all' | 'buyer' | 'seller';
+type TransactionFilter = 'all' | 'buyer' | 'seller' | 'pending' | 'reviewed';
 
 const UserProfilePage: React.FC = () => {
   const { user, loading, login } = useAuth(); // Use login to update context after profile update
   const [transactions, setTransactions] = useState<ITransaction[]>([]);
   const [allTransactions, setAllTransactions] = useState<ITransaction[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsReceived, setReviewsReceived] = useState<Review[]>([]);
+  const [reviewsGiven, setReviewsGiven] = useState<Review[]>([]);
+  const [reviewsGivenMap, setReviewsGivenMap] = useState<Record<string, Review>>({});
+  const [reviewsStats, setReviewsStats] = useState<ReviewStats | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [transactionFilter, setTransactionFilter] = useState<TransactionFilter>('all');
+  const [reviewModalState, setReviewModalState] = useState<{
+    transaction: ITransaction;
+    role: TransactionRole;
+    review?: Review;
+  } | null>(null);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  const parseReviewResponse = (response: unknown) => {
+    if (!response) {
+      return { list: [] as Review[], stats: undefined as ReviewStats | undefined };
+    }
+
+    // Axios response.data contains the API response: { data: Review[], meta: {...}, stats: ReviewStats[] }
+    // We're already passing response.data, so response should be the API response object
+    if (typeof response === 'object' && response !== null) {
+      const apiResponse = response as {
+        data?: unknown;
+        meta?: unknown;
+        stats?: ReviewStats[];
+      };
+      
+      // Backend returns { data: Review[], meta: {...}, stats: ReviewStats[] }
+      const list = Array.isArray(apiResponse.data) ? (apiResponse.data as Review[]) : [];
+      // stats is an array, we take the first element if available
+      const stats = Array.isArray(apiResponse.stats) && apiResponse.stats.length > 0 
+        ? apiResponse.stats[0] 
+        : undefined;
+      
+      return { list, stats };
+    }
+
+    // Fallback: if it's directly an array (shouldn't happen with current API)
+    if (Array.isArray(response)) {
+      return { list: response as Review[], stats: undefined as ReviewStats | undefined };
+    }
+
+    return { list: [] as Review[], stats: undefined as ReviewStats | undefined };
+  };
+
+  const mapReviewsByTransaction = (reviewsList: Review[]) => {
+    return reviewsList.reduce<Record<string, Review>>((accumulator, current) => {
+      const transactionId =
+        typeof current.transaction_id === 'object'
+          ? (current.transaction_id as ITransaction)._id
+          : (current.transaction_id as string | undefined);
+
+      if (transactionId) {
+        accumulator[transactionId] = current;
+      }
+
+      return accumulator;
+    }, {});
+  };
+
+  const getRoleForTransaction = useCallback(
+    (transaction: ITransaction): TransactionRole | null => {
+      if (!user) return null;
+
+      const buyerId =
+        typeof transaction.buyer_id === 'object'
+          ? (transaction.buyer_id as User)._id
+          : (transaction.buyer_id as string | undefined);
+
+      const sellerId =
+        typeof transaction.seller_id === 'object'
+          ? (transaction.seller_id as User)._id
+          : (transaction.seller_id as string | undefined);
+
+      if (buyerId === user._id) return 'buyer';
+      if (sellerId === user._id) return 'seller';
+      return null;
+    },
+    [user],
+  );
+
+  const isTransactionCompleted = useCallback((status: ITransaction['status']) => {
+    if (!status) return false;
+    const value = typeof status === 'string' ? status.toUpperCase() : status;
+    return value === 'COMPLETED';
+  }, []);
+
+  const transactionCounters = useMemo(() => {
+    const counters = {
+      all: allTransactions.length,
+      buyer: 0,
+      seller: 0,
+      pending: 0,
+      reviewed: 0,
+    };
+
+    allTransactions.forEach((transaction) => {
+      const role = getRoleForTransaction(transaction);
+      const completed = isTransactionCompleted(transaction.status);
+      const hasReview = Boolean(reviewsGivenMap[transaction._id]);
+
+      if (role === 'buyer') counters.buyer += 1;
+      if (role === 'seller') counters.seller += 1;
+      if (role !== null && completed && !hasReview) counters.pending += 1;
+      if (role !== null && hasReview) counters.reviewed += 1;
+    });
+
+    return counters;
+  }, [allTransactions, getRoleForTransaction, isTransactionCompleted, reviewsGivenMap]);
+
+  const handleSubmitReview = async ({
+    rating,
+    comment,
+    transaction,
+    revieweeId,
+    reviewId,
+  }: {
+    rating: number;
+    comment: string;
+    transaction: ITransaction;
+    revieweeId: string;
+    reviewId?: string;
+  }) => {
+    setIsSubmittingReview(true);
+
+    try {
+      if (reviewId) {
+        const response = await reviewApi.updateReview(reviewId, {
+          rating,
+          comment,
+          transaction_id: transaction._id,
+          reviewee_id: revieweeId,
+        });
+
+        const updatedReview = response.data;
+
+        setReviewsGiven((previous) =>
+          previous.map((item) => (item._id === reviewId ? updatedReview : item)),
+        );
+        setReviewsGivenMap((previous) => ({ ...previous, [transaction._id]: updatedReview }));
+        toast.success('Đánh giá đã được cập nhật thành công!');
+      } else {
+        // Backend auto-detects review_type from transaction, so we don't send it
+        const response = await reviewApi.createReview({
+          reviewee_id: revieweeId,
+          transaction_id: transaction._id,
+          rating,
+          comment,
+        });
+
+        const createdReview = response.data;
+        setReviewsGiven((previous) => [...previous, createdReview]);
+        setReviewsGivenMap((previous) => ({ ...previous, [transaction._id]: createdReview }));
+        toast.success('Đánh giá đã được gửi thành công!');
+      }
+
+      setReviewModalState(null);
+    } catch (error) {
+      console.error('Error submitting review', error);
+      toast.error('Không thể gửi đánh giá. Vui lòng thử lại.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
-      
+
       setIsLoadingData(true);
       try {
-        // Fetch all transactions (no filter to get both buyer and seller transactions)
-        const [buyerRes, sellerRes, reviewsRes] = await Promise.all([
+        const [buyerRes, sellerRes, receivedRes, givenRes] = await Promise.all([
           transactionApi.getMyTransactions({ as: 'buyer' }),
           transactionApi.getMyTransactions({ as: 'seller' }),
-          reviewApi.getReviews({ reviewee_id: user._id }),
+          reviewApi.getReviews({ reviewee_id: user._id, limit: 100 }),
+          reviewApi.getReviews({ reviewer_id: user._id, limit: 100 }),
         ]);
-        
-        // Combine buyer and seller transactions
-        const buyerData = Array.isArray(buyerRes.data) 
-          ? buyerRes.data 
-          : (buyerRes.data as { data?: ITransaction[] })?.data || [];
-        
+
+        // /api/transactions/my returns array directly (not wrapped)
+        const buyerData = Array.isArray(buyerRes.data)
+          ? buyerRes.data
+          : [];
+
         const sellerData = Array.isArray(sellerRes.data)
           ? sellerRes.data
-          : (sellerRes.data as { data?: ITransaction[] })?.data || [];
-        
-        // Merge and remove duplicates (in case backend returns same transaction in both)
+          : [];
+
         const allTrans = [...buyerData, ...sellerData];
-        const uniqueTrans = allTrans.filter((tx, index, self) => 
-          index === self.findIndex(t => t._id === tx._id)
+        const uniqueTrans = allTrans.filter((tx, index, self) =>
+          index === self.findIndex((item) => item._id === tx._id)
         );
-        
+
         setAllTransactions(uniqueTrans);
-        
-        // Handle reviews response
-        const reviewsResponseData = reviewsRes.data as Review[] | { data?: Review[] };
-        let reviewsData: Review[] = [];
-        if (Array.isArray(reviewsResponseData)) {
-          reviewsData = reviewsResponseData;
-        } else if (reviewsResponseData && typeof reviewsResponseData === 'object' && 'data' in reviewsResponseData && Array.isArray(reviewsResponseData.data)) {
-          reviewsData = reviewsResponseData.data;
-        }
-        setReviews(reviewsData);
+
+        // Parse review responses - axios wraps in .data property
+        const receivedParsed = parseReviewResponse(receivedRes.data);
+        const givenParsed = parseReviewResponse(givenRes.data);
+
+        setReviewsReceived(receivedParsed.list);
+        setReviewsStats(receivedParsed.stats ?? null);
+        setReviewsGiven(givenParsed.list);
+        setReviewsGivenMap(mapReviewsByTransaction(givenParsed.list));
       } catch (error) {
-        console.error("Failed to fetch user data", error);
+        console.error('Failed to fetch user data', error);
+        toast.error('Không thể tải thông tin hồ sơ. Vui lòng thử lại sau.');
       } finally {
         setIsLoadingData(false);
       }
@@ -77,24 +244,29 @@ const UserProfilePage: React.FC = () => {
   // Filter transactions based on selected filter
   useEffect(() => {
     if (!user) return;
-    
-    const filtered = allTransactions.filter(tx => {
-      if (transactionFilter === 'all') return true;
-      
-      const buyerId = typeof tx.buyer_id === 'object' ? tx.buyer_id._id : tx.buyer_id;
-      const sellerId = typeof tx.seller_id === 'object' ? tx.seller_id._id : tx.seller_id;
-      
-      if (transactionFilter === 'buyer') {
-        return buyerId === user._id;
+
+    const filtered = allTransactions.filter((transaction) => {
+      const role = getRoleForTransaction(transaction);
+      const completed = isTransactionCompleted(transaction.status);
+      const hasReview = Boolean(reviewsGivenMap[transaction._id]);
+
+      switch (transactionFilter) {
+        case 'buyer':
+          return role === 'buyer';
+        case 'seller':
+          return role === 'seller';
+        case 'pending':
+          return role !== null && completed && !hasReview;
+        case 'reviewed':
+          return role !== null && hasReview;
+        case 'all':
+        default:
+          return true;
       }
-      if (transactionFilter === 'seller') {
-        return sellerId === user._id;
-      }
-      return true;
     });
-    
+
     setTransactions(filtered);
-  }, [allTransactions, transactionFilter, user]);
+  }, [allTransactions, transactionFilter, user, reviewsGivenMap, getRoleForTransaction, isTransactionCompleted]);
 
   // CRITICAL FIX: Update function signature to match EditProfileModal's onSave prop
   // Handle both UpdateUserDto and ChangePasswordDto
@@ -131,37 +303,6 @@ const UserProfilePage: React.FC = () => {
     }
   };
 
-  // Helper function to get status label in Vietnamese
-  const getStatusLabel = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      'pending': 'Đang chờ',
-      'PENDING': 'Đang chờ',
-      'processing': 'Đang xử lý',
-      'PROCESSING': 'Đang xử lý',
-      'completed': 'Hoàn thành',
-      'COMPLETED': 'Hoàn thành',
-      'cancelled': 'Đã hủy',
-      'CANCELLED': 'Đã hủy',
-      'failed': 'Thất bại',
-      'FAILED': 'Thất bại',
-    };
-    return statusMap[status] || status;
-  };
-
-  // Helper function to format date safely
-  const formatDate = (dateString?: string): string => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('vi-VN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      });
-    } catch {
-      return 'N/A';
-    }
-  };
-
   if (loading || !user) {
     return (
       <div className="user-profile-page">
@@ -180,14 +321,25 @@ const UserProfilePage: React.FC = () => {
           onSave={handleUpdateProfile}
         />
       )}
+      <ReviewFormModal
+        isOpen={Boolean(reviewModalState)}
+        transaction={reviewModalState?.transaction ?? null}
+        role={reviewModalState?.role ?? 'buyer'}
+        existingReview={reviewModalState?.review}
+        onClose={() => setReviewModalState(null)}
+        onSubmit={handleSubmitReview}
+        isSubmitting={isSubmittingReview}
+        initialRating={reviewModalState?.review?.rating}
+        initialComment={reviewModalState?.review?.comment}
+      />
       <div className="user-profile-page">
         <div className="profile-header content-card">
           <div className="avatar-section">
-            <img src={user.avatar_url} alt={user.full_name} />
+            <img src={user.avatar_url || user.avatar || ''} alt={user.full_name || user.name || 'User'} />
             <button className="edit-avatar-btn"><Edit size={16} /></button>
           </div>
           <div className="info-section">
-            <h1>{user.full_name}</h1>
+            <h1>{user.full_name || user.name || 'User'}</h1>
             <p>{user.email}</p>
             {user.phone && <p>SĐT: {user.phone}</p>}
             <button className="edit-profile-btn" onClick={() => setIsEditModalOpen(true)}>
@@ -204,19 +356,31 @@ const UserProfilePage: React.FC = () => {
                 className={`filter-tab ${transactionFilter === 'all' ? 'active' : ''}`}
                 onClick={() => setTransactionFilter('all')}
               >
-                Tất cả
+                Tất cả ({transactionCounters.all})
               </button>
               <button
                 className={`filter-tab ${transactionFilter === 'buyer' ? 'active' : ''}`}
                 onClick={() => setTransactionFilter('buyer')}
               >
-                Người mua
+                Người mua ({transactionCounters.buyer})
               </button>
               <button
                 className={`filter-tab ${transactionFilter === 'seller' ? 'active' : ''}`}
                 onClick={() => setTransactionFilter('seller')}
               >
-                Người bán
+                Người bán ({transactionCounters.seller})
+              </button>
+              <button
+                className={`filter-tab ${transactionFilter === 'pending' ? 'active' : ''}`}
+                onClick={() => setTransactionFilter('pending')}
+              >
+                Chờ đánh giá ({transactionCounters.pending})
+              </button>
+              <button
+                className={`filter-tab ${transactionFilter === 'reviewed' ? 'active' : ''}`}
+                onClick={() => setTransactionFilter('reviewed')}
+              >
+                Đã đánh giá ({transactionCounters.reviewed})
               </button>
             </div>
           </div>
@@ -228,117 +392,48 @@ const UserProfilePage: React.FC = () => {
               <p>Chưa có giao dịch nào</p>
             </div>
           ) : (
-            <div className="admin-table-container">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Sản phẩm</th>
-                    <th>Hình ảnh</th>
-                    <th>Vai trò</th>
-                    <th>Số tiền</th>
-                    <th>Ngày</th>
-                    <th>Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map(tx => {
-                    // Extract listing/product info
-                    const listing = typeof tx.listing_id === 'object' && tx.listing_id 
-                      ? (tx.listing_id as Product)
-                      : null;
-                    const listingTitle = listing?.title || listing?.name || (tx.listing_id ? 'Sản phẩm' : tx.auction_id ? 'Đấu giá' : 'N/A');
-                    const listingImage = listing?.images?.[0] || null;
-                    
-                    // Extract buyer and seller IDs
-                    const buyerId = typeof tx.buyer_id === 'object' && tx.buyer_id 
-                      ? tx.buyer_id._id 
-                      : (tx.buyer_id as string);
-                    const sellerId = typeof tx.seller_id === 'object' && tx.seller_id 
-                      ? tx.seller_id._id 
-                      : (tx.seller_id as string);
-                    
-                    // Determine user role
-                    const role = buyerId === user._id ? 'Người mua' : (sellerId === user._id ? 'Người bán' : 'N/A');
-                    
-                    // Use price (required) with fallback to amount
-                    const amount = tx.price || tx.amount || 0;
-                    
-                    // Format date safely
-                    const dateStr = tx.created_at || tx.createdAt || tx.transaction_date;
-                    
-                    return (
-                      <tr key={tx._id}>
-                        <td className="product-title">{listingTitle}</td>
-                        <td className="product-image">
-                          {listingImage ? (
-                            <img src={listingImage} alt={listingTitle} />
-                          ) : (
-                            <div className="no-image">—</div>
-                          )}
-                        </td>
-                        <td>{role}</td>
-                        <td className="amount">{amount.toLocaleString('vi-VN')} ₫</td>
-                        <td>{formatDate(dateStr)}</td>
-                        <td>
-                          <span className={`status-badge status--${tx.status.toLowerCase()}`}>
-                            {getStatusLabel(tx.status)}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="transaction-review-list">
+              {transactions.map((tx) => {
+                const role = getRoleForTransaction(tx);
+                if (!role) return null;
+
+                const review = reviewsGivenMap[tx._id] ?? null;
+                const canReview = isTransactionCompleted(tx.status) && !review;
+
+                return (
+                  <TransactionReviewCard
+                    key={tx._id}
+                    transaction={tx}
+                    role={role}
+                    canReview={canReview}
+                    review={review}
+                    onReviewClick={(transaction, transactionRole, currentReview) =>
+                      setReviewModalState({ transaction, role: transactionRole, review: currentReview || undefined })
+                    }
+                  />
+                );
+              })}
             </div>
           )}
         </div>
 
         <div className="reviews-section content-card">
-          <h2>Đánh giá nhận được</h2>
-          
-          {isLoadingData ? (
-            <div className="loading-state">Đang tải dữ liệu...</div>
-          ) : reviews.length === 0 ? (
-            <div className="empty-state">
-              <p>Chưa có đánh giá nào</p>
-            </div>
-          ) : (
-            <div className="admin-table-container">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Người đánh giá</th>
-                    <th>Đánh giá</th>
-                    <th>Bình luận</th>
-                    <th>Ngày</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reviews.map(review => {
-                    // Handle reviewer_id (could be User object or string)
-                    const reviewer = typeof review.reviewer_id === 'object' && review.reviewer_id
-                      ? review.reviewer_id
-                      : null;
-                    const reviewerName = reviewer?.full_name || reviewer?.name || 'Người dùng';
-                    
-                    return (
-                      <tr key={review._id}>
-                        <td>{reviewerName}</td>
-                        <td className="rating-cell">
-                          <span className="rating-stars">
-                            {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
-                          </span>
-                          <span className="rating-number">({review.rating}/5)</span>
-                        </td>
-                        <td className="comment-cell">{review.comment || 'Không có bình luận'}</td>
-                        <td>{formatDate(review.created_at)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ReviewList
+            reviews={reviewsReceived}
+            stats={reviewsStats || undefined}
+            isLoading={isLoadingData}
+            title="Đánh giá nhận được"
+          />
+        </div>
+
+        <div className="reviews-section content-card">
+          <ReviewList
+            reviews={reviewsGiven}
+            isLoading={isLoadingData}
+            title="Đánh giá đã gửi"
+            emptyMessage="Bạn chưa gửi đánh giá nào"
+            showStats={false}
+          />
         </div>
       </div>
     </>

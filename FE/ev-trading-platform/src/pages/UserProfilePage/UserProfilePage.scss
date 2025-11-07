@@ -355,3 +355,15 @@
 .reviews-section h2 {
     margin-top: 0;
 }
+
+.transaction-review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.reviews-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}

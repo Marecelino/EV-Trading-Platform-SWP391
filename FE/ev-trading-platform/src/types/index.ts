@@ -171,9 +171,11 @@ export interface Favorite {
 export interface User {
   _id: string;
   email: string;
-  full_name: string;
+  full_name?: string; // May be missing in some responses
+  name?: string; // Backend may return 'name' instead of 'full_name'
   role: "member" | "admin" | "user";
   avatar_url?: string;
+  avatar?: string; // Backend may return 'avatar' instead of 'avatar_url'
   phone?: string;
   address?: string;
   dateOfBirth?: string;
@@ -187,14 +189,17 @@ export interface User {
 }
 export interface Review {
   _id: string;
-  transaction_id: string;
-  reviewer_id: User | string;
-  reviewee_id: User | string;
+  transaction_id: ITransaction | string;
+  reviewer_id: User | string; // Backend returns populated object with _id, name, avatar
+  reviewee_id: User | string; // Backend returns populated object with _id, name, avatar
   rating: number;
   comment: string;
   review_type: "buyer_to_seller" | "seller_to_buyer";
-  created_at: string;
-  updated_at: string;
+  is_visible?: boolean;
+  created_at?: string; // snake_case (legacy support)
+  createdAt?: string; // camelCase (backend default)
+  updated_at?: string; // snake_case (legacy support)
+  updatedAt?: string; // camelCase (backend default)
 }
 
 export interface Contact {
@@ -233,9 +238,9 @@ export interface PaginatedListingsResponse {
 }
 export interface ITransaction {
   _id: string;
-  buyer_id: User | string;
-  seller_id: User | string;
-  listing_id?: Product | string; // Optional - may be linked to auction instead
+  buyer_id: User | string; // Backend returns populated User object with _id, name, email, phone
+  seller_id: User | string; // Backend returns populated User object with _id, name, email, phone
+  listing_id?: Product | string; // Backend returns populated object with _id, title, price, status, images
   auction_id?: string; // Optional - may be linked to listing instead
   price: number; // Primary field from backend
   amount?: number; // Keep for backward compatibility
@@ -251,11 +256,11 @@ export interface ITransaction {
   // Related entities
   contract_id?: string;
   commission_id?: string;
-  // Date fields (support both naming conventions)
-  created_at?: string; // snake_case (backend default)
-  createdAt?: string; // camelCase (some responses)
-  updated_at?: string; // snake_case
-  updatedAt?: string; // camelCase
+  // Date fields - backend uses camelCase (createdAt, updatedAt)
+  created_at?: string; // snake_case (legacy support)
+  createdAt?: string; // camelCase (backend default)
+  updated_at?: string; // snake_case (legacy support)
+  updatedAt?: string; // camelCase (backend default)
   transaction_date?: string; // Legacy field
 }
 export interface PaginatedTransactionsResponse {
@@ -405,6 +410,10 @@ export type {
   PlaceBidDto,
   CreateTransactionDto,
   CreateReviewDto,
+  ReviewDirection,
+  ReviewStats,
+  GetReviewsParams,
+  PaginatedReviewsResponse,
   CreateFavoriteDto,
   CreateContactDto,
   UpdateContactDto,
