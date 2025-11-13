@@ -3,12 +3,18 @@ import { UploadCloud, X } from 'lucide-react';
 import { uploadToCloudinary } from '../../../utils/cloudinary';
 import './ImageUploader.scss';
 
-interface ImageUploaderProps {
-  onUploadComplete: (imageUrls: string[]) => void;
+interface ImageItem {
+  preview: string; // Blob URL cho preview
+  cloudinaryUrl: string; // Cloudinary URL thực tế
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = ({ onUploadComplete }) => {
-  const [previews, setPreviews] = useState<string[]>([]);
+interface ImageUploaderProps {
+  onUploadComplete: (imageUrls: string[]) => void;
+  onRemoveImage?: (cloudinaryUrl: string) => void; // Callback để xóa URL khỏi parent state
+}
+
+const ImageUploader: React.FC<ImageUploaderProps> = ({ onUploadComplete, onRemoveImage }) => {
+  const [images, setImages] = useState<ImageItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,25 +23,46 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onUploadComplete }) => {
 
     setIsUploading(true);
     const localPreviews = Array.from(files).map(file => URL.createObjectURL(file));
-    setPreviews(prev => [...prev, ...localPreviews]);
 
     try {
-      const uploadedUrls: string[] = [];
-      for (const file of Array.from(files)) {
-        const url = await uploadToCloudinary(file);
-        uploadedUrls.push(url);
+      const newImages: ImageItem[] = [];
+      for (let i = 0; i < Array.from(files).length; i++) {
+        const file = Array.from(files)[i];
+        const cloudinaryUrl = await uploadToCloudinary(file);
+        newImages.push({
+          preview: localPreviews[i],
+          cloudinaryUrl: cloudinaryUrl
+        });
       }
-      onUploadComplete(uploadedUrls); // Gửi danh sách URL về form cha
+      
+      setImages(prev => [...prev, ...newImages]);
+      // Gửi các Cloudinary URLs về parent
+      onUploadComplete(newImages.map(img => img.cloudinaryUrl)); 
     } catch (error) {
       console.error("Upload error:", error);
+      // Nếu upload thất bại, revoke blob URLs
+      localPreviews.forEach(url => URL.revokeObjectURL(url));
     } finally {
       setIsUploading(false);
     }
   }, [onUploadComplete]);
 
   const removePreview = (indexToRemove: number) => {
-    setPreviews(prev => prev.filter((_, index) => index !== indexToRemove));
-    // Nếu muốn xóa ảnh trên Cloudinary → gọi API xóa (cần public_id)
+    const imageToRemove = images[indexToRemove];
+    if (!imageToRemove) return;
+
+    // Revoke blob URL để giải phóng memory
+    if (imageToRemove.preview.startsWith('blob:')) {
+      URL.revokeObjectURL(imageToRemove.preview);
+    }
+
+    // Xóa khỏi local state
+    setImages(prev => prev.filter((_, index) => index !== indexToRemove));
+    
+    // Thông báo cho parent để xóa Cloudinary URL khỏi state
+    if (onRemoveImage) {
+      onRemoveImage(imageToRemove.cloudinaryUrl);
+    }
   };
 
   return (
@@ -54,9 +81,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onUploadComplete }) => {
       </div>
       {isUploading && <div className="upload-loader">Đang tải lên...</div>}
       <div className="preview-area">
-        {previews.map((src, index) => (
+        {images.map((image, index) => (
           <div key={index} className="preview-item">
-            <img src={src} alt={`Preview ${index}`} />
+            <img src={image.preview} alt={`Preview ${index}`} />
             <button onClick={() => removePreview(index)} className="remove-btn">
               <X size={16} />
             </button>

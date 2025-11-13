@@ -183,6 +183,7 @@ export interface User {
   address?: string;
   dateOfBirth?: string;
   profileCompleted?: boolean;
+  isEmailVerified?: boolean; // Email verification status
   status: "active" | "suspended" | "inactive" | "banned";
   rating?: {
     average: number;

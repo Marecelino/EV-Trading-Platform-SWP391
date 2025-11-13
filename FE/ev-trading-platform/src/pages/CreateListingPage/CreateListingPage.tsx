@@ -571,6 +571,10 @@ const CreateListingPage: React.FC = () => {
               return newUrls;
             });
           }}
+          onRemoveImage={(cloudinaryUrl) => {
+            // Xóa Cloudinary URL khỏi state khi user xóa preview
+            setImageUrls((prev) => prev.filter(url => url !== cloudinaryUrl));
+          }}
         />
         <small className="help-text">
           Khuyến nghị tải lên ảnh để tin đăng hấp dẫn hơn (tối đa 10 ảnh, hiện tại: {imageUrls.length}/10)

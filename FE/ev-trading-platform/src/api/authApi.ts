@@ -5,6 +5,7 @@ import {
   LoginApiResponse,
   RegisterResponse,
   UpdateUserDto,
+  AdminUpdateUserDto,
   ChangePasswordDto,
   CompleteRegistrationDto,
 } from '../types/api';
@@ -161,7 +162,7 @@ const authApi = {
     return axiosClient.get<User>(`/auth/users/${id}`);
   },
 
-  updateUser: (id: string, data: UpdateUserDto) => {
+  updateUser: (id: string, data: UpdateUserDto | AdminUpdateUserDto) => {
     return axiosClient.put<User>(`/auth/users/${id}`, data);
   },
 
@@ -175,7 +176,11 @@ const authApi = {
   },
 
   getUserStats: () => {
-    return axiosClient.get('/auth/users/stats');
+    return axiosClient.get<{
+      total: number;
+      byRole: Record<string, number>;
+      byStatus: Record<string, number>;
+    }>('/auth/users/stats');
   },
 
   getUsersByRole: (role: 'user' | 'admin') => {
@@ -184,11 +189,11 @@ const authApi = {
 
   // === USER ACTIONS (Admin only) ===
   approveUser: (id: string) => {
-    return axiosClient.patch(`/auth/users/${id}/approve`);
+    return axiosClient.patch<User>(`/auth/users/${id}/approve`);
   },
 
   banUser: (id: string) => {
-    return axiosClient.patch(`/auth/users/${id}/ban`);
+    return axiosClient.patch<User>(`/auth/users/${id}/ban`);
   },
 
   getUserListings: (id: string, params?: { page?: number; limit?: number; status?: string }) => {

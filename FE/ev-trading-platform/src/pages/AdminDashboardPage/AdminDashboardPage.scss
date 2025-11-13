@@ -2,53 +2,287 @@
 @import '../../styles/variables';
 
 .admin-dashboard {
-  h1 {
-    font-size: 2.2rem;
-    color: $text-color;
-    margin-bottom: 30px;
+  padding: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  &__header {
+    margin-bottom: 32px;
   }
 
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 30px;
+  &__title {
+    font-size: 2.5rem;
+    font-weight: $font-weight-bold;
+    color: $text-primary;
+    margin: 0;
   }
 
-  .stat-card {
-    background-color: $white-color;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: $box-shadow-light;
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    
-    &:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-    }
+  &__loading,
+  &__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    gap: 20px;
 
-    h2 {
-      margin: 0 0 10px 0;
-      font-size: 1rem;
-      color: lighten($text-color, 30%);
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid $primary-color;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
     }
 
     p {
+      font-size: 1.125rem;
+      color: $text-secondary;
       margin: 0;
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: $primary-color;
     }
+  }
 
-    &:nth-child(2) p { color: $accent-color; }
-    &:nth-child(3) p { color: $secondary-color; }
-    &:nth-child(4) p { color: #e74c3c; }
+  &__error {
+    p {
+      color: $error-color;
+    }
   }
 }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+
+  @media (max-width: $breakpoint-md) {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  @media (max-width: $breakpoint-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-card {
+  background: $white-color;
+  border-radius: $radius-lg;
+  padding: 24px;
+  box-shadow: $shadow-base;
+  transition: all $duration-base $ease-in-out;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: $primary-color;
+    transition: width $duration-base $ease-in-out;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-lg;
+
+    &::before {
+      width: 6px;
+    }
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba($primary-color, 0.1);
+    color: $primary-color;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__label {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $text-secondary;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__value {
+    font-size: 2rem;
+    font-weight: $font-weight-bold;
+    color: $text-primary;
+    margin: 0;
+    line-height: 1.2;
+
+    &--currency {
+      font-size: 1.5rem;
+    }
+
+    &--highlight {
+      font-size: 1.75rem;
+      color: $primary-color;
+    }
+  }
+
+  &__note {
+    display: block;
+    font-size: $font-size-xs;
+    color: $text-muted;
+    margin-top: 4px;
+  }
+
+  // Color variants for different metrics
+  &--users {
+    &::before {
+      background-color: #3498db;
+    }
+
+    .stat-card__icon {
+      background-color: rgba(#3498db, 0.1);
+      color: #3498db;
+    }
+
+    .stat-card__value {
+      color: #3498db;
+    }
+  }
+
+  &--listings {
+    &::before {
+      background-color: $secondary-color;
+    }
+
+    .stat-card__icon {
+      background-color: rgba($secondary-color, 0.1);
+      color: $secondary-color;
+    }
+
+    .stat-card__value {
+      color: $secondary-color;
+    }
+  }
+
+  &--pending-listings {
+    &::before {
+      background-color: #f39c12;
+    }
+
+    .stat-card__icon {
+      background-color: rgba(#f39c12, 0.1);
+      color: #f39c12;
+    }
+
+    .stat-card__value {
+      color: #f39c12;
+    }
+  }
+
+  &--auctions {
+    &::before {
+      background-color: #9b59b6;
+    }
+
+    .stat-card__icon {
+      background-color: rgba(#9b59b6, 0.1);
+      color: #9b59b6;
+    }
+
+    .stat-card__value {
+      color: #9b59b6;
+    }
+  }
+
+  &--pending-auctions {
+    &::before {
+      background-color: #e67e22;
+    }
+
+    .stat-card__icon {
+      background-color: rgba(#e67e22, 0.1);
+      color: #e67e22;
+    }
+
+    .stat-card__value {
+      color: #e67e22;
+    }
+  }
+
+  &--listing-revenue {
+    &::before {
+      background-color: $success-color;
+    }
+
+    .stat-card__icon {
+      background-color: rgba($success-color, 0.1);
+      color: $success-color;
+    }
+
+    .stat-card__value {
+      color: $success-color;
+    }
+  }
+
+  &--commission-revenue {
+    &::before {
+      background-color: #2196f3;
+    }
+
+    .stat-card__icon {
+      background-color: rgba(#2196f3, 0.1);
+      color: #2196f3;
+    }
+
+    .stat-card__value {
+      color: #2196f3;
+    }
+  }
+
+  &--total-revenue {
+    &::before {
+      background-color: #9c27b0;
+    }
+
+    .stat-card__icon {
+      background-color: rgba(#9c27b0, 0.1);
+      color: #9c27b0;
+    }
+
+    .stat-card__value {
+      color: #9c27b0;
+    }
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 .chart-container {
   margin-top: 40px;
   padding: 30px;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-  height: 450px; 
+  background-color: $white-color;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-base;
+  height: 450px;
 }

@@ -230,27 +230,159 @@
 .user-cell {
   display: flex;
   flex-direction: column;
-  gap: $spacing-1;
+  gap: $spacing-2;
+  min-width: 180px;
+  
+  .user-link {
+    display: flex;
+    align-items: center;
+    gap: $spacing-3;
+    text-decoration: none;
+    color: inherit;
+    transition: color $duration-fast $ease-in-out;
+    
+    &:hover {
+      color: $primary-color;
+    }
+    
+    svg {
+      flex-shrink: 0;
+      color: $text-secondary;
+    }
+  }
+  
+  .user-info {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-1;
+    min-width: 0;
+    flex: 1;
+  }
   
   .user-name {
     font-weight: $font-weight-medium;
     color: $text-color;
     font-size: $font-size-base;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
-  .user-email {
-    font-size: $font-size-sm;
+  .user-email,
+  .user-phone {
+    display: flex;
+    align-items: center;
+    gap: $spacing-1;
+    font-size: $font-size-xs;
     color: $text-secondary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    
+    svg {
+      flex-shrink: 0;
+    }
   }
 }
 
-// Price styling
-td {
-  strong {
-    color: $primary-color;
-    font-weight: $font-weight-bold;
-    font-size: $font-size-lg;
+// Price cell styling
+.price-cell {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
+  min-width: 140px;
+  
+  .price-main {
+    display: flex;
+    align-items: center;
+    gap: $spacing-2;
+    
+    svg {
+      color: $primary-color;
+      flex-shrink: 0;
+    }
+    
+    strong {
+      color: $primary-color;
+      font-weight: $font-weight-bold;
+      font-size: $font-size-base;
+    }
   }
+  
+  .price-detail {
+    font-size: $font-size-xs;
+    color: $text-secondary;
+    margin-top: $spacing-1;
+    
+    .fee {
+      color: $accent-color;
+    }
+    
+    .payout {
+      color: $success-color;
+    }
+  }
+}
+
+// Payment method cell
+.payment-method-cell {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
+  align-items: flex-start;
+  
+  svg {
+    color: $text-secondary;
+    flex-shrink: 0;
+  }
+  
+  .payment-ref {
+    font-size: $font-size-xs;
+    color: $text-secondary;
+    font-family: monospace;
+    background: $gray-100;
+    padding: 2px 6px;
+    border-radius: $radius-base;
+    margin-top: $spacing-1;
+  }
+}
+
+// Date cell
+.date-cell {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  white-space: nowrap;
+  
+  svg {
+    color: $text-secondary;
+    flex-shrink: 0;
+  }
+}
+
+// Notes tooltip
+.notes-tooltip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: $spacing-2;
+  cursor: help;
+  color: $text-secondary;
+  
+  &:hover {
+    color: $primary-color;
+  }
+}
+
+// Auction badge
+.auction-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: $accent-color;
+  color: $white-color;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-base;
+  margin-top: $spacing-1;
 }
 
 // Status badge
@@ -300,6 +432,12 @@ td {
   justify-content: flex-end;
   gap: $spacing-2;
   flex-wrap: wrap;
+  
+  .action-buttons {
+    display: flex;
+    gap: $spacing-2;
+    flex-wrap: wrap;
+  }
 }
 
 // Action buttons

@@ -29,8 +29,8 @@ const ProductListPage: React.FC = () => {
     const fetchAllProducts = async () => {
       setIsLoading(true);
       try {
-        // Fetch all listings without filters
-        const response = await listingApi.getListings();
+        // Fetch only active listings from API
+        const response = await listingApi.getListings({ status: 'active' });
         console.log("GetListings API Response:", response.data);
 
         // Parse response - can be array or { data: [], meta: {} } or PaginatedResponse { data: [], pagination: {} }
@@ -120,13 +120,8 @@ const ProductListPage: React.FC = () => {
         });
       }
 
-      // Filter by status - show all active/sellable listings (exclude draft, rejected)
-      // Show: active, pending_payment, payment_completed, sold (for display)
-      // Hide: draft, rejected
-      filtered = filtered.filter(p => {
-        const hideStatuses = ['draft', 'rejected'];
-        return !hideStatuses.includes(p.status);
-      });
+      // Filter by status - only show active listings
+      filtered = filtered.filter(p => p.status === 'active');
 
       // Filter by condition if available in filters (for future use)
       // if (filters.condition) {
