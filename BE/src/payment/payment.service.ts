@@ -29,6 +29,7 @@ import { TransactionStatus } from '../model/transactions';
 import { CommissionsService } from '../commissions/commissions.service';
 import { CommissionStatus } from '../model/commissions';
 import { User, UserDocument } from '../model/users.schema';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 @Injectable()
 export class PaymentService {
   private readonly logger = new Logger(PaymentService.name);
@@ -48,6 +49,7 @@ export class PaymentService {
     private readonly contactsService: ContactsService,
     private readonly signnowService: SignnowService,
     private readonly commissionsService: CommissionsService,
+    private readonly platformSettingsService: PlatformSettingsService,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
   ) {
     // Initialize VNPay config values
@@ -463,10 +465,10 @@ export class PaymentService {
     }
 
     // Determine commission rate and compute platform fee and seller payout.
-    // Business rule: if amount < 100,000,000 VND then 2% commission.
-    const COMMISSION_THRESHOLD = 100000000; // 100 million VND
-    const defaultRate = Number(this.configService.get('COMMISSION_DEFAULT_RATE')) || 0.02;
-    const rate = typeof payment.amount === 'number' && payment.amount < COMMISSION_THRESHOLD ? 0.02 : defaultRate;
+    // Business rule: if amount < threshold then use 2% commission, otherwise use default rate.
+    const commissionThreshold = await this.platformSettingsService.getCommissionThreshold();
+    const defaultRate = await this.platformSettingsService.getCommissionDefaultRate();
+    const rate = typeof payment.amount === 'number' && payment.amount < commissionThreshold ? 0.02 : defaultRate;
 
     const platformFee = Math.max(Math.round((payment.amount || 0) * rate), 0);
     const sellerPayout = Math.max((payment.amount || 0) - platformFee, 0);

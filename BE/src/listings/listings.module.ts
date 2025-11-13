@@ -18,6 +18,7 @@ import { NotificationsModule } from 'src/notifications/notifications.module';
 import { PaymentModule } from '../payment/payment.module';
 import { Payment, PaymentSchema } from '../payment/schemas/payment.schema';
 import { User, UserSchema } from '../model/users.schema';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { User, UserSchema } from '../model/users.schema';
     MongooseModule.forFeature([{ name: Payment.name, schema: PaymentSchema }, { name: User.name, schema: UserSchema }]),
     NotificationsModule,
     forwardRef(() => PaymentModule),
+    PlatformSettingsModule,
   ],
   controllers: [ListingsController],
   providers: [ListingsService, EVListingsService, BatteryListingsService],

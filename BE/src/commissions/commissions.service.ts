@@ -11,11 +11,12 @@ import { CreateCommissionDto, UpdateCommissionDto } from './dto';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Commission, CommissionStatus } from 'src/model/commissions';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 
 @Injectable()
 export class CommissionsService {
   private readonly logger = new Logger(CommissionsService.name);
-  private readonly defaultRate: number;
+  private defaultRate: number;
   private readonly rules: CommissionRule[];
 
   constructor(
@@ -23,8 +24,10 @@ export class CommissionsService {
     @InjectModel(Commission.name)
     private readonly commissionModel: Model<Commission>,
     private readonly transactionsService: TransactionsService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {
-    this.defaultRate = this.parseNumberConfig('COMMISSION_DEFAULT_RATE', 0.05);
+    // Initialize with fallback, will be updated on first async call
+    this.defaultRate = this.parseNumberConfig('COMMISSION_DEFAULT_RATE', 0.02);
     this.rules = this.parseRules();
   }
 
@@ -75,15 +78,15 @@ export class CommissionsService {
     return saved;
   }
 
-  calculate(context: CommissionContext) {
-    const rate = this.resolveRate(context);
+  async calculate(context: CommissionContext) {
+    const rate = await this.resolveRate(context);
     const platformFee = Math.round(context.amount * rate);
     const sellerPayout = Math.max(context.amount - platformFee, 0);
 
     return { rate, platformFee, sellerPayout };
   }
 
-  private resolveRate(context: CommissionContext) {
+  private async resolveRate(context: CommissionContext) {
     const matchingRule = this.rules.find((rule) => {
       if (rule.category && rule.category !== context.category) {
         return false;
@@ -97,7 +100,17 @@ export class CommissionsService {
       return true;
     });
 
-    return matchingRule?.rate ?? this.defaultRate;
+    if (matchingRule) {
+      return matchingRule.rate;
+    }
+
+    // Get default rate from platform settings
+    try {
+      return await this.platformSettingsService.getCommissionDefaultRate();
+    } catch (error) {
+      this.logger.warn('Failed to get default rate from platform settings, using cached value', error);
+      return this.defaultRate;
+    }
   }
 
   private parseRules() {

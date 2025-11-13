@@ -15,6 +15,7 @@ import { forwardRef } from '@nestjs/common';
 import { PaymentModule } from 'src/payment/payment.module';
 import { Payment, PaymentSchema } from 'src/payment/schemas/payment.schema';
 import { User, UserSchema } from 'src/model/users.schema';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { User, UserSchema } from 'src/model/users.schema';
     ]),
     NotificationsModule,
     forwardRef(() => PaymentModule),
+    PlatformSettingsModule,
   ],
   controllers: [AuctionsController],
   providers: [AuctionsService, EVAuctionService, BatteryAuctionService],

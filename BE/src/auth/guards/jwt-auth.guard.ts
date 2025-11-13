@@ -35,9 +35,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  /**
-   * Ghi đè phương thức handleRequest để tùy chỉnh phản hồi khi xác thực JWT.
-   */
+
   handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
     // Nếu có lỗi hoặc không có user được xác thực
     if (err || !user) {
@@ -67,7 +65,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw new UnauthorizedException(message);
     }
 
-    // Nếu xác thực thành công, trả về user
     return user;
   }
 }
