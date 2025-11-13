@@ -28,6 +28,7 @@ import { BrandsModule } from './brands/brands.module';
 import { BatteryDetailsModule } from './battery-details/battery-details.module';
 import { Commission } from './model/commissions';
 import { CommissionsModule } from './commissions/commissions.module';
+import { PlatformSettingsModule } from './platform-settings/platform-settings.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { CommissionsModule } from './commissions/commissions.module';
     // ReportsModule,
     BrandsModule,
     BatteryDetailsModule,
+    PlatformSettingsModule,
   ],
   controllers: [AppController],
   providers: [

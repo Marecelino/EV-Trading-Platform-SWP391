@@ -12,6 +12,7 @@ import { ContactsModule } from '../contacts/contacts.module';
 import { SignnowModule } from '../signnow/signnow.module';
 import { CommissionsModule } from '../commissions/commissions.module';
 import { User, UserSchema } from '../model/users.schema';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { User, UserSchema } from '../model/users.schema';
     TransactionsModule,
     ContactsModule,
     SignnowModule,
+    PlatformSettingsModule,
   ],
   controllers: [PaymentController],
   providers: [PaymentService],

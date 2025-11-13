@@ -22,6 +22,7 @@ import {
 } from '../payment/schemas/payment.schema';
 import { PaymentService } from '../payment/payment.service';
 import { User, UserDocument } from '../model/users.schema';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 
 @Injectable()
 export class EVAuctionService {
@@ -35,6 +36,7 @@ export class EVAuctionService {
     private readonly paymentModel: Model<PaymentDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly paymentService: PaymentService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {}
 
   private escapeRegex(input: string) {
@@ -77,7 +79,7 @@ export class EVAuctionService {
 
     // Create a listing fee payment record (seller pays listing fee)
     try {
-      const listingFeeAmount = 15000; // VND
+      const listingFeeAmount = await this.platformSettingsService.getListingFeeAmount();
       const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@example.com';
       let platformSellerId: any = (saved as any).seller_id;
       try {

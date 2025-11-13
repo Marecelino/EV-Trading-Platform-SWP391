@@ -71,8 +71,40 @@ async function bootstrap() {
 
   await seedDefaultUsers(app);
 
-  // Enable CORS
-  app.enableCors();
+  // Enable CORS with proper configuration
+  const frontendUrl = process.env.FRONTEND_URL;
+  const allowedOrigins = [
+    'http://localhost:5173', // Vite default
+    'http://localhost:3000', // Alternative local port
+    'http://localhost:5174', // Alternative Vite port
+  ];
+
+  if (frontendUrl) {
+    allowedOrigins.push(frontendUrl);
+  }
+
+  app.enableCors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) {
+        return callback(null, true);
+      }
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      // For production, you might want to be more strict
+      if (process.env.NODE_ENV === 'production' && frontendUrl) {
+        return callback(new Error('Not allowed by CORS'));
+      }
+      // In development, allow all origins
+      callback(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  });
 
   // Sanitize incoming request payloads: convert string "null"/"undefined" to actual undefined
   // This avoids Mongoose CastErrors when clients send query/body values like "null".

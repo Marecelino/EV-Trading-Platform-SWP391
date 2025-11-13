@@ -31,7 +31,7 @@ All endpoints are served under the global prefix `http://localhost:3000/api`. In
 npm install
 
 # 2. Configure environment
-cp .env.example .env   # or set MONGODB_URL/JWT_SECRET variables manually
+cp .env.example .env   # or set MONGODB_URL/JWT_SECRET vaswp392iables manually
 
 # 3. Run in watch mode
 npm run start:dev
