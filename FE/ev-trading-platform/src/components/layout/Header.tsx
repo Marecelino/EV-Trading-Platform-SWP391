@@ -53,7 +53,7 @@ const Header: React.FC = () => {
         <nav className={`header__nav ${isMenuOpen ? "is-open" : ""}`}>
           <Link to="/compare" className="header__nav-link">So sánh</Link>
           <Link to="/auctions" className="header__nav-link">Đấu giá</Link>
-          <Link to="/tin-tuc" className="header__nav-link">Tin tức</Link>
+
         </nav>
 
         <div className="header__actions">

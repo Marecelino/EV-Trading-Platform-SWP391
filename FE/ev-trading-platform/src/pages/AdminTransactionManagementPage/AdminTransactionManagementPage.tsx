@@ -319,7 +319,7 @@ const AdminTransactionManagementPage: React.FC = () => {
               <th>Phương thức</th>
               <th>Ngày tạo</th>
               <th>Trạng thái</th>
-              <th>Hành động</th>
+
             </tr>
           </thead>
           <tbody>
@@ -523,26 +523,7 @@ const AdminTransactionManagementPage: React.FC = () => {
                         </div>
                       )}
                     </td>
-                    <td className="actions-cell">
-                      {isFinalStatus ? (
-                        <span className="no-actions">
-                          Không có hành động
-                        </span>
-                      ) : (
-                        <div className="action-buttons">
-                          {actions.map((action) => (
-                            <button
-                              key={action.status}
-                              className={`action-btn ${action.className}`}
-                              onClick={() => handleUpdateStatus(tx._id, action.status, listingTitle)}
-                              title={`Chuyển sang "${getStatusLabel(action.status)}"`}
-                            >
-                              {action.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </td>
+                   
                   </tr>
                 );
               })

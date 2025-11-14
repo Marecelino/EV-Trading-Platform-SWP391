@@ -67,50 +67,9 @@ const ComparePage: React.FC = () => {
   };
 
   const items = selectedProducts.filter((p): p is Product => p !== null);
-  const [comparedProducts, setComparedProducts] = useState<Product[]>([]);
-  const [isLoadingComparison, setIsLoadingComparison] = useState(false);
-
-  // CRITICAL FIX: Use listingApi.compareListings() endpoint when products are selected
-  useEffect(() => {
-    const selectedIds = selectedProducts
-      .filter((p): p is Product => p !== null)
-      .map(p => p._id);
-    
-    if (selectedIds.length >= 2) {
-      setIsLoadingComparison(true);
-      listingApi.compareListings({ ids: selectedIds.join(',') })
-        .then((res) => {
-          // CRITICAL FIX: Handle response structure properly
-          // compareListings returns AxiosResponse<Product[]>, so res.data is Product[] or wrapped
-          const responseData = res.data as Product[] | { 
-            data?: Product[]; 
-            success?: boolean 
-          };
-          
-          // Extract products data
-          let comparedData: Product[] = [];
-          if (Array.isArray(responseData)) {
-            comparedData = responseData;
-          } else if (responseData && typeof responseData === 'object' && 'data' in responseData && Array.isArray(responseData.data)) {
-            comparedData = responseData.data;
-          }
-          
-          setComparedProducts(comparedData);
-        })
-        .catch((error: unknown) => {
-          console.error("Failed to compare listings:", error);
-          setComparedProducts([]);
-        })
-        .finally(() => {
-          setIsLoadingComparison(false);
-        });
-    } else {
-      setComparedProducts([]);
-    }
-  }, [selectedProducts]);
-
-  // Use compared products from API if available, otherwise fall back to selected products
-  const displayProducts = comparedProducts.length > 0 ? comparedProducts : items;
+  
+  // Use selected products directly for comparison (no need for compareListings API)
+  const displayProducts = items;
 
   const renderAttributeValue = (
     product: Product | null,
@@ -188,8 +147,7 @@ const ComparePage: React.FC = () => {
             typeof val === "number" ? `${val.toLocaleString("vi-VN")} ₫` : "-",
         },
         { key: "condition", label: "Tình trạng" },
-        { key: "is_verified", label: "Đã kiểm định", format: (val) => val ? "Có" : "Không" },
-        { key: "is_featured", label: "Nổi bật", format: (val) => val ? "Có" : "Không" },
+  
       ],
     };
 
@@ -205,7 +163,7 @@ const ComparePage: React.FC = () => {
               format: (val) => (val ? String(val) : "-")
             },
             { key: "title", label: "Tiêu đề" },
-            { key: "location.address", label: "Địa chỉ" },
+            { key: "location", label: "Địa chỉ" },
           ],
         },
         {
@@ -250,7 +208,7 @@ const ComparePage: React.FC = () => {
             },
             { key: "title", label: "Tiêu đề" },
            
-            { key: "location.address", label: "Địa chỉ" },
+            { key: "location", label: "Địa chỉ" },
           ],
         },
         {
@@ -265,11 +223,6 @@ const ComparePage: React.FC = () => {
               key: "detail.soh_percent",
               label: "Sức khỏe pin (SOH)",
               format: (val) => (val !== undefined && val !== null ? `${Number(val)}%` : "-")
-            },
-            {
-              key: "detail.battery_type",
-              label: "Loại pin",
-              format: (val) => (val ? String(val) : "-")
             },
             {
               key: "detail.manufacture_year",
@@ -344,39 +297,26 @@ const ComparePage: React.FC = () => {
 
       {items.length > 0 && (
         <div className="compare-details-table">
-          {isLoadingComparison && (
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-              Đang tải dữ liệu so sánh...
-            </div>
-          )}
-          {!isLoadingComparison && (
-            <>
-              {/* SỬA LỖI: Thêm lớp bảo vệ (attributeGroups || []) để tránh lỗi map */}
-              {(attributeGroups || []).map((group) => (
-                <React.Fragment key={group.title}>
-                  <div className="attribute-group-title">{group.title}</div>
-                  {/* SỬA LỖI: Thêm lớp bảo vệ (group.attributes || []) */}
-                  {(group.attributes || []).map((attr) => (
-                    <div key={attr.key} className="compare-row">
-                      <div className="attribute-cell">{attr.label}</div>
-                      {/* Use selectedProducts for display order, but map to compared products if available */}
-                      {selectedProducts.map((selectedProduct, index) => {
-                        // Find matching product from comparedProducts by ID
-                        const displayProduct = displayProducts.find(
-                          p => p._id === selectedProduct?._id
-                        ) || selectedProduct;
-                        return (
-                          <div key={index} className="product-cell">
-                            {renderAttributeValue(displayProduct, attr)}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </React.Fragment>
+          {/* SỬA LỖI: Thêm lớp bảo vệ (attributeGroups || []) để tránh lỗi map */}
+          {(attributeGroups || []).map((group) => (
+            <React.Fragment key={group.title}>
+              <div className="attribute-group-title">{group.title}</div>
+              {/* SỬA LỖI: Thêm lớp bảo vệ (group.attributes || []) */}
+              {(group.attributes || []).map((attr) => (
+                <div key={attr.key} className="compare-row">
+                  <div className="attribute-cell">{attr.label}</div>
+                  {/* Use selectedProducts directly for display */}
+                  {selectedProducts.map((selectedProduct, index) => {
+                    return (
+                      <div key={index} className="product-cell">
+                        {renderAttributeValue(selectedProduct, attr)}
+                      </div>
+                    );
+                  })}
+                </div>
               ))}
-            </>
-          )}
+            </React.Fragment>
+          ))}
         </div>
       )}
 

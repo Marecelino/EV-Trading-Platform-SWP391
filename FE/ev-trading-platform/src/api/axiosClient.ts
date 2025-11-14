@@ -2,7 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ApiErrorResponse } from '../types/api';
 
 const axiosClient = axios.create({
-  baseURL: (import.meta.env as { VITE_API_BASE_URL?: string }).VITE_API_BASE_URL || 'http://localhost:3000/api',
+  baseURL: (import.meta.env as { VITE_API_BASE_URL?: string }).VITE_API_BASE_URL || 'https://ev-trading-platform-be.fly.dev/api',
   headers: {
     'Content-Type': 'application/json',
   },
