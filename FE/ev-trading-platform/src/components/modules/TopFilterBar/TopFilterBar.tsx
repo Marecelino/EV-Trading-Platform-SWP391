@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import './TopFilterBar.scss';
 import brandApi from '../../../api/brandApi';
-import modelApi from '../../../api/modelApi';
-import { Brand, Model } from '../../../types';
+import { Brand } from '../../../types';
 
 export interface Filters {
   category: string;
@@ -12,6 +11,24 @@ export interface Filters {
   brand?: string;
   model?: string;
   year_of_manufacture?: number;
+  // NEW FILTERS
+  condition?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  location?: string;
+  minYear?: number;
+  maxYear?: number;
+  minMileage?: number;
+  maxMileage?: number;
+  minCapacity?: number;
+  maxCapacity?: number;
+  minRange?: number;
+  maxRange?: number;
+  minSoh?: number;
+  maxSoh?: number;
+  is_verified?: boolean;
+  is_featured?: boolean;
+  sortBy?: string; // NEW: sorting
 }
 
 interface TopFilterBarProps {
@@ -21,8 +38,6 @@ interface TopFilterBarProps {
 
 const TopFilterBar: React.FC<TopFilterBarProps> = ({ filters, onFilterChange }) => {
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [models, setModels] = useState<Model[]>([]);
-  const [isLoadingModels, setIsLoadingModels] = useState(false);
 
   // Fetch brands on mount
   useEffect(() => {
@@ -46,43 +61,9 @@ const TopFilterBar: React.FC<TopFilterBarProps> = ({ filters, onFilterChange }) 
     fetchBrands();
   }, []);
 
-  // CRITICAL FIX: Improve response parsing for models to be consistent
-  // Fetch models when brand changes
-  useEffect(() => {
-    const fetchModelsByBrand = async () => {
-      if (!filters.brand) {
-        setModels([]);
-        return;
-      }
-
-      setIsLoadingModels(true);
-      try {
-        console.log("=== FETCHING MODELS FOR BRAND ===", filters.brand);
-        const modelsResponse = await modelApi.getModelsByBrand(filters.brand);
-        console.log("Models response:", modelsResponse.data);
-        
-        // Handle both direct array and nested response structures consistently
-        let modelsData: Model[] = [];
-        if (modelsResponse.data?.data && Array.isArray(modelsResponse.data.data)) {
-          modelsData = modelsResponse.data.data;
-        } else if (Array.isArray(modelsResponse.data)) {
-          modelsData = modelsResponse.data;
-        }
-        setModels(modelsData);
-      } catch (error) {
-        console.error("Failed to fetch models", error);
-        setModels([]);
-      } finally {
-        setIsLoadingModels(false);
-      }
-    };
-
-    fetchModelsByBrand();
-  }, [filters.brand]);
-
-  // Reset model when brand changes
+  // Handle brand change
   const handleBrandChange = (brandId: string) => {
-    onFilterChange({ brand: brandId, model: undefined });
+    onFilterChange({ brand: brandId });
   };
 
   // Handle category toggle (EV/Battery switch)
@@ -101,7 +82,7 @@ const TopFilterBar: React.FC<TopFilterBarProps> = ({ filters, onFilterChange }) 
 
   return (
     <div className="top-filter-bar">
-      {/* Row 1: Category Switch + Search */}
+      {/* Row 1: Category Switch + Search (Equal width) */}
       <div className="filter-row-primary">
         {/* Category Switch Toggle */}
         <div className="category-switch">
@@ -110,7 +91,6 @@ const TopFilterBar: React.FC<TopFilterBarProps> = ({ filters, onFilterChange }) 
             onClick={() => handleCategoryToggle('xe-dien')}
             type="button"
           >
-            
             <span className="switch-label">Xe Điện</span>
           </button>
           <button
@@ -118,7 +98,6 @@ const TopFilterBar: React.FC<TopFilterBarProps> = ({ filters, onFilterChange }) 
             onClick={() => handleCategoryToggle('pin-xe-dien')}
             type="button"
           >
-           
             <span className="switch-label">Pin & Phụ Kiện</span>
           </button>
         </div>
@@ -153,8 +132,27 @@ const TopFilterBar: React.FC<TopFilterBarProps> = ({ filters, onFilterChange }) 
         </div>
       </div>
 
-      {/* Row 2: Advanced Filters */}
+      {/* Row 2: Sort + Brand + Year Filters */}
       <div className="filter-row-secondary">
+        {/* Sort Filter */}
+        <div className="filter-group">
+          <label className="filter-label">Sắp xếp</label>
+          <select
+            className="filter-select"
+            value={filters.sortBy || 'createdAt_desc'}
+            onChange={(e) => onFilterChange({ sortBy: e.target.value })}
+          >
+            <option value="createdAt_desc">Mới nhất</option>
+            <option value="createdAt_asc">Cũ nhất</option>
+            <option value="price_asc">Giá thấp đến cao</option>
+            <option value="price_desc">Giá cao đến thấp</option>
+            <option value="mileage_asc">Km ít nhất</option>
+            <option value="year_desc">Năm mới nhất</option>
+            <option value="range_desc">Quãng đường xa nhất</option>
+            <option value="featured">Nổi bật</option>
+          </select>
+        </div>
+
         {/* Brand Filter */}
         <div className="filter-group">
           <label className="filter-label">Hãng xe</label>
@@ -169,28 +167,6 @@ const TopFilterBar: React.FC<TopFilterBarProps> = ({ filters, onFilterChange }) 
             ))}
           </select>
         </div>
-
-        {/* Model Filter - Only show when brand is selected */}
-        {filters.brand && (
-          <div className="filter-group">
-            <label className="filter-label">Mẫu xe</label>
-            <select
-              className="filter-select"
-              value={filters.model || ''}
-              onChange={(e) => onFilterChange({ model: e.target.value })}
-              disabled={isLoadingModels}
-            >
-              <option value="">Tất cả mẫu</option>
-              {isLoadingModels ? (
-                <option value="">Đang tải...</option>
-              ) : (
-                models.map(model => (
-                  <option key={model._id} value={model._id}>{model.name}</option>
-                ))
-              )}
-            </select>
-          </div>
-        )}
 
         {/* Year Filter - Only for EV category */}
         {filters.category === 'xe-dien' && (

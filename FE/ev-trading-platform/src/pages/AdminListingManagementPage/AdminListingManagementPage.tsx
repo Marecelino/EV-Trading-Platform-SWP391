@@ -211,30 +211,7 @@ const AdminListingManagementPage: React.FC = () => {
       });
   };
   
-  // Handle toggle verification
-  const handleToggleVerification = (id: string, currentVerification: boolean) => {
-    const newVerificationStatus = !currentVerification;
-    
-    listingApi.updateListingVerification(id, newVerificationStatus)
-      .then((response) => {
-        const responseData = response.data as Product | { success?: boolean; data?: Product; is_verified?: boolean };
-        const isSuccess = response.status === 200 || 
-                         (responseData && typeof responseData === 'object' && '_id' in responseData) ||
-                         ('success' in responseData && responseData.success) ||
-                         ('is_verified' in responseData);
-        
-        if (isSuccess) {
-          fetchListings();
-        } else {
-          alert('Có lỗi xảy ra khi cập nhật trạng thái kiểm định.');
-        }
-      })
-      .catch((error: unknown) => {
-        console.error("Error updating verification status:", error);
-        alert('Có lỗi xảy ra khi cập nhật trạng thái kiểm định.');
-      });
-  };
-
+  
   return (
     <div className="admin-page">
       <h1>Quản lý tin đăng</h1>
@@ -298,7 +275,6 @@ const AdminListingManagementPage: React.FC = () => {
               <th>Sản phẩm</th>
               <th>Giá</th>
               <th>Ngày đăng</th>
-              <th>Trạng thái kiểm định</th>
               <th>Hành động</th>
             </tr>
           </thead>
@@ -355,16 +331,7 @@ const AdminListingManagementPage: React.FC = () => {
                       : 'N/A'
                     }
                   </td>
-                  <td>
-                    <label className="switch" title={listing.is_verified ? "Bỏ nhãn kiểm định" : "Gắn nhãn đã kiểm định"}>
-                      <input 
-                        type="checkbox" 
-                        checked={listing.is_verified || false} 
-                        onChange={() => handleToggleVerification(listing._id, listing.is_verified || false)} 
-                      />
-                      <span className="slider round"></span>
-                    </label>
-                  </td>
+                  
                   <td className="actions-cell">
                     {activeTab === 'pending' && (
                       <>
