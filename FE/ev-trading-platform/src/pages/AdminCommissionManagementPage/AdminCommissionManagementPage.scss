@@ -1,1 +1,334 @@
-// src/pages/AdminCommissionManagementPage/AdminCommissionManagementPage.scss
+// src/pages/AdminReviewManagementPage/AdminReviewManagementPage.scss
+@import '../../styles/variables';
+
+.admin-platform-settings {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: $background-color;
+  min-height: 100vh;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 2.5rem;
+    font-weight: $font-weight-bold;
+    color: $text-primary;
+    margin: 0;
+
+    svg {
+      color: $primary-color;
+    }
+  }
+
+  &__refresh-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: $radius-md;
+    background: $white-color;
+    color: $primary-color;
+    cursor: pointer;
+    transition: all $duration-base $ease-in-out;
+    box-shadow: $shadow-base;
+
+    &:hover {
+      background: $primary-color;
+      color: white;
+      transform: rotate(180deg);
+      box-shadow: $shadow-lg;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// Settings Card
+.settings-card {
+  background: $white-color;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-base;
+  padding: 32px;
+  margin-bottom: 24px;
+}
+
+// Settings Form
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+// Form Group
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+  margin: 0;
+
+  svg {
+    color: $primary-color;
+    flex-shrink: 0;
+  }
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  font-size: $font-size-base;
+  font-family: inherit;
+  color: $text-primary;
+  background: $white-color;
+  transition: all $duration-base $ease-in-out;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+  }
+
+  &:disabled {
+    background: lighten($background-color, 2%);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  &::placeholder {
+    color: $text-muted;
+  }
+
+  // Remove number input arrows
+  &[type='number'] {
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  }
+}
+
+.form-helper {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.6;
+  margin: 0;
+
+  strong {
+    color: $text-primary;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+// Form Actions
+.form-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid $border-color;
+  margin-top: 8px;
+}
+
+// Buttons
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $duration-base $ease-in-out;
+  min-width: 140px;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.btn-primary {
+  background: $primary-color;
+  color: white;
+
+  &:hover:not(:disabled) {
+    background: $primary-dark;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+.btn-secondary {
+  background: $white-color;
+  color: $text-primary;
+  border: 1px solid $border-color;
+
+  &:hover:not(:disabled) {
+    background: lighten($background-color, 2%);
+    border-color: $text-muted;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+// Alert
+.alert {
+  padding: 16px 20px;
+  border-radius: $radius-md;
+  margin-bottom: 24px;
+  border-left: 4px solid;
+
+  p {
+    margin: 0;
+    font-size: $font-size-base;
+    line-height: 1.5;
+  }
+}
+
+.alert-error {
+  background: rgba($error-color, 0.1);
+  border-color: $error-color;
+  color: $error-color;
+}
+
+.alert-success {
+  background: rgba($success-color, 0.1);
+  border-color: $success-color;
+  color: $success-color;
+}
+
+.alert-info {
+  background: rgba($info-color, 0.1);
+  border-color: $info-color;
+  color: $info-color;
+}
+
+// Loading State
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 20px;
+  color: $text-secondary;
+
+  svg {
+    opacity: 0.7;
+  }
+
+  p {
+    margin: 0;
+    font-size: $font-size-lg;
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Responsive Design
+@media (max-width: $breakpoint-lg) {
+  .admin-platform-settings {
+    padding: 24px 16px;
+  }
+
+  .settings-card {
+    padding: 24px;
+  }
+}
+
+@media (max-width: $breakpoint-md) {
+  .admin-platform-settings {
+    padding: 16px;
+
+    &__title {
+      font-size: 2rem;
+    }
+  }
+
+  .settings-card {
+    padding: 20px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+
+    .btn {
+      width: 100%;
+    }
+  }
+}
+
+@media (max-width: $breakpoint-sm) {
+  .admin-platform-settings {
+    &__header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    &__title {
+      font-size: 1.75rem;
+    }
+  }
+
+  .settings-form {
+    gap: 24px;
+  }
+
+  .form-input {
+    font-size: 16px; // Prevent zoom on iOS
+  }
+}

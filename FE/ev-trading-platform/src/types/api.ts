@@ -76,6 +76,17 @@ export interface UpdateUserDto {
   dateOfBirth?: string; // ISO 8601 date
 }
 
+// Admin-only DTO for updating users (includes email and role)
+export interface AdminUpdateUserDto {
+  name?: string;
+  email?: string; // Admin can update email
+  phone?: string;
+  address?: string;
+  role?: 'admin' | 'user'; // Admin can change role
+  avatar?: string;
+  dateOfBirth?: string; // ISO 8601 date
+}
+
 export interface ChangePasswordDto {
   currentPassword: string;
   newPassword: string; // minLength: 8

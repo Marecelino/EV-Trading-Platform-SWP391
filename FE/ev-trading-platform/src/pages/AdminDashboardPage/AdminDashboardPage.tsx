@@ -1,24 +1,23 @@
 // src/pages/AdminDashboardPage/AdminDashboardPage.tsx
 import React, { useEffect, useState } from 'react';
+import { Users, FileText, Clock, Gavel, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
 import authApi from '../../api/authApi';
 import listingApi from '../../api/listingApi';
 import transactionApi from '../../api/transactionApi';
 import auctionApi from '../../api/auctionApi';
-import contactApi from '../../api/contactApi';
-import reviewApi from '../../api/reviewApi';
-import commissionApi from '../../api/commissionApi';
-import { SearchListingsParams } from '../../types/api';
+import { PaginatedResponse } from '../../types/api';
+import { ITransaction } from '../../types';
 import './AdminDashboardPage.scss';
 
 interface Stats {
   totalUsers: number;
+  totalListings: number;
   pendingListings: number;
-  totalTransactions: number;
-  totalRevenue: number;
   totalAuctions: number;
-  totalContacts: number;
-  totalReviews: number;
-  totalCommissions: number;
+  pendingAuctions: number;
+  listingFeeRevenue: number;
+  commissionRevenue: number;
+  totalRevenue: number;
 }
 
 const AdminDashboardPage: React.FC = () => {
@@ -30,110 +29,151 @@ const AdminDashboardPage: React.FC = () => {
             setIsLoading(true);
             try {
                 // Gọi song song tất cả API để tăng tốc
-                // CRITICAL FIX: Fix API calls to match correct formats
                 const [
-                    usersRes,
-                    listingsRes,
-                    transactionsRes,
-                    auctionsRes,
-                    contactsRes,
-                    reviewsRes,
-                    commissionsRes
+                    userStatsRes,
+                    allListingsRes,
+                    pendingListingsRes,
+                    allAuctionsRes,
+                    pendingAuctionsRes,
+                    transactionsRes
                 ] = await Promise.allSettled([
-                    authApi.getUsers(), // FIX: getUsers() doesn't accept params
-                    listingApi.searchListings({ status: 'draft' } as SearchListingsParams), // FIX: Use searchListings with status filter for pending listings
-                    transactionApi.getTransactions(),
-                    auctionApi.getAllAuctions(),
-                    contactApi.getContacts(),
-                    reviewApi.getReviews(),
-                    commissionApi.getCommissions()
+                    // 1. Số người dùng - GET /api/auth/users/stats
+                    authApi.getUserStats(),
+                    // 2. Tổng số tin đăng - GET /api/listings
+                    listingApi.getListings({ page: 1, limit: 50 }),
+                    // 3. Số tin đăng chờ duyệt - GET /api/listings?status=pending
+                    listingApi.getListings({ status: 'pending', page: 1, limit: 50 }),
+                    // 4. Tổng đấu giá - GET /api/auctions
+                    auctionApi.getAllAuctions(undefined, 1, 50),
+                    // 5. Số đấu giá chờ duyệt - GET /api/auctions?status=pending
+                    auctionApi.getAllAuctions('pending', 1, 50),
+                    // 6. Tất cả transactions để tính doanh thu đăng tin và hoa hồng - GET /api/transactions
+                    transactionApi.getTransactions({ page: 1, limit: 1000 })
                 ]);
 
-                // Debug: Log tất cả responses để kiểm tra cấu trúc
-                console.log("=== DASHBOARD API RESPONSES ===");
-                console.log("Users Response:", usersRes);
-                console.log("Listings Response:", listingsRes);
-                console.log("Transactions Response:", transactionsRes);
-                console.log("Auctions Response:", auctionsRes);
-                console.log("Contacts Response:", contactsRes);
-                console.log("Reviews Response:", reviewsRes);
-                console.log("Commissions Response:", commissionsRes);
+                // Extract data từ responses
+                const userStats = userStatsRes.status === 'fulfilled' ? userStatsRes.value.data : null;
+                const allListings = allListingsRes.status === 'fulfilled' ? allListingsRes.value.data : null;
+                const pendingListings = pendingListingsRes.status === 'fulfilled' ? pendingListingsRes.value.data : null;
+                const allAuctions = allAuctionsRes.status === 'fulfilled' ? allAuctionsRes.value.data : null;
+                const pendingAuctions = pendingAuctionsRes.status === 'fulfilled' ? pendingAuctionsRes.value.data : null;
+                const transactions = transactionsRes.status === 'fulfilled' ? transactionsRes.value.data : null;
 
-                // Helper function để extract data từ response với nhiều fallback paths
-                const extractData = (response: PromiseSettledResult<{ data: unknown }>, paths: string[] = ['data.data', 'data', '']) => {
-                    if (response.status !== 'fulfilled') return null;
-                    
-                    for (const path of paths) {
-                        if (!path) {
-                            // Trường hợp path rỗng, trả về toàn bộ data
-                            if (Array.isArray(response.value.data)) return response.value.data;
-                            continue;
-                        }
-                        
-                        const pathParts = path.split('.');
-                        let data = response.value.data;
-                        let found = true;
-                        
-                        for (const part of pathParts) {
-                            if (data && typeof data === 'object' && part in data) {
-                                data = data[part];
-                            } else {
-                                found = false;
-                                break;
-                            }
-                        }
-                        
-                        if (found && Array.isArray(data)) {
-                            return data;
-                        }
+                // Tính tổng số tin đăng từ meta.total
+                let totalListings = 0;
+                if (allListings && typeof allListings === 'object') {
+                    const listingsResponse = allListings as PaginatedResponse<unknown>;
+                    if (listingsResponse.meta?.total) {
+                        totalListings = listingsResponse.meta.total;
+                    } else if (Array.isArray(listingsResponse.data)) {
+                        totalListings = listingsResponse.data.length;
                     }
+                }
+
+                // Tính số tin đăng chờ duyệt từ meta.total
+                let pendingListingsCount = 0;
+                if (pendingListings && typeof pendingListings === 'object') {
+                    const pendingResponse = pendingListings as PaginatedResponse<unknown>;
+                    if (pendingResponse.meta?.total) {
+                        pendingListingsCount = pendingResponse.meta.total;
+                    } else if (Array.isArray(pendingResponse.data)) {
+                        pendingListingsCount = pendingResponse.data.length;
+                    }
+                }
+
+                // Tính tổng đấu giá từ pagination.total
+                let totalAuctions = 0;
+                if (allAuctions && typeof allAuctions === 'object') {
+                    const auctionsResponse = allAuctions as { pagination?: { total?: number }; data?: unknown[] };
+                    if (auctionsResponse.pagination?.total) {
+                        totalAuctions = auctionsResponse.pagination.total;
+                    } else if (Array.isArray(auctionsResponse.data)) {
+                        totalAuctions = auctionsResponse.data.length;
+                    }
+                }
+
+                // Tính số đấu giá chờ duyệt từ pagination.total
+                let pendingAuctionsCount = 0;
+                if (pendingAuctions && typeof pendingAuctions === 'object') {
+                    const pendingAuctionsResponse = pendingAuctions as { pagination?: { total?: number }; data?: unknown[] };
+                    if (pendingAuctionsResponse.pagination?.total) {
+                        pendingAuctionsCount = pendingAuctionsResponse.pagination.total;
+                    } else if (Array.isArray(pendingAuctionsResponse.data)) {
+                        pendingAuctionsCount = pendingAuctionsResponse.data.length;
+                    }
+                }
+
+                // Tính doanh thu đăng tin từ transactions
+                // Filter: status='COMPLETED' và platform_fee === 0 && notes.includes('Listing fee')
+                // Sum: price field (không phải platform_fee)
+                let listingFeeRevenue = 0;
+                if (transactions && typeof transactions === 'object') {
+                    const transactionsResponse = transactions as { data?: ITransaction[] };
+                    const transactionsList = Array.isArray(transactionsResponse.data) 
+                        ? transactionsResponse.data 
+                        : Array.isArray(transactions) 
+                            ? transactions as ITransaction[]
+                            : [];
                     
-                    return null;
-                };
+                    // Filter: completed transactions với platform_fee === 0 và notes.includes('Listing fee')
+                    const listingFeeTransactions = transactionsList.filter((tx: ITransaction) => 
+                        (tx.status === 'COMPLETED' || tx.status === 'completed') &&
+                        tx.platform_fee === 0 &&
+                        tx.notes && 
+                        typeof tx.notes === 'string' && 
+                        tx.notes.includes('Listing fee')
+                    );
+                    
+                    // Sum price field (không phải platform_fee)
+                    listingFeeRevenue = listingFeeTransactions.reduce(
+                        (sum: number, tx: ITransaction) => sum + (tx.price || 0), 
+                        0
+                    );
+                }
 
-                // Tính toán thống kê từ các response với fallback paths
-                // FIX: Updated paths for new API response structures
-                const usersData = extractData(usersRes, ['data', 'data.data']);
-                const listingsData = extractData(listingsRes, ['data', 'data.data']); // searchListings returns same structure
-                const transactionsData = extractData(transactionsRes, ['data', 'data.data']);
-                const auctionsData = extractData(auctionsRes, ['data', 'data.data']);
-                const contactsData = extractData(contactsRes, ['data', 'data.data']);
-                const reviewsData = extractData(reviewsRes, ['data', 'data.data']);
-                const commissionsData = extractData(commissionsRes, ['', 'data', 'data.data']);
+                // Tính doanh thu hoa hồng từ transactions
+                // Filter: status='COMPLETED' và platform_fee > 0
+                // Sum: platform_fee field
+                let commissionRevenue = 0;
+                if (transactions && typeof transactions === 'object') {
+                    const transactionsResponse = transactions as { data?: ITransaction[] };
+                    const transactionsList = Array.isArray(transactionsResponse.data) 
+                        ? transactionsResponse.data 
+                        : Array.isArray(transactions) 
+                            ? transactions as ITransaction[]
+                            : [];
+                    
+                    // Filter: completed transactions với platform_fee > 0
+                    const commissionTransactions = transactionsList.filter((tx: ITransaction) => 
+                        (tx.status === 'COMPLETED' || tx.status === 'completed') &&
+                        tx.platform_fee !== undefined &&
+                        tx.platform_fee !== null &&
+                        tx.platform_fee > 0
+                    );
+                    
+                    // Sum platform_fee field
+                    commissionRevenue = commissionTransactions.reduce(
+                        (sum: number, tx: ITransaction) => sum + (tx.platform_fee || 0), 
+                        0
+                    );
+                }
 
-                console.log("=== EXTRACTED DATA ===");
-                console.log("Users Data:", usersData);
-                console.log("Listings Data:", listingsData);
-                console.log("Transactions Data:", transactionsData);
-                console.log("Auctions Data:", auctionsData);
-                console.log("Contacts Data:", contactsData);
-                console.log("Reviews Data:", reviewsData);
-                console.log("Commissions Data:", commissionsData);
+                // Tính tổng doanh thu = Phí đăng tin + Hoa hồng (từ transactions)
+                // Total revenue = Listing fee revenue + Commission revenue
+                const totalRevenue = listingFeeRevenue + commissionRevenue;
 
                 const calculatedStats: Stats = {
-                    totalUsers: Array.isArray(usersData) ? usersData.length : 0,
-                    
-                    // FIX: listingsData from searchListings({ status: 'draft' }) already filtered, just count them
-                    pendingListings: Array.isArray(listingsData) ? listingsData.length : 0,
-                    
-                    totalTransactions: Array.isArray(transactionsData) ? transactionsData.length : 0,
-                    
-                    totalRevenue: Array.isArray(transactionsData)
-                        ? transactionsData
-                            .filter((transaction: Record<string, unknown>) => transaction.status === 'completed')
-                            .reduce((sum: number, transaction: Record<string, unknown>) => sum + (Number(transaction.amount) || 0), 0)
-                        : 0,
-                    
-                    totalAuctions: Array.isArray(auctionsData) ? auctionsData.length : 0,
-                    
-                    totalContacts: Array.isArray(contactsData) ? contactsData.length : 0,
-                    
-                    totalReviews: Array.isArray(reviewsData) ? reviewsData.length : 0,
-                    
-                    totalCommissions: Array.isArray(commissionsData) ? commissionsData.length : 0
+                    totalUsers: userStats?.total || 0,
+                    totalListings,
+                    pendingListings: pendingListingsCount,
+                    totalAuctions,
+                    pendingAuctions: pendingAuctionsCount,
+                    listingFeeRevenue,
+                    commissionRevenue,
+                    totalRevenue
                 };
 
-                console.log("=== CALCULATED STATS ===");
+                console.log("=== DASHBOARD STATS CALCULATED ===");
                 console.log(calculatedStats);
 
                 setStats(calculatedStats);
@@ -142,13 +182,13 @@ const AdminDashboardPage: React.FC = () => {
                 // Set default values nếu có lỗi
                 setStats({
                     totalUsers: 0,
+                    totalListings: 0,
                     pendingListings: 0,
-                    totalTransactions: 0,
-                    totalRevenue: 0,
                     totalAuctions: 0,
-                    totalContacts: 0,
-                    totalReviews: 0,
-                    totalCommissions: 0
+                    pendingAuctions: 0,
+                    listingFeeRevenue: 0,
+                    commissionRevenue: 0,
+                    totalRevenue: 0
                 });
             } finally {
                 setIsLoading(false);
@@ -158,67 +198,138 @@ const AdminDashboardPage: React.FC = () => {
         fetchData();
     }, []);
 
-    if (isLoading) return <div>Đang tải dữ liệu Dashboard...</div>;
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND',
+        }).format(amount);
+    };
+
+    if (isLoading) {
+        return (
+            <div className="admin-dashboard">
+                <div className="admin-dashboard__loading">
+                    <div className="loading-spinner"></div>
+                    <p>Đang tải dữ liệu Dashboard...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!stats) {
+        return (
+            <div className="admin-dashboard">
+                <div className="admin-dashboard__error">
+                    <p>Không thể tải dữ liệu dashboard</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="admin-dashboard">
-            <h1>Thống kê & Báo cáo</h1>
+            <div className="admin-dashboard__header">
+                <h1 className="admin-dashboard__title">Thống kê & Báo cáo</h1>
+            </div>
 
-            {/* Các thẻ thống kê chính */}
+            {/* 8 stat cards */}
             <div className="stats-grid">
-                <div className="stat-card">
-                    <h2>Tổng người dùng</h2>
-                    <p>{stats?.totalUsers.toLocaleString('vi-VN') || 0}</p>
+                {/* 1. Tổng người dùng */}
+                <div className="stat-card stat-card--users">
+                    <div className="stat-card__icon">
+                        <Users size={32} />
+                    </div>
+                    <div className="stat-card__content">
+                        <h3 className="stat-card__label">Tổng người dùng</h3>
+                        <p className="stat-card__value">{stats.totalUsers.toLocaleString('vi-VN')}</p>
+                    </div>
                 </div>
-                <div className="stat-card">
-                    <h2>Tin chờ duyệt</h2>
-                    <p>{stats?.pendingListings.toLocaleString('vi-VN') || 0}</p>
-                </div>
-                <div className="stat-card">
-                    <h2>Tổng giao dịch</h2>
-                    <p>{stats?.totalTransactions.toLocaleString('vi-VN') || 0}</p>
-                </div>
-                <div className="stat-card">
-                    <h2>Doanh thu (ước tính)</h2>
-                    <p>{stats?.totalRevenue.toLocaleString('vi-VN') || 0} ₫</p>
-                </div>
-            </div>
 
-            {/* Các thẻ thống kê bổ sung */}
-            <div className="stats-grid secondary">
-                <div className="stat-card">
-                    <h2>Tổng đấu giá</h2>
-                    <p>{stats?.totalAuctions.toLocaleString('vi-VN') || 0}</p>
+                {/* 2. Tổng tin đăng */}
+                <div className="stat-card stat-card--listings">
+                    <div className="stat-card__icon">
+                        <FileText size={32} />
+                    </div>
+                    <div className="stat-card__content">
+                        <h3 className="stat-card__label">Tổng tin đăng</h3>
+                        <p className="stat-card__value">{stats.totalListings.toLocaleString('vi-VN')}</p>
+                    </div>
                 </div>
-                <div className="stat-card">
-                    <h2>Tổng liên hệ</h2>
-                    <p>{stats?.totalContacts.toLocaleString('vi-VN') || 0}</p>
-                </div>
-                <div className="stat-card">
-                    <h2>Tổng đánh giá</h2>
-                    <p>{stats?.totalReviews.toLocaleString('vi-VN') || 0}</p>
-                </div>
-                <div className="stat-card">
-                    <h2>Tổng hoa hồng</h2>
-                    <p>{stats?.totalCommissions.toLocaleString('vi-VN') || 0}</p>
-                </div>
-            </div>
 
-            {/* Thông tin debug */}
-            <div className="debug-info" style={{ marginTop: '20px', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '5px' }}>
-                <h3>Debug Info:</h3>
-                <p>Dữ liệu được tính toán từ các API hiện có:</p>
-                <ul>
-                    <li><strong>Users:</strong> authApi.getUsers() - {stats?.totalUsers || 0} users</li>
-                    <li><strong>Listings:</strong> listingApi.searchListings({'{'} status: 'draft' {'}'}) - {stats?.pendingListings || 0} pending</li>
-                    <li><strong>Transactions:</strong> transactionApi.getTransactions() - {stats?.totalTransactions || 0} transactions</li>
-                    <li><strong>Revenue:</strong> Tổng amount từ transactions completed - {stats?.totalRevenue?.toLocaleString('vi-VN') || 0} ₫</li>
-                    <li><strong>Auctions:</strong> auctionApi.getAllAuctions() - {stats?.totalAuctions || 0} auctions</li>
-                    <li><strong>Contacts:</strong> contactApi.getContacts() - {stats?.totalContacts || 0} contacts</li>
-                    <li><strong>Reviews:</strong> reviewApi.getReviews() - {stats?.totalReviews || 0} reviews</li>
-                    <li><strong>Commissions:</strong> commissionApi.getCommissions() - {stats?.totalCommissions || 0} commissions</li>
-                </ul>
-                <p><strong>Lưu ý:</strong> Kiểm tra Console để xem chi tiết API responses và debug info.</p>
+                {/* 3. Tin đăng chờ duyệt */}
+                <div className="stat-card stat-card--pending-listings">
+                    <div className="stat-card__icon">
+                        <Clock size={32} />
+                    </div>
+                    <div className="stat-card__content">
+                        <h3 className="stat-card__label">Tin đăng chờ duyệt</h3>
+                        <p className="stat-card__value">{stats.pendingListings.toLocaleString('vi-VN')}</p>
+                    </div>
+                </div>
+
+                {/* 4. Tổng đấu giá */}
+                <div className="stat-card stat-card--auctions">
+                    <div className="stat-card__icon">
+                        <Gavel size={32} />
+                    </div>
+                    <div className="stat-card__content">
+                        <h3 className="stat-card__label">Tổng đấu giá</h3>
+                        <p className="stat-card__value">{stats.totalAuctions.toLocaleString('vi-VN')}</p>
+                    </div>
+                </div>
+
+                {/* 5. Đấu giá chờ duyệt */}
+                <div className="stat-card stat-card--pending-auctions">
+                    <div className="stat-card__icon">
+                        <AlertCircle size={32} />
+                    </div>
+                    <div className="stat-card__content">
+                        <h3 className="stat-card__label">Đấu giá chờ duyệt</h3>
+                        <p className="stat-card__value">{stats.pendingAuctions.toLocaleString('vi-VN')}</p>
+                    </div>
+                </div>
+
+                {/* 6. Doanh thu đăng tin */}
+                <div className="stat-card stat-card--listing-revenue">
+                    <div className="stat-card__icon">
+                        <DollarSign size={32} />
+                    </div>
+                    <div className="stat-card__content">
+                        <h3 className="stat-card__label">Doanh thu đăng tin</h3>
+                        <p className="stat-card__value stat-card__value--currency">
+                            {formatCurrency(stats.listingFeeRevenue)}
+                        </p>
+                    </div>
+                </div>
+
+                {/* 7. Doanh thu hoa hồng */}
+                <div className="stat-card stat-card--commission-revenue">
+                    <div className="stat-card__icon">
+                        <TrendingUp size={32} />
+                    </div>
+                    <div className="stat-card__content">
+                        <h3 className="stat-card__label">Doanh thu hoa hồng</h3>
+                        <p className="stat-card__value stat-card__value--currency">
+                            {formatCurrency(stats.commissionRevenue)}
+                        </p>
+                    </div>
+                </div>
+
+                {/* 8. Tổng doanh thu */}
+                <div className="stat-card stat-card--total-revenue">
+                    <div className="stat-card__icon">
+                        <DollarSign size={32} />
+                    </div>
+                    <div className="stat-card__content">
+                        <h3 className="stat-card__label">Tổng doanh thu</h3>
+                        <p className="stat-card__value stat-card__value--currency stat-card__value--highlight">
+                            {formatCurrency(stats.totalRevenue)}
+                        </p>
+                        <small className="stat-card__note">
+                            = Phí đăng tin + Hoa hồng pending
+                        </small>
+                    </div>
+                </div>
             </div>
         </div>
     );

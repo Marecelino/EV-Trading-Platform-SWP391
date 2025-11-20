@@ -183,6 +183,7 @@ export interface User {
   address?: string;
   dateOfBirth?: string;
   profileCompleted?: boolean;
+  isEmailVerified?: boolean; // Email verification status
   status: "active" | "suspended" | "inactive" | "banned";
   rating?: {
     average: number;
@@ -208,15 +209,33 @@ export interface Review {
 export interface Contact {
   _id: string;
   transaction_id: ITransaction | string;
-  contract_content: string;
-  buyer_signature: string;
-  seller_signature: string;
-  buyer_signed_at: string;
-  seller_signed_at: string;
-  contract_url: string;
-  status: "completed" | "pending" | "cancelled";
-  created_at: string;
-  updated_at: string;
+  contract_no: string;  // NEW: UNIQUE contract number
+  status: 'draft' | 'signed' | 'cancelled' | 'expired';  // UPDATED
+  signed_at?: string;  // NEW
+  expires_at?: string;  // NEW
+  document_url?: string;  // NEW: original document
+  signed_document_url?: string;  // NEW: signed version
+  terms_and_conditions?: string;  // NEW
+  signatures?: string[];  // NEW: array of signature hashes
+  witness_signature?: string;  // NEW
+  notes?: string;  // NEW
+  audit_events?: Array<{  // NEW
+    event: string;
+    by: string;
+    at: string;
+    meta?: object;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+  // DEPRECATED fields (keeping for backward compatibility during migration)
+  contract_content?: string;
+  buyer_signature?: string;
+  seller_signature?: string;
+  buyer_signed_at?: string;
+  seller_signed_at?: string;
+  contract_url?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Notification {

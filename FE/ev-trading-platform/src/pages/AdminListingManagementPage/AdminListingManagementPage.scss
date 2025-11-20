@@ -18,6 +18,142 @@
   }
 }
 
+// Stats Cards
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: $white-color;
+  border-radius: $radius-lg;
+  padding: 24px;
+  box-shadow: $shadow-base;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all $duration-base $ease-in-out;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: $primary-color;
+    transition: width $duration-base $ease-in-out;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-lg;
+
+    &::before {
+      width: 6px;
+    }
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba($primary-color, 0.1);
+    color: $primary-color;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__label {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $text-secondary;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__value {
+    font-size: 2rem;
+    font-weight: $font-weight-bold;
+    color: $text-color;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  // Color variants
+  &--total {
+    &::before {
+      background-color: $primary-color;
+    }
+
+    .stat-card__icon {
+      background-color: rgba($primary-color, 0.1);
+      color: $primary-color;
+    }
+
+    .stat-card__value {
+      color: $primary-color;
+    }
+  }
+
+  &--active {
+    &::before {
+      background-color: #10b981;
+    }
+
+    .stat-card__icon {
+      background-color: rgba(#10b981, 0.1);
+      color: #10b981;
+    }
+
+    .stat-card__value {
+      color: #10b981;
+    }
+  }
+
+  &--pending {
+    &::before {
+      background-color: #f59e0b;
+    }
+
+    .stat-card__icon {
+      background-color: rgba(#f59e0b, 0.1);
+      color: #f59e0b;
+    }
+
+    .stat-card__value {
+      color: #f59e0b;
+    }
+  }
+
+  &--rejected {
+    &::before {
+      background-color: #ef4444;
+    }
+
+    .stat-card__icon {
+      background-color: rgba(#ef4444, 0.1);
+      color: #ef4444;
+    }
+
+    .stat-card__value {
+      color: #ef4444;
+    }
+  }
+}
+
 .admin-tabs {
   display: flex;
   gap: $spacing-2;
@@ -57,8 +193,36 @@
   background: $white-color;
   border-radius: $radius-md;
   box-shadow: $shadow-base;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
   border: 1px solid $border-color;
+  -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
+  position: relative;
+  
+  // Custom scrollbar styling for better UX
+  &::-webkit-scrollbar {
+    height: 10px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: lighten($background-color, 2%);
+    border-radius: $radius-base;
+    margin: 0 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: $border-color;
+    border-radius: $radius-base;
+    transition: background $duration-base $ease-in-out;
+    
+    &:hover {
+      background: darken($border-color, 15%);
+    }
+  }
+  
+  // Firefox scrollbar
+  scrollbar-width: thin;
+  scrollbar-color: $border-color lighten($background-color, 2%);
 }
 
 .product-cell {
@@ -204,9 +368,11 @@
 }
 @include switch-toggle;
 
-// Admin table styling
+// Admin table styling with fixed layout
 .admin-table {
   width: 100%;
+  min-width: 1000px; // Minimum width to prevent columns from being too cramped
+  table-layout: fixed; // Fixed layout for consistent column widths
   border-collapse: collapse;
   font-size: $font-size-base;
   
@@ -223,6 +389,40 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
       white-space: nowrap;
+      position: sticky;
+      top: 0;
+      background: $gray-50;
+      z-index: 10;
+      
+      // Column-specific widths (using percentages for fixed layout)
+      &:nth-child(1) { // Sản phẩm - 35%
+        width: 35%;
+        min-width: 300px;
+        padding-left: $spacing-6;
+      }
+      
+      &:nth-child(2) { // Giá - 15%
+        width: 15%;
+        min-width: 120px;
+      }
+      
+      &:nth-child(3) { // Ngày đăng - 15%
+        width: 15%;
+        min-width: 140px;
+      }
+      
+      &:nth-child(4) { // Trạng thái kiểm định - 15%
+        width: 15%;
+        min-width: 150px;
+        text-align: center;
+      }
+      
+      &:nth-child(5) { // Hành động - 20%
+        width: 20%;
+        min-width: 220px;
+        padding-right: $spacing-6;
+        text-align: center;
+      }
     }
   }
   
@@ -234,15 +434,29 @@
       &:hover {
         background-color: $gray-50;
       }
+      
+      &:last-child {
+        border-bottom: none;
+      }
     }
     
     td {
       padding: $spacing-5 $spacing-4;
       vertical-align: middle;
       
+      &:nth-child(1) { // Sản phẩm
+        white-space: normal; // Allow text wrapping for product name
+      }
+      
+      &:nth-child(2),
+      &:nth-child(3) {
+        white-space: nowrap;
+      }
+      
       &.empty-cell {
         text-align: center;
         padding: $spacing-16 $spacing-4;
+        white-space: normal;
       }
     }
   }

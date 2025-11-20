@@ -18,9 +18,9 @@ const HomePage: React.FC = () => {
         setIsLoading(true);
         setError(null);
 
-        // CRITICAL FIX: Use getListings() instead of searchListings()
-        // Fetch all listings once, then filter by category field in response
-        const response = await listingApi.getListings();
+        // CRITICAL FIX: Use getListings() with status filter to only fetch active listings
+        // Fetch active listings, then filter by category field in response
+        const response = await listingApi.getListings({ status: 'active' });
 
         console.log("HomePage API Response:", response.data);
 
@@ -34,13 +34,13 @@ const HomePage: React.FC = () => {
           allProducts = (response.data as { data: Product[] }).data;
         }
 
-        // Filter by category field from response body
+        // Filter by category and status - only show active listings
         const evProductsData = allProducts
-          .filter((product: Product) => product.category === 'ev')
+          .filter((product: Product) => product.category === 'ev' && product.status === 'active')
           .slice(0, 10); // Limit to 10 items
         
         const batteryProductsData = allProducts
-          .filter((product: Product) => product.category === 'battery')
+          .filter((product: Product) => product.category === 'battery' && product.status === 'active')
           .slice(0, 10); // Limit to 10 items
 
         setEvProducts(evProductsData);

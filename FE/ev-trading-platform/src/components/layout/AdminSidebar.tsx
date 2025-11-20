@@ -13,7 +13,7 @@ import {
   Star,
   DollarSign,
   Building2,
-  Car
+  
 } from 'lucide-react';
 import './AdminSidebar.scss';
 
@@ -58,10 +58,6 @@ const AdminSidebar: React.FC = () => {
           <span>Quản lý thương hiệu</span>
         </NavLink>
         
-        <NavLink to="/admin/models" className="nav-link">
-          <Car size={20} />
-          <span>Quản lý mẫu xe</span>
-        </NavLink>
         
         <NavLink to="/admin/contacts" className="nav-link">
           <MessageSquare size={20} />

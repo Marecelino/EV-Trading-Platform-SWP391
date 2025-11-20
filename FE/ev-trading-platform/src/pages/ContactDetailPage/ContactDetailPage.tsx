@@ -71,27 +71,29 @@ const ContactDetailPage: React.FC = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed':
-        return <CheckCircle size={20} className="status-icon completed" />;
-      case 'pending':
-        return <Clock size={20} className="status-icon pending" />;
+      case 'signed':
+        return <CheckCircle size={20} className="status-icon signed" />;
+      case 'draft':
+        return <FileText size={20} className="status-icon draft" />;
       case 'cancelled':
         return <AlertCircle size={20} className="status-icon cancelled" />;
+      case 'expired':
+        return <Clock size={20} className="status-icon expired" />;
       default:
-        return <Clock size={20} className="status-icon default" />;
+        return <FileText size={20} className="status-icon default" />;
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'Hoàn thành';
-      case 'pending':
-        return 'Chờ xử lý';
-      case 'cancelled':
-        return 'Đã hủy';
+      case 'signed':
+        return 'Đã ký';
       case 'draft':
         return 'Bản nháp';
+      case 'cancelled':
+        return 'Đã hủy';
+      case 'expired':
+        return 'Hết hạn';
       default:
         return status;
     }
@@ -162,26 +164,38 @@ const ContactDetailPage: React.FC = () => {
           <div className="header-left">
             <FileText size={32} className="header-icon" />
             <div>
-      <h1>Chi tiết hợp đồng</h1>
+              <h1>
+                {contact.contract_no || `Hợp đồng #${contact._id.slice(-8)}`}
+              </h1>
               <p className="contract-id">ID: {contact._id}</p>
             </div>
           </div>
           <div className="header-right">
-            <div className="status-badge">
+            <div className={`status-badge ${contact.status}`}>
               {getStatusIcon(contact.status)}
               <span>{getStatusText(contact.status)}</span>
             </div>
-            {contact.contract_url && (
-              <a 
-                href={contact.contract_url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="download-btn"
-              >
-                <Download size={20} />
-                Tải PDF
-              </a>
-            )}
+            <div className="action-buttons">
+              {(contact.document_url || contact.contract_url) && (
+                <a 
+                  href={contact.document_url || contact.contract_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="action-btn download"
+                >
+                  <Download size={18} />
+                  Tải PDF
+                </a>
+              )}
+              <button className="action-btn edit">
+                <Edit size={18} />
+                Sửa
+              </button>
+              <button className="action-btn delete">
+                <Trash2 size={18} />
+                Xóa
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -232,6 +246,70 @@ const ContactDetailPage: React.FC = () => {
               </div>
               <div className="item-value">
                 {transaction?.transaction_date ? formatDate(transaction.transaction_date) : 'N/A'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contract Metadata */}
+        <div className="content-card contract-metadata">
+          <h2>
+            <FileCheck size={24} />
+            Thông tin hợp đồng
+          </h2>
+          
+          <div className="metadata-grid">
+            <div className="metadata-item">
+              <div className="item-label">
+                <FileText size={18} />
+                Số hợp đồng
+              </div>
+              <div className="item-value contract-number">
+                {contact.contract_no || 'Chưa có'}
+              </div>
+            </div>
+            
+            <div className="metadata-item">
+              <div className="item-label">
+                <Calendar size={18} />
+                Ngày tạo
+              </div>
+              <div className="item-value">
+                {formatDate(contact.createdAt || contact.created_at)}
+              </div>
+            </div>
+            
+            {contact.signed_at && (
+              <div className="metadata-item">
+                <div className="item-label">
+                  <CheckCircle size={18} />
+                  Ngày ký
+                </div>
+                <div className="item-value">
+                  {formatDate(contact.signed_at)}
+                </div>
+              </div>
+            )}
+            
+            {contact.expires_at && (
+              <div className="metadata-item">
+                <div className="item-label">
+                  <Clock size={18} />
+                  Hết hạn
+                </div>
+                <div className="item-value">
+                  {formatDate(contact.expires_at)}
+                </div>
+              </div>
+            )}
+            
+            <div className="metadata-item">
+              <div className="item-label">
+                <Calendar size={18} />
+                Cập nhật lần cuối
+              </div>
+              <div className="item-value">
+                {formatDate(contact.updatedAt || contact.updated_at)}
               </div>
             </div>
           </div>
@@ -314,17 +392,87 @@ const ContactDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Contract Content */}
-        <div className="content-card contract-content">
+        {/* Documents Section */}
+        <div className="content-card documents-section">
           <h2>
             <FileText size={24} />
-            Nội dung hợp đồng
+            Tài liệu hợp đồng
           </h2>
           
-          <div className="contract-text">
-            <pre>{contact.contract_content || 'Không có nội dung hợp đồng'}</pre>
+          <div className="documents-grid">
+            {(contact.document_url || contact.contract_url) && (
+              <div className="document-item">
+                <div className="document-icon">
+                  <FileText size={32} />
+                </div>
+                <div className="document-info">
+                  <h4>Tài liệu gốc</h4>
+                  <p>Hợp đồng ban đầu chưa ký</p>
+                </div>
+                <a 
+                  href={contact.document_url || contact.contract_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="document-btn"
+                >
+                  <Eye size={18} />
+                  Xem
+                </a>
+                <a 
+                  href={contact.document_url || contact.contract_url} 
+                  download
+                  className="document-btn secondary"
+                >
+                  <Download size={18} />
+                  Tải
+                </a>
+              </div>
+            )}
+            
+            {contact.signed_document_url && (
+              <div className="document-item signed">
+                <div className="document-icon signed">
+                  <FileCheck size={32} />
+                </div>
+                <div className="document-info">
+                  <h4>Bản đã ký</h4>
+                  <p>Hợp đồng đã được ký bởi các bên</p>
+                </div>
+                <a 
+                  href={contact.signed_document_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="document-btn success"
+                >
+                  <Eye size={18} />
+                  Xem
+                </a>
+                <a 
+                  href={contact.signed_document_url} 
+                  download
+                  className="document-btn secondary"
+                >
+                  <Download size={18} />
+                  Tải
+                </a>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Terms & Conditions */}
+        {(contact.terms_and_conditions || contact.contract_content) && (
+          <div className="content-card terms-section">
+            <h2>
+              <FileText size={24} />
+              Điều khoản & Điều kiện
+            </h2>
+            
+            <div className="terms-content">
+              <pre>{contact.terms_and_conditions || contact.contract_content || 'Không có nội dung'}</pre>
+            </div>
+          </div>
+        )}
 
         {/* Signatures Section */}
         <div className="content-card signatures-section">
@@ -333,145 +481,160 @@ const ContactDetailPage: React.FC = () => {
             Chữ ký điện tử
           </h2>
           
-          <div className="signatures-grid">
-            {/* Buyer Signature */}
-          <div className="signature-block">
-              <h3>
-                <UserIcon size={20} />
-                Người mua
-              </h3>
-              
-              <div className="signature-content">
-            {contact.buyer_signature ? (
-                  <div className="signature-display">
-                    <img 
-                      src={contact.buyer_signature} 
-                      alt="Chữ ký người mua" 
-                      className="signature-image"
-                    />
-                    <div className="signature-status completed">
-                      <CheckCircle size={16} />
-                      <span>Đã ký</span>
-                    </div>
+          {/* New format: signatures array */}
+          {contact.signatures && contact.signatures.length > 0 && (
+            <div className="signatures-list">
+              <h3>Chữ ký các bên ({contact.signatures.length})</h3>
+              <div className="signature-hashes">
+                {contact.signatures.map((hash, index) => (
+                  <div key={index} className="signature-hash-item">
+                    <CheckCircle size={16} className="hash-icon" />
+                    <code className="hash-value">{hash}</code>
+                    <span className="hash-label">Chữ ký #{index + 1}</span>
                   </div>
-                ) : (
-                  <div className="signature-placeholder">
-                    <div className="placeholder-icon">
-                      <Signature size={32} />
-                    </div>
-                    <p>Chưa ký</p>
-                  </div>
-                )}
-              </div>
-              
-              <div className="signature-meta">
-                <div className="meta-item">
-                  <Calendar size={16} />
-                  <span>
-                    {contact.buyer_signed_at 
-                      ? formatDate(contact.buyer_signed_at)
-                      : 'Chưa ký'
-                    }
-                  </span>
-                </div>
+                ))}
               </div>
             </div>
-
-            {/* Seller Signature */}
-            <div className="signature-block">
-              <h3>
-                <UserIcon size={20} />
-                Người bán
-              </h3>
-              
-              <div className="signature-content">
-                {contact.seller_signature ? (
-                  <div className="signature-display">
-                    <img 
-                      src={contact.seller_signature} 
-                      alt="Chữ ký người bán" 
-                      className="signature-image"
-                    />
-                    <div className="signature-status completed">
-                      <CheckCircle size={16} />
-                      <span>Đã ký</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="signature-placeholder">
-                    <div className="placeholder-icon">
-                      <Signature size={32} />
-                    </div>
-                    <p>Chưa ký</p>
-                  </div>
-                )}
-              </div>
-              
-              <div className="signature-meta">
-                <div className="meta-item">
-                  <Calendar size={16} />
-                  <span>
-                    {contact.seller_signed_at 
-                      ? formatDate(contact.seller_signed_at)
-                      : 'Chưa ký'
-                    }
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Contract Metadata */}
-        <div className="content-card metadata-section">
-          <h2>
-            <FileCheck size={24} />
-            Thông tin hợp đồng
-          </h2>
+          )}
           
-          <div className="metadata-grid">
-            <div className="metadata-item">
-              <div className="metadata-label">Trạng thái hợp đồng</div>
-              <div className="metadata-value">
-                <div className="status-badge">
-                  {getStatusIcon(contact.status)}
-                  <span>{getStatusText(contact.status)}</span>
+          {/* Witness signature */}
+          {contact.witness_signature && (
+            <div className="witness-signature">
+              <h3>
+                <UserIcon size={20} />
+                Chữ ký nhân chứng
+              </h3>
+              <div className="witness-content">
+                <code className="hash-value">{contact.witness_signature}</code>
+              </div>
+            </div>
+          )}
+          
+          {/* Backward compatibility: Legacy buyer/seller signatures */}
+          {(!contact.signatures || contact.signatures.length === 0) && 
+           (contact.buyer_signature || contact.seller_signature) && (
+            <div className="signatures-grid">
+              {/* Buyer Signature */}
+              <div className="signature-block">
+                <h3>
+                  <UserIcon size={20} />
+                  Người mua
+                </h3>
+                <div className="signature-content">
+                  {contact.buyer_signature ? (
+                    <div className="signature-display">
+                      <img 
+                        src={contact.buyer_signature} 
+                        alt="Chữ ký người mua" 
+                        className="signature-image"
+                      />
+                      <div className="signature-status completed">
+                        <CheckCircle size={16} />
+                        <span>Đã ký</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="signature-placeholder">
+                      <Signature size={32} />
+                      <p>Chưa ký</p>
+                    </div>
+                  )}
                 </div>
+                {contact.buyer_signed_at && (
+                  <div className="signature-meta">
+                    <Calendar size={16} />
+                    <span>{formatDate(contact.buyer_signed_at)}</span>
+                  </div>
+                )}
               </div>
-            </div>
-            
-            <div className="metadata-item">
-              <div className="metadata-label">Ngày tạo</div>
-              <div className="metadata-value">
-                {formatDate(contact.created_at)}
-              </div>
-            </div>
-            
-            <div className="metadata-item">
-              <div className="metadata-label">Cập nhật lần cuối</div>
-              <div className="metadata-value">
-                {formatDate(contact.updated_at)}
-              </div>
-            </div>
-            
-            {contact.contract_url && (
-              <div className="metadata-item">
-                <div className="metadata-label">Tệp hợp đồng</div>
-                <div className="metadata-value">
-                  <a 
-                    href={contact.contract_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="file-link"
-                  >
-                    <Eye size={16} />
-                    Xem tệp PDF
-                  </a>
+              
+              {/* Seller Signature */}
+              <div className="signature-block">
+                <h3>
+                  <UserIcon size={20} />
+                  Người bán
+                </h3>
+                <div className="signature-content">
+                  {contact.seller_signature ? (
+                    <div className="signature-display">
+                      <img 
+                        src={contact.seller_signature} 
+                        alt="Chữ ký người bán" 
+                        className="signature-image"
+                      />
+                      <div className="signature-status completed">
+                        <CheckCircle size={16} />
+                        <span>Đã ký</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="signature-placeholder">
+                      <Signature size={32} />
+                      <p>Chưa ký</p>
+                    </div>
+                  )}
                 </div>
+                {contact.seller_signed_at && (
+                  <div className="signature-meta">
+                    <Calendar size={16} />
+                    <span>{formatDate(contact.seller_signed_at)}</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
+
+        {/* Notes Section */}
+        {contact.notes && (
+          <div className="content-card notes-section">
+            <h2>
+              <FileText size={24} />
+              Ghi chú
+            </h2>
+            
+            <div className="notes-content">
+              <p>{contact.notes}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Audit Trail Timeline */}
+        {contact.audit_events && contact.audit_events.length > 0 && (
+          <div className="content-card audit-trail-section">
+            <h2>
+              <Clock size={24} />
+              Lịch sử thay đổi
+            </h2>
+            
+            <div className="timeline">
+              {contact.audit_events.map((event, index) => (
+                <div key={index} className="timeline-item">
+                  <div className="timeline-marker"></div>
+                  <div className="timeline-content">
+                    <div className="timeline-header">
+                      <span className="event-name">{event.event}</span>
+                      <span className="event-time">
+                        {formatDate(event.at)}
+                      </span>
+                    </div>
+                    <div className="timeline-body">
+                      <span className="event-by">
+                        <UserIcon size={14} />
+                        {event.by}
+                      </span>
+                      {event.meta && (
+                        <div className="event-meta">
+                          <code>{JSON.stringify(event.meta, null, 2)}</code>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Debug Panel */}
         <div className="debug-panel">

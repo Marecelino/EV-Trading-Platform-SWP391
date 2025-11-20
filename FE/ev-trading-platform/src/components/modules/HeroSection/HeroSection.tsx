@@ -1,34 +1,31 @@
 // src/components/modules/HeroSection/HeroSection.tsx
 import React from 'react';
-import { Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Button from '../../common/Button/Button';
+import bannerImage from '../../../assets/banner2.jpg';
 import './HeroSection.scss';
 
 const HeroSection: React.FC = () => {
   return (
     <div className="hero-section">
       <div className="container">
-        <div className="hero-section__content">
-          <h1>Nền tảng Giao dịch Xe điện & Pin cũ</h1>
-          <p>Tìm kiếm, mua bán và trao đổi xe điện một cách bền vững.</p>
-          
-          <div className="search-form">
-            <div className="search-form__tabs">
-                <button className="search-form__tab active">Tìm xe</button>
-                <button className="search-form__tab">Tìm pin</button>
+        <div className="hero-section__grid">
+          <div className="hero-section__content">
+            <h1 className="hero-section__title">Nền tảng Giao dịch Xe điện & Pin cũ</h1>
+            <p className="hero-section__description">
+              Một nền tảng trực tuyến hiện đại để mua bán xe điện và pin EV đã qua sử dụng. Giao dịch xanh - Tương lai xanh.
+            </p>
+            <div className="hero-section__cta">
+              <Link to="/products">
+                <Button variant="primary">Khám phá ngay</Button>
+              </Link>
+              <Link to="/listings/create">
+                <Button variant="outline">Đăng tin</Button>
+              </Link>
             </div>
-            <div className="search-form__main">
-              <div className="search-form__input-wrapper">
-                <Search size={20} className="search-form__icon" />
-                <input type="text" placeholder="Nhập tên xe, ví dụ: Vinfast VF8..." />
-              </div>
-              <select className="search-form__select">
-                <option value="">Toàn quốc</option>
-                <option value="hcm">TP. Hồ Chí Minh</option>
-                <option value="hn">Hà Nội</option>
-              </select>
-              <Button>Tìm kiếm</Button>
-            </div>
+          </div>
+          <div className="hero-section__image">
+            <img src={bannerImage} alt="EV Trading Platform" className="hero-section__banner-img" />
           </div>
         </div>
       </div>

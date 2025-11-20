@@ -1,5 +1,6 @@
 // src/pages/AdminListingManagementPage/AdminListingManagementPage.tsx
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Package, CheckCircle, Clock, XCircle, TrendingUp } from 'lucide-react';
 import listingApi from '../../api/listingApi';
 import type { Product } from '../../types';
 import { SearchListingsParams, PaginatedResponse, UpdateListingStatusDto } from '../../types/api';
@@ -31,10 +32,63 @@ const mapStatusToApi = (status: ListingStatus): 'draft' | 'pending' | 'active' |
 
 const AdminListingManagementPage: React.FC = () => {
   const [listings, setListings] = useState<Product[]>([]);
+  const [allListingsForStats, setAllListingsForStats] = useState<Product[]>([]); // Store all listings for stats
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ListingStatus>('pending');
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
   const ITEMS_PER_PAGE = 3;
+
+  // Calculate stats from all listings
+  const listingStats = useMemo(() => {
+    const total = allListingsForStats.length;
+    const active = allListingsForStats.filter(l => l.status === 'active').length;
+    const pending = allListingsForStats.filter(l => l.status === 'pending').length;
+    const rejected = allListingsForStats.filter(l => l.status === 'rejected').length;
+    
+    return { total, active, pending, rejected };
+  }, [allListingsForStats]);
+
+  // Fetch all listings for stats (once on mount)
+  const fetchAllListingsForStats = useCallback(() => {
+    // Fetch all listings without status filter for stats
+    Promise.all([
+      listingApi.getListings({ status: 'pending', page: 1, limit: 100 }),
+      listingApi.getListings({ status: 'active', page: 1, limit: 100 }),
+      listingApi.getListings({ status: 'rejected', page: 1, limit: 100 }),
+      listingApi.getListings({ status: 'draft', page: 1, limit: 100 }),
+      listingApi.getListings({ status: 'sold', page: 1, limit: 100 }),
+      listingApi.getListings({ status: 'expired', page: 1, limit: 100 }),
+    ])
+      .then((responses) => {
+        let allListingsData: Product[] = [];
+        
+        responses.forEach((response) => {
+          const responseData = response.data as Product[] | PaginatedResponse<Product>;
+          let listingsData: Product[] = [];
+          
+          if (Array.isArray(responseData)) {
+            listingsData = responseData;
+          } else if (responseData && typeof responseData === 'object' && 'data' in responseData && Array.isArray(responseData.data)) {
+            listingsData = responseData.data;
+          }
+          
+          listingsData = listingsData.filter((listing): listing is Product => {
+            return !!(listing && listing._id);
+          });
+          
+          allListingsData = [...allListingsData, ...listingsData];
+        });
+        
+        setAllListingsForStats(allListingsData);
+      })
+      .catch(error => {
+        console.error("Error fetching all listings for stats:", error);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetchAllListingsForStats();
+  }, [fetchAllListingsForStats]);
 
   // Fetch listings using getListings endpoint (admin endpoint)
   const fetchListings = useCallback(() => {
@@ -104,6 +158,9 @@ const AdminListingManagementPage: React.FC = () => {
             totalPages: Math.ceil(listingsData.length / ITEMS_PER_PAGE) || 1,
           });
         }
+        
+        // Refresh stats after fetching
+        fetchAllListingsForStats();
       })
       .catch((error) => {
         console.error("Error fetching listings:", error);
@@ -111,7 +168,7 @@ const AdminListingManagementPage: React.FC = () => {
         setListings([]);
       })
       .finally(() => setIsLoading(false));
-  }, [activeTab, pagination.currentPage]);
+  }, [activeTab, pagination.currentPage, fetchAllListingsForStats]);
 
   // Load listings on component mount and when activeTab or page changes
   useEffect(() => {
@@ -154,33 +211,53 @@ const AdminListingManagementPage: React.FC = () => {
       });
   };
   
-  // Handle toggle verification
-  const handleToggleVerification = (id: string, currentVerification: boolean) => {
-    const newVerificationStatus = !currentVerification;
-    
-    listingApi.updateListingVerification(id, newVerificationStatus)
-      .then((response) => {
-        const responseData = response.data as Product | { success?: boolean; data?: Product; is_verified?: boolean };
-        const isSuccess = response.status === 200 || 
-                         (responseData && typeof responseData === 'object' && '_id' in responseData) ||
-                         ('success' in responseData && responseData.success) ||
-                         ('is_verified' in responseData);
-        
-        if (isSuccess) {
-          fetchListings();
-        } else {
-          alert('Có lỗi xảy ra khi cập nhật trạng thái kiểm định.');
-        }
-      })
-      .catch((error: unknown) => {
-        console.error("Error updating verification status:", error);
-        alert('Có lỗi xảy ra khi cập nhật trạng thái kiểm định.');
-      });
-  };
-
+  
   return (
     <div className="admin-page">
       <h1>Quản lý tin đăng</h1>
+
+      {/* Stats Cards */}
+      <div className="stats-cards">
+        <div className="stat-card stat-card--total">
+          <div className="stat-card__icon">
+            <Package size={24} />
+          </div>
+          <div className="stat-card__content">
+            <h3 className="stat-card__label">Tổng tin đăng</h3>
+            <p className="stat-card__value">{listingStats.total.toLocaleString('vi-VN')}</p>
+          </div>
+        </div>
+
+        <div className="stat-card stat-card--active">
+          <div className="stat-card__icon">
+            <TrendingUp size={24} />
+          </div>
+          <div className="stat-card__content">
+            <h3 className="stat-card__label">Đang hiển thị</h3>
+            <p className="stat-card__value">{listingStats.active.toLocaleString('vi-VN')}</p>
+          </div>
+        </div>
+
+        <div className="stat-card stat-card--pending">
+          <div className="stat-card__icon">
+            <Clock size={24} />
+          </div>
+          <div className="stat-card__content">
+            <h3 className="stat-card__label">Chờ duyệt</h3>
+            <p className="stat-card__value">{listingStats.pending.toLocaleString('vi-VN')}</p>
+          </div>
+        </div>
+
+        <div className="stat-card stat-card--rejected">
+          <div className="stat-card__icon">
+            <XCircle size={24} />
+          </div>
+          <div className="stat-card__content">
+            <h3 className="stat-card__label">Bị từ chối</h3>
+            <p className="stat-card__value">{listingStats.rejected.toLocaleString('vi-VN')}</p>
+          </div>
+        </div>
+      </div>
       
       <div className="admin-tabs">
         <button className={activeTab === 'pending' ? 'active' : ''} onClick={() => handleTabClick('pending')}>Chờ duyệt</button>
@@ -198,8 +275,7 @@ const AdminListingManagementPage: React.FC = () => {
               <th>Sản phẩm</th>
               <th>Giá</th>
               <th>Ngày đăng</th>
-              <th>Trạng thái kiểm định</th>
-              <th style={{ width: '220px' }}>Hành động</th>
+              <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -255,16 +331,7 @@ const AdminListingManagementPage: React.FC = () => {
                       : 'N/A'
                     }
                   </td>
-                  <td>
-                    <label className="switch" title={listing.is_verified ? "Bỏ nhãn kiểm định" : "Gắn nhãn đã kiểm định"}>
-                      <input 
-                        type="checkbox" 
-                        checked={listing.is_verified || false} 
-                        onChange={() => handleToggleVerification(listing._id, listing.is_verified || false)} 
-                      />
-                      <span className="slider round"></span>
-                    </label>
-                  </td>
+                  
                   <td className="actions-cell">
                     {activeTab === 'pending' && (
                       <>

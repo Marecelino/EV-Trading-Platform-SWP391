@@ -1,6 +1,7 @@
 // src/pages/AdminAuctionManagementPage/AdminAuctionManagementPage.tsx
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { Gavel, Clock, CheckCircle, XCircle, AlertCircle, TrendingUp } from "lucide-react";
 import auctionApi from "../../api/auctionApi";
 import type { Auction } from "../../types";
 import { UpdateAuctionStatusDto } from "../../types/api";
@@ -11,6 +12,7 @@ type AuctionStatus = "pending" | "draft" | "scheduled" | "live" | "ended" | "can
 
 const AdminAuctionManagementPage: React.FC = () => {
   const [allAuctions, setAllAuctions] = useState<Auction[]>([]);
+  const [allAuctionsForStats, setAllAuctionsForStats] = useState<Auction[]>([]); // Store all auctions for stats
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<AuctionStatus>("pending");
   const [pagination, setPagination] = useState({
@@ -24,6 +26,59 @@ const AdminAuctionManagementPage: React.FC = () => {
   const startIndex = (pagination.currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedAuctions = allAuctions.slice(startIndex, endIndex);
+
+  // Calculate stats from all auctions
+  const auctionStats = useMemo(() => {
+    const total = allAuctionsForStats.length;
+    const live = allAuctionsForStats.filter(a => a.status === "live").length;
+    const pending = allAuctionsForStats.filter(a => a.status === "pending").length;
+    const ended = allAuctionsForStats.filter(a => a.status === "ended").length;
+    
+    return { total, live, pending, ended };
+  }, [allAuctionsForStats]);
+
+  // Fetch all auctions for stats (once on mount)
+  const fetchAllAuctionsForStats = useCallback(() => {
+    // Fetch all auctions without status filter for stats
+    Promise.all([
+      auctionApi.getAllAuctions("pending", 1, 100),
+      auctionApi.getAllAuctions("live", 1, 100),
+      auctionApi.getAllAuctions("ended", 1, 100),
+      auctionApi.getAllAuctions("scheduled", 1, 100),
+      auctionApi.getAllAuctions("draft", 1, 100),
+      auctionApi.getAllAuctions("cancelled", 1, 100),
+    ])
+      .then((responses) => {
+        let allAuctionsData: Auction[] = [];
+        
+        responses.forEach((response) => {
+          let auctionsData: Auction[] = [];
+          
+          if (response.data?.data && Array.isArray(response.data.data)) {
+            auctionsData = response.data.data;
+          } else if (response.data?.success && Array.isArray(response.data.data)) {
+            auctionsData = response.data.data;
+          } else if (Array.isArray(response.data)) {
+            auctionsData = response.data;
+          }
+          
+          auctionsData = auctionsData.filter((auction): auction is Auction => {
+            return !!(auction && auction._id);
+          });
+          
+          allAuctionsData = [...allAuctionsData, ...auctionsData];
+        });
+        
+        setAllAuctionsForStats(allAuctionsData);
+      })
+      .catch(error => {
+        console.error("Error fetching all auctions for stats:", error);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetchAllAuctionsForStats();
+  }, [fetchAllAuctionsForStats]);
 
   // CRITICAL FIX: Handle backend response structure: { data: [...], pagination: {...} }
   const fetchAuctions = useCallback((status: AuctionStatus) => {
@@ -75,6 +130,9 @@ const AdminAuctionManagementPage: React.FC = () => {
           totalPages: calculatedTotalPages,
         }));
         console.log(`Loaded ${auctionsData.length} auctions. Total pages: ${calculatedTotalPages}`);
+        
+        // Refresh stats after fetching
+        fetchAllAuctionsForStats();
       })
       .catch(error => {
         console.error("Error fetching auctions:", error);
@@ -82,7 +140,7 @@ const AdminAuctionManagementPage: React.FC = () => {
         setAllAuctions([]);
       })
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [fetchAllAuctionsForStats]);
 
   useEffect(() => {
     fetchAuctions(activeTab);
@@ -242,6 +300,49 @@ const AdminAuctionManagementPage: React.FC = () => {
   return (
     <div className="admin-page">
       <h1>Quản lý Đấu giá</h1>
+
+      {/* Stats Cards */}
+      <div className="stats-cards">
+        <div className="stat-card stat-card--total">
+          <div className="stat-card__icon">
+            <Gavel size={24} />
+          </div>
+          <div className="stat-card__content">
+            <h3 className="stat-card__label">Tổng đấu giá</h3>
+            <p className="stat-card__value">{auctionStats.total.toLocaleString('vi-VN')}</p>
+          </div>
+        </div>
+
+        <div className="stat-card stat-card--live">
+          <div className="stat-card__icon">
+            <TrendingUp size={24} />
+          </div>
+          <div className="stat-card__content">
+            <h3 className="stat-card__label">Đang diễn ra</h3>
+            <p className="stat-card__value">{auctionStats.live.toLocaleString('vi-VN')}</p>
+          </div>
+        </div>
+
+        <div className="stat-card stat-card--pending">
+          <div className="stat-card__icon">
+            <Clock size={24} />
+          </div>
+          <div className="stat-card__content">
+            <h3 className="stat-card__label">Chờ duyệt</h3>
+            <p className="stat-card__value">{auctionStats.pending.toLocaleString('vi-VN')}</p>
+          </div>
+        </div>
+
+        <div className="stat-card stat-card--ended">
+          <div className="stat-card__icon">
+            <CheckCircle size={24} />
+          </div>
+          <div className="stat-card__content">
+            <h3 className="stat-card__label">Đã kết thúc</h3>
+            <p className="stat-card__value">{auctionStats.ended.toLocaleString('vi-VN')}</p>
+          </div>
+        </div>
+      </div>
 
       <div className="admin-tabs">
         <button

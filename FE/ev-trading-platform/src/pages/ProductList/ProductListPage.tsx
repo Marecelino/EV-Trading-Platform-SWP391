@@ -29,8 +29,8 @@ const ProductListPage: React.FC = () => {
     const fetchAllProducts = async () => {
       setIsLoading(true);
       try {
-        // Fetch all listings without filters
-        const response = await listingApi.getListings();
+        // Fetch only active listings from API
+        const response = await listingApi.getListings({ status: 'active' });
         console.log("GetListings API Response:", response.data);
 
         // Parse response - can be array or { data: [], meta: {} } or PaginatedResponse { data: [], pagination: {} }
@@ -87,11 +87,8 @@ const ProductListPage: React.FC = () => {
         const searchTerm = filters.searchTerm.toLowerCase().trim();
         if (searchTerm) {
           filtered = filtered.filter(p => {
-            // Search in title
             const titleMatch = p.title.toLowerCase().includes(searchTerm);
-            // Search in description
             const descMatch = p.description.toLowerCase().includes(searchTerm);
-            // Search in brand name (if populated)
             let brandMatch = false;
             if (typeof p.brand_id === 'object' && p.brand_id) {
               brandMatch = (p.brand_id as { name?: string }).name?.toLowerCase().includes(searchTerm) || false;
@@ -104,34 +101,154 @@ const ProductListPage: React.FC = () => {
 
       // Filter by brand
       if (filters.brand) {
-        const brandId = filters.brand;
         filtered = filtered.filter(p => {
           const brand = typeof p.brand_id === 'object' ? p.brand_id : null;
-          return brand?._id === brandId || p.brand_id === brandId;
+          return brand?._id === filters.brand || p.brand_id === filters.brand;
         });
       }
 
       // Filter by model
       if (filters.model) {
-        const modelId = filters.model;
         filtered = filtered.filter(p => {
           const model = typeof p.model_id === 'object' ? p.model_id : null;
-          return model?._id === modelId || p.model_id === modelId;
+          return model?._id === filters.model || p.model_id === filters.model;
         });
       }
 
-      // Filter by status - show all active/sellable listings (exclude draft, rejected)
-      // Show: active, pending_payment, payment_completed, sold (for display)
-      // Hide: draft, rejected
-      filtered = filtered.filter(p => {
-        const hideStatuses = ['draft', 'rejected'];
-        return !hideStatuses.includes(p.status);
-      });
+      // Condition filter
+      if (filters.condition) {
+        filtered = filtered.filter(p => p.condition === filters.condition);
+      }
 
-      // Filter by condition if available in filters (for future use)
-      // if (filters.condition) {
-      //   filtered = filtered.filter(p => p.condition === filters.condition);
-      // }
+      // Price range filter
+      if (filters.minPrice !== undefined) {
+        filtered = filtered.filter(p => p.price >= filters.minPrice!);
+      }
+      if (filters.maxPrice !== undefined) {
+        filtered = filtered.filter(p => p.price <= filters.maxPrice!);
+      }
+
+      // Location filter
+      if (filters.location) {
+        filtered = filtered.filter(p => {
+          if (typeof p.location === 'string') {
+            return p.location.includes(filters.location!);
+          }
+          if (p.location && typeof p.location === 'object') {
+            return p.location.city === filters.location || 
+                   p.location.district?.includes(filters.location!);
+          }
+          return false;
+        });
+      }
+
+      // EV-specific filters
+      if (filters.category === 'xe-dien') {
+        // Year range
+        if (filters.minYear !== undefined) {
+          filtered = filtered.filter(p => 
+            (p.evDetail?.year || p.ev_details?.year || p.year || 0) >= filters.minYear!
+          );
+        }
+        if (filters.maxYear !== undefined) {
+          filtered = filtered.filter(p => 
+            (p.evDetail?.year || p.ev_details?.year || p.year || 9999) <= filters.maxYear!
+          );
+        }
+
+        // Mileage range
+        if (filters.minMileage !== undefined) {
+          filtered = filtered.filter(p => 
+            (p.evDetail?.mileage_km || p.ev_details?.mileage_km || p.mileage || 0) >= filters.minMileage!
+          );
+        }
+        if (filters.maxMileage !== undefined) {
+          filtered = filtered.filter(p => 
+            (p.evDetail?.mileage_km || p.ev_details?.mileage_km || p.mileage || 0) <= filters.maxMileage!
+          );
+        }
+
+        // Battery capacity range
+        if (filters.minCapacity !== undefined) {
+          filtered = filtered.filter(p => 
+            (p.evDetail?.battery_capacity_kwh || p.ev_details?.battery_capacity_kwh || p.battery_capacity || 0) >= filters.minCapacity!
+          );
+        }
+        if (filters.maxCapacity !== undefined) {
+          filtered = filtered.filter(p => 
+            (p.evDetail?.battery_capacity_kwh || p.ev_details?.battery_capacity_kwh || p.battery_capacity || 0) <= filters.maxCapacity!
+          );
+        }
+
+        // Range filter
+        if (filters.minRange !== undefined) {
+          filtered = filtered.filter(p => 
+            (p.evDetail?.range_km || p.ev_details?.range_km || p.range || 0) >= filters.minRange!
+          );
+        }
+        if (filters.maxRange !== undefined) {
+          filtered = filtered.filter(p => 
+            (p.evDetail?.range_km || p.ev_details?.range_km || p.range || 0) <= filters.maxRange!
+          );
+        }
+      }
+
+      // Battery-specific filters
+      if (filters.category === 'pin-xe-dien') {
+        // SOH filter
+        if (filters.minSoh !== undefined) {
+          filtered = filtered.filter(p => 
+            (p.batteryDetail?.soh_percent || p.battery_details?.soh_percent || p.soh_percent || 0) >= filters.minSoh!
+          );
+        }
+        if (filters.maxSoh !== undefined) {
+          filtered = filtered.filter(p => 
+            (p.batteryDetail?.soh_percent || p.battery_details?.soh_percent || p.soh_percent || 100) <= filters.maxSoh!
+          );
+        }
+      }
+
+      // Special filters
+      if (filters.is_verified) {
+        filtered = filtered.filter(p => p.is_verified === true);
+      }
+      if (filters.is_featured) {
+        filtered = filtered.filter(p => p.is_featured === true);
+      }
+
+      // Active status filter
+      filtered = filtered.filter(p => p.status === 'active');
+
+      // SORTING
+      if (filters.sortBy) {
+        filtered = [...filtered].sort((a, b) => {
+          switch (filters.sortBy) {
+            case 'createdAt_desc':
+              return new Date(b.createdAt || b.created_at || 0).getTime() - 
+                     new Date(a.createdAt || a.created_at || 0).getTime();
+            case 'createdAt_asc':
+              return new Date(a.createdAt || a.created_at || 0).getTime() - 
+                     new Date(b.createdAt || b.created_at || 0).getTime();
+            case 'price_asc':
+              return (a.price || 0) - (b.price || 0);
+            case 'price_desc':
+              return (b.price || 0) - (a.price || 0);
+            case 'mileage_asc':
+              return (a.evDetail?.mileage_km || a.mileage || 0) - 
+                     (b.evDetail?.mileage_km || b.mileage || 0);
+            case 'year_desc':
+              return (b.evDetail?.year || b.year || 0) - 
+                     (a.evDetail?.year || a.year || 0);
+            case 'range_desc':
+              return (b.evDetail?.range_km || b.range || 0) - 
+                     (a.evDetail?.range_km || a.range || 0);
+            case 'featured':
+              return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0);
+            default:
+              return 0;
+          }
+        });
+      }
 
       // Update pagination based on filtered results
       const total = filtered.length;
@@ -174,56 +291,63 @@ const ProductListPage: React.FC = () => {
     <div className="product-list-page container">
       <TopFilterBar filters={filters} onFilterChange={handleFilterChange} />
 
-      <div className="page-header">
-        <h1>Danh sách sản phẩm</h1>
-        <p className="results-count">
-          Hiển thị {filteredProducts.length} sản phẩm
-          {pagination.total > 0 && ` (tổng ${pagination.total} sản phẩm)`}
-          {pagination.pages > 1 && ` - Trang ${pagination.page}/${pagination.pages}`}
-        </p>
-      </div>
-
       <div className="page-content">
-        <div className="product-grid">
-          {isLoading ? (
-            <p>Đang tải...</p>
-          ) : filteredProducts.length === 0 ? (
-            <p>Không tìm thấy sản phẩm nào phù hợp với bộ lọc của bạn.</p>
-          ) : (
-            filteredProducts.map((product) => (
-              <ProductCard
-                key={product._id}
-                product={product}
-                variant="detailed"
-              />
-            ))
+        {/* SIDEBAR BÊN TRÁI */}
+        <SidebarFilter filters={filters} onFilterChange={handleFilterChange} />
+        
+        {/* MAIN CONTENT BÊN PHẢI */}
+        <div className="main-content">
+          <div className="page-header">
+            <h1>Danh sách sản phẩm</h1>
+            <div className="header-actions">
+              <p className="results-count">
+                Hiển thị {filteredProducts.length} sản phẩm
+                {pagination.total > 0 && ` (tổng ${pagination.total} sản phẩm)`}
+                {pagination.pages > 1 && ` - Trang ${pagination.page}/${pagination.pages}`}
+              </p>
+            </div>
+          </div>
+
+          <div className="product-grid">
+            {isLoading ? (
+              <p>Đang tải...</p>
+            ) : filteredProducts.length === 0 ? (
+              <p>Không tìm thấy sản phẩm nào phù hợp với bộ lọc của bạn.</p>
+            ) : (
+              filteredProducts.map((product) => (
+                <ProductCard
+                  key={product._id}
+                  product={product}
+                  variant="detailed"
+                />
+              ))
+            )}
+          </div>
+
+          {/* Pagination */}
+          {pagination.pages > 1 && (
+            <div className="pagination-container">
+              <button 
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={pagination.page === 1}
+                className="pagination-btn"
+              >
+                Trước
+              </button>
+              <span className="pagination-info">
+                Trang {pagination.page} / {pagination.pages}
+              </span>
+              <button 
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={pagination.page >= pagination.pages}
+                className="pagination-btn"
+              >
+                Sau
+              </button>
+            </div>
           )}
         </div>
-        <SidebarFilter filters={filters} onFilterChange={handleFilterChange} />
       </div>
-
-      {/* Pagination */}
-      {pagination.pages > 1 && (
-        <div className="pagination-container" style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
-          <button 
-            onClick={() => handlePageChange(pagination.page - 1)}
-            disabled={pagination.page === 1}
-            style={{ marginRight: '10px', padding: '8px 16px' }}
-          >
-            Trước
-          </button>
-          <span style={{ padding: '8px 16px', alignSelf: 'center' }}>
-            Trang {pagination.page} / {pagination.pages}
-          </span>
-          <button 
-            onClick={() => handlePageChange(pagination.page + 1)}
-            disabled={pagination.page >= pagination.pages}
-            style={{ marginLeft: '10px', padding: '8px 16px' }}
-          >
-            Sau
-          </button>
-        </div>
-      )}
     </div>
   );
 };

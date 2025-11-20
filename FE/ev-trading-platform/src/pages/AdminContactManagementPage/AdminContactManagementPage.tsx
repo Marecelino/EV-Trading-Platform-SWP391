@@ -27,6 +27,9 @@ const AdminContactManagementPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [dateFromFilter, setDateFromFilter] = useState('');
+  const [dateToFilter, setDateToFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'contract_no' | 'expires_soon'>('newest');
   const [pagination, setPagination] = useState({ 
     currentPage: 1, 
     totalPages: 1, 
@@ -57,11 +60,11 @@ const AdminContactManagementPage: React.FC = () => {
     }
   }, []);
 
-  // Filter contacts based on search and status
+  // Filter contacts based on search, status, date range, and sort
   useEffect(() => {
     let filtered = allContacts;
 
-    // Search filter
+    // Search filter - include contract_no
     if (searchQuery.trim()) {
       filtered = filtered.filter(contact => {
         const transaction = typeof contact.transaction_id === 'object' 
@@ -72,12 +75,22 @@ const AdminContactManagementPage: React.FC = () => {
           ? transaction.listing_id as Product
           : null;
         
+        const buyer = transaction && typeof transaction.buyer_id === 'object'
+          ? transaction.buyer_id as User
+          : null;
+        
+        const seller = transaction && typeof transaction.seller_id === 'object'
+          ? transaction.seller_id as User
+          : null;
+        
         const searchLower = searchQuery.toLowerCase();
         return (
           contact._id.toLowerCase().includes(searchLower) ||
+          (contact.contract_no && contact.contract_no.toLowerCase().includes(searchLower)) ||
           contact.status.toLowerCase().includes(searchLower) ||
           (listing?.title && listing.title.toLowerCase().includes(searchLower)) ||
-          (contact.contract_content && contact.contract_content.toLowerCase().includes(searchLower))
+          (buyer?.full_name && buyer.full_name.toLowerCase().includes(searchLower)) ||
+          (seller?.full_name && seller.full_name.toLowerCase().includes(searchLower))
         );
       });
     }
@@ -86,6 +99,39 @@ const AdminContactManagementPage: React.FC = () => {
     if (statusFilter) {
       filtered = filtered.filter(contact => contact.status === statusFilter);
     }
+    
+    // Date range filter (created_at)
+    if (dateFromFilter) {
+      filtered = filtered.filter(contact => {
+        const contactDate = new Date(contact.createdAt || contact.created_at);
+        return contactDate >= new Date(dateFromFilter);
+      });
+    }
+    
+    if (dateToFilter) {
+      filtered = filtered.filter(contact => {
+        const contactDate = new Date(contact.createdAt || contact.created_at);
+        return contactDate <= new Date(dateToFilter + 'T23:59:59');
+      });
+    }
+    
+    // Sorting
+    filtered = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.createdAt || b.created_at).getTime() - new Date(a.createdAt || a.created_at).getTime();
+        case 'oldest':
+          return new Date(a.createdAt || a.created_at).getTime() - new Date(b.createdAt || b.created_at).getTime();
+        case 'contract_no':
+          return (a.contract_no || '').localeCompare(b.contract_no || '');
+        case 'expires_soon':
+          if (!a.expires_at) return 1;
+          if (!b.expires_at) return -1;
+          return new Date(a.expires_at).getTime() - new Date(b.expires_at).getTime();
+        default:
+          return 0;
+      }
+    });
 
     setFilteredContacts(filtered);
     
@@ -96,7 +142,7 @@ const AdminContactManagementPage: React.FC = () => {
       totalPages,
       currentPage: 1 // Reset to first page when filtering
     }));
-  }, [allContacts, searchQuery, statusFilter, pagination.itemsPerPage]);
+  }, [allContacts, searchQuery, statusFilter, dateFromFilter, dateToFilter, sortBy, pagination.itemsPerPage]);
 
   // Get paginated contacts
   const getPaginatedContacts = () => {
@@ -111,27 +157,29 @@ const AdminContactManagementPage: React.FC = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed':
-        return <CheckCircle size={16} className="status-icon completed" />;
-      case 'pending':
-        return <Clock size={16} className="status-icon pending" />;
+      case 'signed':
+        return <CheckCircle size={16} className="status-icon signed" />;
+      case 'draft':
+        return <FileText size={16} className="status-icon draft" />;
       case 'cancelled':
         return <AlertCircle size={16} className="status-icon cancelled" />;
+      case 'expired':
+        return <Clock size={16} className="status-icon expired" />;
       default:
-        return <Clock size={16} className="status-icon default" />;
+        return <FileText size={16} className="status-icon default" />;
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'Hoàn thành';
-      case 'pending':
-        return 'Chờ xử lý';
-      case 'cancelled':
-        return 'Đã hủy';
+      case 'signed':
+        return 'Đã ký';
       case 'draft':
         return 'Bản nháp';
+      case 'cancelled':
+        return 'Đã hủy';
+      case 'expired':
+        return 'Hết hạn';
       default:
         return status;
     }
@@ -194,26 +242,26 @@ const AdminContactManagementPage: React.FC = () => {
         </div>
         
         <div className="stat-card">
-          <div className="stat-icon completed">
+          <div className="stat-icon signed">
             <CheckCircle size={24} />
           </div>
           <div className="stat-content">
             <div className="stat-number">
-              {allContacts.filter(c => c.status === 'completed').length}
+              {allContacts.filter(c => c.status === 'signed').length}
             </div>
-            <div className="stat-label">Hoàn thành</div>
+            <div className="stat-label">Đã ký</div>
           </div>
         </div>
         
         <div className="stat-card">
-          <div className="stat-icon pending">
-            <Clock size={24} />
+          <div className="stat-icon draft">
+            <FileText size={24} />
           </div>
           <div className="stat-content">
             <div className="stat-number">
-              {allContacts.filter(c => c.status === 'pending').length}
+              {allContacts.filter(c => c.status === 'draft').length}
             </div>
-            <div className="stat-label">Chờ xử lý</div>
+            <div className="stat-label">Bản nháp</div>
           </div>
         </div>
         
@@ -228,6 +276,18 @@ const AdminContactManagementPage: React.FC = () => {
             <div className="stat-label">Đã hủy</div>
           </div>
         </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon expired">
+            <Clock size={24} />
+          </div>
+          <div className="stat-content">
+            <div className="stat-number">
+              {allContacts.filter(c => c.status === 'expired').length}
+            </div>
+            <div className="stat-label">Hết hạn</div>
+          </div>
+        </div>
       </div>
 
       {/* Filters Section */}
@@ -237,7 +297,7 @@ const AdminContactManagementPage: React.FC = () => {
             <Search size={20} className="search-icon" />
             <input
               type="text"
-              placeholder="Tìm kiếm theo ID, trạng thái, sản phẩm..."
+              placeholder="Tìm theo số HĐ, ID, buyer, seller..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -250,10 +310,39 @@ const AdminContactManagementPage: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="">Tất cả trạng thái</option>
-              <option value="completed">Hoàn thành</option>
-              <option value="pending">Chờ xử lý</option>
-              <option value="cancelled">Đã hủy</option>
               <option value="draft">Bản nháp</option>
+              <option value="signed">Đã ký</option>
+              <option value="cancelled">Đã hủy</option>
+              <option value="expired">Hết hạn</option>
+            </select>
+          </div>
+          
+          <div className="date-filter">
+            <Calendar size={20} />
+            <input
+              type="date"
+              value={dateFromFilter}
+              onChange={(e) => setDateFromFilter(e.target.value)}
+              placeholder="Từ ngày"
+            />
+            <span>-</span>
+            <input
+              type="date"
+              value={dateToFilter}
+              onChange={(e) => setDateToFilter(e.target.value)}
+              placeholder="Đến ngày"
+            />
+          </div>
+          
+          <div className="sort-dropdown">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+            >
+              <option value="newest">Mới nhất</option>
+              <option value="oldest">Cũ nhất</option>
+              <option value="contract_no">Số hợp đồng</option>
+              <option value="expires_soon">Sắp hết hạn</option>
             </select>
           </div>
         </div>
@@ -263,6 +352,19 @@ const AdminContactManagementPage: React.FC = () => {
             Hiển thị {getPaginatedContacts().length} trong {filteredContacts.length} hợp đồng
             {allContacts.length !== filteredContacts.length && ` (từ ${allContacts.length} tổng)`}
           </span>
+          {(searchQuery || statusFilter || dateFromFilter || dateToFilter) && (
+            <button 
+              onClick={() => {
+                setSearchQuery('');
+                setStatusFilter('');
+                setDateFromFilter('');
+                setDateToFilter('');
+              }}
+              className="clear-filters-btn"
+            >
+              Xóa bộ lọc
+            </button>
+          )}
         </div>
       </div>
 
@@ -307,9 +409,9 @@ const AdminContactManagementPage: React.FC = () => {
                   <div className="contact-header">
                     <div className="contact-id">
                       <FileText size={16} />
-                      <span>#{contact._id.slice(-8)}</span>
+                      <span className="contract-number">{contact.contract_no || `#${contact._id.slice(-8)}`}</span>
                     </div>
-                    <div className="contact-status">
+                    <div className={`contact-status ${contact.status}`}>
                       {getStatusIcon(contact.status)}
                       <span>{getStatusText(contact.status)}</span>
                     </div>
@@ -350,17 +452,47 @@ const AdminContactManagementPage: React.FC = () => {
                           <span className="value">{seller?.full_name || 'N/A'}</span>
                         </div>
                       </div>
+                      
+                      {contact.signed_at && (
+                        <div className="info-item">
+                          <Calendar size={16} />
+                          <div>
+                            <span className="label">Ngày ký:</span>
+                            <span className="value">{formatDate(contact.signed_at)}</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {contact.expires_at && (
+                        <div className="info-item">
+                          <Clock size={16} />
+                          <div>
+                            <span className="label">Hết hạn:</span>
+                            <span className="value">{formatDate(contact.expires_at)}</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {contact.signatures && contact.signatures.length > 0 && (
+                        <div className="info-item">
+                          <CheckCircle size={16} />
+                          <div>
+                            <span className="label">Chữ ký:</span>
+                            <span className="value">{contact.signatures.length} chữ ký</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="contact-meta">
                       <div className="meta-item">
                         <Calendar size={16} />
-                        <span>Tạo: {formatDate(contact.created_at)}</span>
+                        <span>Tạo: {formatDate(contact.createdAt || contact.created_at)}</span>
                       </div>
-                      {contact.updated_at !== contact.created_at && (
+                      {(contact.updatedAt || contact.updated_at) !== (contact.createdAt || contact.created_at) && (
                         <div className="meta-item">
                           <Calendar size={16} />
-                          <span>Cập nhật: {formatDate(contact.updated_at)}</span>
+                          <span>Cập nhật: {formatDate(contact.updatedAt || contact.updated_at)}</span>
                         </div>
                       )}
                     </div>
@@ -375,7 +507,10 @@ const AdminContactManagementPage: React.FC = () => {
                       Xem chi tiết
                     </Link>
                     
-                    {contact.contract_url && (
+
+                    
+                    {/* Backward compatibility: fallback to old contract_url */}
+                    {!contact.document_url && contact.contract_url && (
                       <a 
                         href={contact.contract_url} 
                         target="_blank" 

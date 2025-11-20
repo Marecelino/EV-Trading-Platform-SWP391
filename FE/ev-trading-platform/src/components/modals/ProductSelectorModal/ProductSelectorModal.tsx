@@ -28,9 +28,9 @@ const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
       setIsLoading(true);
       setSearchQuery(""); // Reset search khi mở modal
 
-      // CRITICAL FIX: Use getListings() and filter client-side by category (like HomePage and ProductListPage)
+      // Use getListings() with status filter and filter client-side by category
       listingApi
-        .getListings()
+        .getListings({ status: 'active' })
         .then((res) => {
           console.log("ProductSelectorModal API Response:", res.data);
           
@@ -44,17 +44,23 @@ const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
             allProducts = (res.data as { data: Product[] }).data;
           }
           
-          // Filter by category client-side
+          // Filter by status "active" (double check client-side) and category
           const filteredProducts = allProducts.filter((product: Product) => {
+            // Ensure status is active
+            const isActive = product.status === "active";
+            
+            // Filter by category
+            let matchesCategory = true;
             if (currentCategory === "ev") {
-              return product.category === "ev";
+              matchesCategory = product.category === "ev";
             } else if (currentCategory === "battery") {
-              return product.category === "battery";
+              matchesCategory = product.category === "battery";
             }
-            return true; // Show all if no category selected
+            
+            return isActive && matchesCategory;
           });
           
-          console.log(`Loaded ${filteredProducts.length} products for category ${currentCategory} (from ${allProducts.length} total)`);
+          console.log(`Loaded ${filteredProducts.length} active products for category ${currentCategory} (from ${allProducts.length} total)`);
           setProducts(filteredProducts);
         })
         .catch((error) => {

@@ -36,6 +36,8 @@ import ContactDetailPage from "./pages/ContactDetailPage/ContactDetailPage";
 import AdminReviewManagementPage from "./pages/AdminReviewManagementPage/AdminReviewManagementPage";
 import AdminCommissionManagementPage from "./pages/AdminCommissionManagementPage/AdminCommissionManagementPage";
 import ContractSigningPage from "./pages/ContractSigningPage/ContractSigningPage";
+import { ChatBotProvider } from "./contexts/ChatBotContext";
+import ChatBot from "./components/modules/ChatBot/ChatBot";
 
 function App() {
   return (
@@ -43,7 +45,10 @@ function App() {
       <NotificationProvider>
         <FavoritesProvider>
           <ComparisonProvider>
+            <ChatBotProvider>
             <Router>
+              {/* AI Chatbot - Global */}
+              <ChatBot />
             <Routes>
               <Route
                 path="/auth/social/callback"
@@ -144,6 +149,8 @@ function App() {
             pauseOnHover
             theme="light"
           />
+
+        </ChatBotProvider>
         </ComparisonProvider>
       </FavoritesProvider>
       </NotificationProvider>

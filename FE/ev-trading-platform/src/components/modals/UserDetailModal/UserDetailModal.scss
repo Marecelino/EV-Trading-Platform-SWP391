@@ -1,0 +1,523 @@
+// src/components/modals/UserDetailModal/UserDetailModal.scss
+@import '../../../styles/variables';
+
+.user-detail-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.user-detail-modal {
+  background: $white-color;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+  overflow: hidden;
+}
+
+.user-detail-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+  border-bottom: 1px solid $border-color;
+  background: linear-gradient(135deg, $primary-color 0%, darken($primary-color, 10%) 100%);
+  color: white;
+
+  &-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+}
+
+.user-detail-modal__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.user-detail-modal__title {
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: $font-weight-bold;
+  }
+
+  p {
+    margin: 4px 0 0 0;
+    opacity: 0.9;
+    font-size: 0.9rem;
+  }
+}
+
+.user-detail-modal__close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  transition: all $duration-base $ease-in-out;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+  }
+}
+
+.user-detail-modal__tabs {
+  display: flex;
+  border-bottom: 1px solid $border-color;
+  background: lighten($background-color, 2%);
+  padding: 0 24px;
+  gap: 8px;
+}
+
+.user-detail-modal__tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+  border-bottom: 3px solid transparent;
+  transition: all $duration-base $ease-in-out;
+  position: relative;
+  top: 1px;
+
+  &:hover {
+    color: $primary-color;
+    background: rgba($primary-color, 0.05);
+  }
+
+  &.active {
+    color: $primary-color;
+    border-bottom-color: $primary-color;
+    background: transparent;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.user-detail-modal__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+// Info Tab
+.user-detail-modal__info {
+  max-width: 600px;
+}
+
+.user-detail-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: $font-weight-medium;
+    color: $text-primary;
+    font-size: 0.9rem;
+
+    svg {
+      color: $text-secondary;
+    }
+  }
+
+  input,
+  select {
+    padding: 12px;
+    border: 1px solid $border-color;
+    border-radius: $radius-md;
+    font-size: 0.95rem;
+    transition: all $duration-base $ease-in-out;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+    }
+  }
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.user-detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid lighten($border-color, 5%);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: $font-weight-medium;
+    color: $text-secondary;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    svg {
+      color: $text-muted;
+    }
+  }
+
+  p {
+    margin: 0;
+    font-size: 1rem;
+    color: $text-primary;
+  }
+}
+
+.info-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+// Listings & Transactions Tabs
+.user-detail-modal__listings,
+.user-detail-modal__transactions {
+  .loading-state,
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 16px;
+    color: $text-secondary;
+
+    svg {
+      opacity: 0.5;
+    }
+
+    p {
+      margin: 0;
+      font-size: 1rem;
+    }
+  }
+}
+
+.transaction-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: lighten($background-color, 2%);
+  border-radius: $radius-md;
+
+  label {
+    font-weight: $font-weight-medium;
+    color: $text-primary;
+  }
+
+  select {
+    padding: 8px 12px;
+    border: 1px solid $border-color;
+    border-radius: $radius-md;
+    font-size: 0.9rem;
+    cursor: pointer;
+    background: $white-color;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+  }
+}
+
+.listings-table,
+.transactions-table {
+  overflow-x: auto;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+
+    thead {
+      background: lighten($background-color, 2%);
+
+      th {
+        padding: 12px;
+        text-align: left;
+        font-weight: $font-weight-medium;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: $text-secondary;
+        border-bottom: 2px solid $border-color;
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid lighten($border-color, 5%);
+        transition: background-color $duration-base $ease-in-out;
+
+        &:hover {
+          background: lighten($background-color, 1%);
+        }
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+
+      td {
+        padding: 12px;
+        font-size: 0.9rem;
+        color: $text-primary;
+      }
+    }
+  }
+}
+
+// Buttons
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: $radius-md;
+  font-size: 0.9rem;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $duration-base $ease-in-out;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &--primary {
+    background: $primary-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: darken($primary-color, 5%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba($primary-color, 0.3);
+    }
+  }
+
+  &--secondary {
+    background: $white-color;
+    color: $text-primary;
+    border: 1px solid $border-color;
+
+    &:hover:not(:disabled) {
+      background: lighten($background-color, 1%);
+      border-color: $text-secondary;
+    }
+  }
+
+  &--success {
+    background: $success-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: darken($success-color, 5%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba($success-color, 0.3);
+    }
+  }
+
+  &--warning {
+    background: $warning-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: darken($warning-color, 5%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba($warning-color, 0.3);
+    }
+  }
+
+  &--danger {
+    background: $error-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: darken($error-color, 5%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba($error-color, 0.3);
+    }
+  }
+}
+
+// Status & Role Badges
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: $font-weight-medium;
+
+  &--active {
+    background: rgba($success-color, 0.1);
+    color: $success-color;
+  }
+
+  &--banned {
+    background: rgba($error-color, 0.1);
+    color: $error-color;
+  }
+
+  &--inactive {
+    background: rgba($text-muted, 0.1);
+    color: $text-muted;
+  }
+
+  &--suspended {
+    background: rgba(#f39c12, 0.1);
+    color: #f39c12;
+  }
+
+  &--pending {
+    background: rgba(#3498db, 0.1);
+    color: #3498db;
+  }
+
+  &--completed {
+    background: rgba($success-color, 0.1);
+    color: $success-color;
+  }
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: $font-weight-medium;
+
+  &--admin {
+    background: rgba(#9b59b6, 0.1);
+    color: #9b59b6;
+  }
+
+  &--user {
+    background: rgba($primary-color, 0.1);
+    color: $primary-color;
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Responsive
+@media (max-width: $breakpoint-md) {
+  .user-detail-modal {
+    max-width: 95%;
+    max-height: 95vh;
+  }
+
+  .user-detail-modal__tabs {
+    flex-wrap: wrap;
+    padding: 12px;
+
+    .user-detail-modal__tab {
+      padding: 12px 16px;
+      font-size: 0.85rem;
+    }
+  }
+
+  .user-detail-modal__content {
+    padding: 16px;
+  }
+
+  .listings-table,
+  .transactions-table {
+    table {
+      font-size: 0.85rem;
+
+      th,
+      td {
+        padding: 8px;
+      }
+    }
+  }
+}
+
