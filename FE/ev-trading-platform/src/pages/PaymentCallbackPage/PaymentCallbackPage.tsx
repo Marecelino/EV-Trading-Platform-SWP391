@@ -269,12 +269,11 @@ const PaymentCallbackPage = () => {
         
         // No contract yet, redirect to dashboard
         const timerId = window.setTimeout(
-          () => navigate("/dashboard/transactions", { replace: true }),
+          () => navigate("/dashboard/profile", { replace: true }),
           2000
         );
         timersRef.current.push(timerId);
       } else {
-        // No transaction found - likely listing creation payment
         // Redirect to my-listings
         const timerId = window.setTimeout(
           () => navigate("/dashboard/my-listings", { 

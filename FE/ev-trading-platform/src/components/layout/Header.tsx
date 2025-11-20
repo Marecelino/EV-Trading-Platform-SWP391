@@ -1,15 +1,17 @@
 // src/components/layout/Header.tsx
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, User, FolderKanban, LogOut, Heart } from "lucide-react";
+import { Menu, X, User, FolderKanban, LogOut, Heart, MessageCircle } from "lucide-react";
 import Button from "../common/Button/Button";
 import NotificationBell from "../common/NotificationBell/NotificationBell";
 import "./Header.scss";
 import { useAuth } from "../../contexts/AuthContext";
+import { useChatBot } from "../../contexts/ChatBotContext";
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { toggleChatBot } = useChatBot();
   const navigate = useNavigate();
 
   // state cho user dropdown
@@ -62,6 +64,16 @@ const Header: React.FC = () => {
               <Link to="/listings/create">
                 <Button variant="primary">Đăng tin</Button>
               </Link>
+
+              {/* AI Chatbot Button */}
+              <button
+                onClick={toggleChatBot}
+                className="header__chatbot-btn"
+                title="Trợ lý AI - Tư vấn giá"
+                aria-label="Mở trợ lý AI"
+              >
+                <MessageCircle size={20} color="#27AE60" />
+              </button>
 
               {/* Notification Bell */}
               <NotificationBell />
