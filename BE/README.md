@@ -113,3 +113,5 @@ src/
 ---
 
 Happy coding! Reach out via issues or code comments if you extend the API surface.
+VNPAY_RETURN_URL=https://ev-trading-platform-be.fly.dev/api/payment/vnpay-return
+GOOGLE_CALLBACK_URL=https://ev-trading-platform-be.fly.dev/api/auth/google/callback

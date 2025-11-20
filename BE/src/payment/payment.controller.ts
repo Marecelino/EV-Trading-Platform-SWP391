@@ -19,6 +19,10 @@ import {
   VNPayIPNDto,
   CreateAuctionPaymentDto,
 } from './dto/payment.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../model/users.schema';
 
 @ApiTags('Payment')
 @ApiBearerAuth()
@@ -134,5 +138,14 @@ export class PaymentController {
   @Public()
   async handleVNPayReturn(@Body() vnpayData: Record<string, any>) {
     return this.paymentService.verifyReturnUrl(vnpayData);
+  }
+
+  @Get('stats/listing-fees')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Lấy thống kê phí đăng tin' })
+  async getListingFeesStats() {
+    return this.paymentService.getListingFeesStats();
   }
 }

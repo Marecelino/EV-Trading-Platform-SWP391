@@ -35,3 +35,7 @@ primary_region = "sin"
     path = "/api"
     protocol = "http"
 
+[[mounts]]
+  source = "uploads_data"
+  destination = "/app/uploads"
+
