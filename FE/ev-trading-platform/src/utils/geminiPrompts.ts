@@ -3,7 +3,6 @@
  */
 
 import { Product, Auction } from '../types';
-import { PriceStats } from './priceCalculator';
 
 export interface GeminiContext {
   userLocation?: string;
@@ -43,7 +42,7 @@ Format JSON trả về:
   ],
   "benefits": ["Điểm mạnh 1", "Điểm mạnh 2"],
   "recommendations": "Lời khuyên tổng thể",
-  "callToAction": ["Xem chi tiết sản phẩm", "Liên hệ người bán"],
+  "callToAction": ["Xem chi tiết sản phẩm"],
   "humanReadable": "Đây là phần QUAN TRỌNG NHẤT. Hãy viết câu trả lời hoàn chỉnh, thân thiện, có emoji, chia đoạn rõ ràng. Giới thiệu các sản phẩm gợi ý một cách tự nhiên."
 }`;
   } else {
@@ -61,6 +60,12 @@ Quy tắc trả lời:
 1. **Văn bản thân thiện**: Trả lời như một người tư vấn tận tâm, không liệt kê kiểu robot
 2. **Tích hợp thông tin**: Lồng ghép phân tích giá, lợi ích, và cảnh báo vào câu trả lời văn bản (humanReadable)
 3. **Call-to-action**: Khuyến khích user xem chi tiết hoặc liên hệ người bán
+4. **DỮ LIỆU SỐ CHO UI**: BẮT BUỘC phải trả về thêm các trường số mô tả khoảng giá thị trường:
+   - priceAnalysis.marketMin: Giá thị trường THẤP NHẤT (số nguyên VND, ví dụ 1700000000 cho 1.7 tỷ)
+   - priceAnalysis.marketMax: Giá thị trường CAO NHẤT (số nguyên VND)
+   - priceAnalysis.recommended: Mức giá KHUYẾN NGHỊ nên trả trong khoảng thị trường (số nguyên VND)
+   - priceAnalysis.unit: Chuỗi "VND"
+   => KHÔNG được format bằng dấu chấm / dấu phẩy trong JSON (chỉ dùng số nguyên).
 
 Format JSON trả về:
 {
@@ -68,11 +73,15 @@ Format JSON trả về:
   "priceAnalysis": {
     "summary": "Nhận định ngắn gọn về giá (ĐẮT/RẺ/HỢP LÝ so với thị trường)",
     "confidence": "cao|trung bình|thấp",
-    "reasoning": "Lý do dựa trên research giá thị trường thực tế"
+    "reasoning": "Lý do dựa trên research giá thị trường thực tế",
+    "marketMin": 1700000000,
+    "marketMax": 2000000000,
+    "recommended": 1850000000,
+    "unit": "VND"
   },
   "benefits": ["Điểm mạnh 1", "Điểm mạnh 2"],
   "recommendations": "Lời khuyên mua bán",
-  "callToAction": ["Xem chi tiết sản phẩm", "Liên hệ người bán"],
+  "callToAction": ["Xem chi tiết sản phẩm"],
   "warnings": ["Cảnh báo nếu có"],
   "humanReadable": "Đây là phần QUAN TRỌNG NHẤT. Hãy viết câu trả lời hoàn chỉnh, thân thiện, có emoji, chia đoạn rõ ràng. Phân tích giá dựa trên research thị trường thực tế, không chỉ so sánh giữa các listing."
 }`;
@@ -97,8 +106,6 @@ export function buildUserPrompt(
     location: typeof l.location === 'string' ? l.location : l.location?.city,
     year: l.year || l.ev_details?.year,
     mileage: l.mileage || l.ev_details?.mileage_km,
-    brand: l.ev_details?.brand || l.battery_details?.brand,
-    model: l.ev_details?.model || l.battery_details?.model,
   }));
 
   // Prepare auction samples summary (limit to 20 items)
@@ -167,10 +174,21 @@ export interface SuggestedProduct {
 export interface GeminiResponse {
   queryType: 'consultation' | 'price_analysis';
   suggestedProducts?: SuggestedProduct[];
+  /**
+   * priceAnalysis:
+   * - summary/confidence/reasoning: mô tả text
+   * - marketMin/marketMax: khoảng giá thị trường (VND, số nguyên, không format)
+   * - recommended: giá khuyến nghị nên trả (trong khoảng [marketMin, marketMax])
+   * - unit: đơn vị tiền tệ, luôn là "VND"
+   */
   priceAnalysis?: {
     summary: string;
     confidence: 'cao' | 'trung bình' | 'thấp';
     reasoning: string;
+    marketMin?: number;
+    marketMax?: number;
+    recommended?: number;
+    unit?: string;
   };
   benefits: string[];
   recommendations: string;
@@ -180,14 +198,13 @@ export interface GeminiResponse {
 }
 
 /**
- * Fix JSON string by escaping control characters in string values
- * Uses a more robust approach: find string values and fix them
+ * Fix JSON string by escaping control characters in string values.
+ * Đi qua từng ký tự và chỉ escape control chars khi đang ở trong chuỗi.
  */
 function fixJsonString(jsonString: string): string {
   let result = '';
   let inString = false;
   let escapeNext = false;
-  let stringStart = 0;
   
   for (let i = 0; i < jsonString.length; i++) {
     const char = jsonString[i];
@@ -207,32 +224,30 @@ function fixJsonString(jsonString: string): string {
     if (char === '"') {
       inString = !inString;
       result += char;
-      if (inString) {
-        stringStart = result.length - 1;
-      }
       continue;
     }
     
     if (inString) {
-      // Inside a string: escape control characters
-      if (char === '\n') {
+      const code = char.charCodeAt(0);
+      // Escape common control characters
+      if (code === 0x0a) {
         result += '\\n';
-      } else if (char === '\r') {
+      } else if (code === 0x0d) {
         result += '\\r';
-      } else if (char === '\t') {
+      } else if (code === 0x09) {
         result += '\\t';
-      } else if (char === '\f') {
+      } else if (code === 0x0c) {
         result += '\\f';
-      } else if (char === '\b') {
+      } else if (code === 0x08) {
         result += '\\b';
-      } else if (char.charCodeAt(0) >= 0x00 && char.charCodeAt(0) <= 0x1F) {
-        // Other control characters: remove or replace with space
+      } else if (code >= 0x00 && code <= 0x1f) {
+        // Các control chars còn lại: thay bằng khoảng trắng
         result += ' ';
       } else {
         result += char;
       }
     } else {
-      // Outside string: keep as is
+      // Ngoài chuỗi: giữ nguyên
       result += char;
     }
   }
@@ -274,16 +289,13 @@ export function parseGeminiResponse(
       let jsonPart = cleaned.substring(firstBrace, lastBrace + 1);
       
       try {
-        // Try to fix control characters before parsing
-        jsonPart = fixJsonString(jsonPart);
+          jsonPart = fixJsonString(jsonPart);
         const parsed = JSON.parse(jsonPart);
         
-        // Ensure queryType is set
         if (!parsed.queryType) {
           parsed.queryType = queryType;
         }
         
-        // If humanReadable is missing, use the original text (excluding JSON)
         if (!parsed.humanReadable) {
           const textBeforeJson = cleaned.substring(0, firstBrace).trim();
           const textAfterJson = cleaned.substring(lastBrace + 1).trim();
@@ -292,70 +304,46 @@ export function parseGeminiResponse(
         
         return parsed as GeminiResponse;
       } catch (jsonError) {
-        // If JSON parsing fails, try fixing and parsing again
-        try {
-          // More aggressive fix: replace problematic characters
-          jsonPart = cleaned.substring(firstBrace, lastBrace + 1)
-            .replace(/\n/g, ' ')
-            .replace(/\r/g, ' ')
-            .replace(/\t/g, ' ')
-            .replace(/[\x00-\x1F]/g, ' '); // Remove all control characters
-          
-          const parsed = JSON.parse(jsonPart);
-          
-          if (!parsed.queryType) {
-            parsed.queryType = queryType;
-          }
-          
-          if (!parsed.humanReadable) {
-            const textBeforeJson = cleaned.substring(0, firstBrace).trim();
-            const textAfterJson = cleaned.substring(lastBrace + 1).trim();
-            parsed.humanReadable = (textBeforeJson + ' ' + textAfterJson).trim() || responseText;
-          }
-          
-          return parsed as GeminiResponse;
-        } catch (retryError) {
-          console.warn('Failed to parse extracted JSON after fixing:', retryError);
-        }
+        console.warn('Failed to parse extracted JSON, will try full text:', jsonError);
       }
     }
 
     // Step 3: Try parsing the whole cleaned text as JSON (with fixes)
-    try {
-      cleaned = fixJsonString(cleaned);
-      const parsed = JSON.parse(cleaned);
-      
-      // Ensure queryType is set
-      if (!parsed.queryType) {
-        parsed.queryType = queryType;
-      }
-      
-      // If humanReadable is missing, use the original text
-      if (!parsed.humanReadable) {
-        parsed.humanReadable = responseText;
-      }
-      
-      return parsed as GeminiResponse;
-    } catch (finalError) {
-      // Last attempt: aggressive cleaning
-      const aggressiveCleaned = cleaned
-        .replace(/\n/g, ' ')
-        .replace(/\r/g, ' ')
-        .replace(/\t/g, ' ')
-        .replace(/[\x00-\x1F]/g, ' ');
-      
-      const parsed = JSON.parse(aggressiveCleaned);
-      
-      if (!parsed.queryType) {
-        parsed.queryType = queryType;
-      }
-      
-      if (!parsed.humanReadable) {
-        parsed.humanReadable = responseText;
-      }
-      
-      return parsed as GeminiResponse;
+    cleaned = fixJsonString(cleaned);
+    const parsed = JSON.parse(cleaned);
+    
+    if (!parsed.queryType) {
+      parsed.queryType = queryType;
     }
+    
+    // Chuẩn hoá kiểu dữ liệu số cho priceAnalysis nếu có
+    if (parsed.priceAnalysis) {
+      const pa = parsed.priceAnalysis as {
+        marketMin?: unknown;
+        marketMax?: unknown;
+        recommended?: unknown;
+        unit?: unknown;
+      };
+      if (pa.marketMin !== undefined) {
+        pa.marketMin = Number(pa.marketMin);
+      }
+      if (pa.marketMax !== undefined) {
+        pa.marketMax = Number(pa.marketMax);
+      }
+      if (pa.recommended !== undefined) {
+        pa.recommended = Number(pa.recommended);
+      }
+      if (pa.unit === undefined) {
+        pa.unit = 'VND';
+      }
+      parsed.priceAnalysis = pa;
+    }
+    
+    if (!parsed.humanReadable) {
+      parsed.humanReadable = responseText;
+    }
+    
+    return parsed as GeminiResponse;
   } catch (error) {
     console.error('Failed to parse Gemini response:', error);
     console.error('Response text (first 500 chars):', responseText.substring(0, 500));
@@ -374,7 +362,7 @@ export function parseGeminiResponse(
         suggestedProducts: [],
         benefits: [],
         recommendations: humanReadable || 'Không thể phân tích phản hồi từ AI',
-        callToAction: ['Xem chi tiết sản phẩm', 'Liên hệ người bán'],
+        callToAction: ['Xem chi tiết sản phẩm'],
         humanReadable: humanReadable || responseText,
       };
     } else {
@@ -387,7 +375,7 @@ export function parseGeminiResponse(
         },
         benefits: [],
         recommendations: humanReadable || 'Không thể phân tích phản hồi từ AI',
-        callToAction: ['Xem chi tiết sản phẩm', 'Liên hệ người bán'],
+        callToAction: ['Xem chi tiết sản phẩm'],
         warnings: ['Không thể phân tích chính xác, vui lòng tham khảo thêm'],
         humanReadable: humanReadable || responseText,
       };

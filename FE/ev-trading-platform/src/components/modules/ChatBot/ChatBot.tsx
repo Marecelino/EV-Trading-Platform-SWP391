@@ -172,19 +172,19 @@ const ChatBot: React.FC = () => {
                     </div>
                     <div className="price-analysis-card__stats">
                       <div className="price-stat">
-                        <span className="price-stat__label">Thấp nhất</span>
+                        <span className="price-stat__label">Thấp nhất (dữ liệu sàn)</span>
                         <span className="price-stat__value">
                           {formatPriceCompactVND(message.data.priceStats.min)}
                         </span>
                       </div>
                       <div className="price-stat price-stat--highlight">
-                        <span className="price-stat__label">Trung vị</span>
+                        <span className="price-stat__label">Trung vị (dữ liệu sàn)</span>
                         <span className="price-stat__value">
                           {formatPriceCompactVND(message.data.priceStats.median)}
                         </span>
                       </div>
                       <div className="price-stat">
-                        <span className="price-stat__label">Cao nhất</span>
+                        <span className="price-stat__label">Cao nhất (dữ liệu sàn)</span>
                         <span className="price-stat__value">
                           {formatPriceCompactVND(message.data.priceStats.max)}
                         </span>
@@ -192,21 +192,82 @@ const ChatBot: React.FC = () => {
                     </div>
                     <div className="price-analysis-card__info">
                       <span className="sample-count">
-                        Dựa trên {message.data.priceStats.count} tin đăng
+                        Dựa trên {message.data.priceStats.count} tin đăng trên sàn
                       </span>
                     </div>
 
+                    {/* Market price range from AI (if available) */}
+                    {message.data.data?.priceAnalysis?.marketMin &&
+                     message.data.data.priceAnalysis.marketMax && (
+                      <div className="price-range">
+                        {(() => {
+                          const pa = message.data.data!.priceAnalysis!;
+                          const marketMin = pa.marketMin!;
+                          const marketMax = pa.marketMax!;
+                          const recommended =
+                            pa.recommended ??
+                            message.data.priceStats
+                              ? message.data.priceStats.median
+                              : marketMin;
 
+                          const clampedRecommended = Math.min(
+                            Math.max(recommended, marketMin),
+                            marketMax,
+                          );
+                          const ratio =
+                            marketMax > marketMin
+                              ? (clampedRecommended - marketMin) /
+                                (marketMax - marketMin)
+                              : 0.5;
+
+                          const thumbLeft = `${ratio * 100}%`;
+
+                          return (
+                            <>
+                              <div className="price-range__header">
+                                <span className="price-range__title">
+                                  Khoảng giá thị trường (AI ước tính)
+                                </span>
+                              </div>
+                              <div className="price-range__track-wrapper">
+                                <div className="price-range__track">
+                                  <div
+                                    className="price-range__fill"
+                                    style={{ width: `${ratio * 100}%` }}
+                                  />
+                                  <div
+                                    className="price-range__thumb"
+                                    style={{ left: thumbLeft }}
+                                  >
+                                    <div className="price-range__thumb-label">
+                                      {formatPriceCompactVND(clampedRecommended)}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="price-range__labels">
+                                  <span>
+                                    {formatPriceCompactVND(marketMin)}
+                                  </span>
+                                  <span>
+                                    {formatPriceCompactVND(marketMax)}
+                                  </span>
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
 
                     {/* Call to Actions */}
                     {message.data.data?.callToAction && message.data.data.callToAction.length > 0 && (
                       <div className="cta-buttons">
                         {/* View Details Button */}
-                        {message.data.bestMatchId && (
+                        {message.data?.bestMatchId && (
                           <button 
                             className="cta-button"
                             onClick={() => {
-                              navigate(`/products/${message.data.bestMatchId}`);
+                              navigate(`/products/${message.data!.bestMatchId}`);
                               toggleChatBot();
                             }}
                           >

@@ -7,13 +7,13 @@ import SpecificationTable from "../../components/modules/SpecificationTable/Spec
 import SellerInfoCard from "../../components/modules/SellerInfoCard/SellerInfoCard";
 import KeySpecsBar from "../../components/modules/KeySpecsBar/KeySpecsBar";
 import "./ProductDetailPage.scss";
-import priceSuggestionApi from "../../api/priceSuggestionApi";
+//import priceSuggestionApi from "../../api/priceSuggestionApi";
 import favoriteApi from "../../api/favoriteApi";
 import evDetailApi from "../../api/evDetailApi";
 import batteryDetailApi from "../../api/batteryDetailApi";
 import authApi, { extractUserFromResponse } from "../../api/authApi";
 import type { Product, User, EVDetail, BatteryDetail } from "../../types";
-import PriceSuggestion from "../../components/modules/PriceSuggestion/PriceSuggestion";
+//import PriceSuggestion from "../../components/modules/PriceSuggestion/PriceSuggestion";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   MapPin,
@@ -28,16 +28,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-type PriceSuggestionSummary = {
-  title: string;
-  subtitle: string;
-  display: {
-    min: number;
-    suggested: number;
-    max: number;
-    labelSuggested: string;
-  };
-};
+
 
 // Helper component for the new Highlights section
 const HighlightsCard: React.FC<{
@@ -68,8 +59,7 @@ const ProductDetailPage: React.FC = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [seller, setSeller] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [priceSuggestion, setPriceSuggestion] =
-    useState<PriceSuggestionSummary | null>(null);
+
 
   useEffect(() => {
     if (id) {
@@ -154,35 +144,7 @@ const ProductDetailPage: React.FC = () => {
               console.error("Error processing seller data:", sellerError);
             }
 
-            // Try to get price suggestion
-            try {
-              const suggestionRes = await priceSuggestionApi.getLatestPriceSuggestionByListingId(id);
-              console.log("Price suggestion response:", suggestionRes.data);
-              // CRITICAL FIX: Handle response structure - may be nested or direct
-              let suggestionData = null;
-              if (suggestionRes.data?.data) {
-                suggestionData = suggestionRes.data.data;
-              } else if (suggestionRes.data) {
-                suggestionData = suggestionRes.data;
-              }
-              
-              if (suggestionData) {
-                // Transform API response to match component expected format
-                const transformedSuggestion = {
-                  title: "Gợi ý giá từ AI",
-                  subtitle: `Dựa trên ${suggestionData.based_on_transactions || 0} giao dịch tương tự`,
-                  display: {
-                    min: suggestionData.min_price,
-                    suggested: suggestionData.suggested_price,
-                    max: suggestionData.max_price,
-                    labelSuggested: `${(suggestionData.suggested_price / 1000000).toFixed(0)}tr`
-                  }
-                };
-                setPriceSuggestion(transformedSuggestion);
-              }
-            } catch (suggestionError) {
-              console.log("No price suggestion available:", suggestionError);
-            }
+            
 
             if (user && id) {
               try {
@@ -460,7 +422,7 @@ const ProductDetailPage: React.FC = () => {
             )}
           </div>
 
-          {priceSuggestion && <PriceSuggestion summary={priceSuggestion} />}
+        
         </div>
 
         {/* === BỘ SƯU TẬP ẢNH === */}

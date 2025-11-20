@@ -186,7 +186,7 @@ const ContractSigningPage: React.FC = () => {
   }
 
   // Check if already signed
-  const isAlreadySigned = contract.status === 'completed' || 
+  const isAlreadySigned = contract.status === 'signed' || 
     (contract.buyer_signature && contract.seller_signature);
 
   if (isAlreadySigned && !success) {
@@ -219,13 +219,7 @@ const ContractSigningPage: React.FC = () => {
             <CheckCircle size={48} className="success-icon" />
             <h2>Ký hợp đồng thành công!</h2>
             <p>Hợp đồng đã được ký thành công. File PDF đã được tải xuống tự động.</p>
-            {signedDocumentUrl && (
-              <p className="document-url">
-                <a href={signedDocumentUrl} target="_blank" rel="noopener noreferrer">
-                  Xem hợp đồng đã ký
-                </a>
-              </p>
-            )}
+            
             <div className="actions">
               <Button onClick={() => downloadContractPDF(id!)}>
                 <Download size={18} /> Tải lại PDF

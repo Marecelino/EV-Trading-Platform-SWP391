@@ -191,18 +191,14 @@
   }
 }
 
-// Table container - clean white card with horizontal scroll
-.admin-table-container {
-  background: $white-color;
-  border-radius: $radius-md;
-  box-shadow: $shadow-base;
+// MUI Table Container
+.mui-table-container {
+  box-shadow: $shadow-base !important;
+  border-radius: $radius-md !important;
   overflow-x: auto;
-  overflow-y: visible;
-  border: 1px solid $border-color;
-  -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
-  position: relative;
+  -webkit-overflow-scrolling: touch;
   
-  // Custom scrollbar styling for better UX
+  // Custom scrollbar styling
   &::-webkit-scrollbar {
     height: 10px;
   }
@@ -228,115 +224,43 @@
   scrollbar-color: $border-color lighten($background-color, 2%);
 }
 
-// Table styling with fixed layout
-.admin-table {
-  width: 100%;
-  min-width: 1200px; // Minimum width to prevent columns from being too cramped
-  table-layout: fixed; // Fixed layout for consistent column widths
-  border-collapse: collapse;
-  font-size: $font-size-base;
+// MUI Table styling
+.mui-table {
+  min-width: 900px;
   
-  thead {
-    background: $gray-50;
-    border-bottom: 2px solid $border-color;
+  .mui-table-header {
+    background-color: $gray-50 !important;
+    font-weight: $font-weight-semibold !important;
+    color: $text-color !important;
+    font-size: $font-size-sm !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: $spacing-5 $spacing-4 !important;
+    border-bottom: 2px solid $border-color !important;
+  }
+  
+  // Override MUI TableCell padding and styling
+  .MuiTableCell-root {
+    padding: $spacing-5 $spacing-4 !important;
+    border-bottom: 1px solid $border-light !important;
+  }
+  
+  .MuiTableRow-root {
+    transition: background-color $duration-fast $ease-in-out;
     
-    th {
-      padding: $spacing-5 $spacing-4;
-      text-align: left;
-      font-weight: $font-weight-semibold;
-      color: $text-color;
-      font-size: $font-size-sm;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-      position: sticky;
-      top: 0;
-      background: $gray-50;
-      z-index: 10;
-      
-      // Column-specific widths (using percentages for fixed layout)
-      &:nth-child(1) { // Sản phẩm - 25%
-        width: 25%;
-        min-width: 280px;
-        padding-left: $spacing-6;
-      }
-      
-      &:nth-child(2) { // Giá hiện tại - 12%
-        width: 12%;
-        min-width: 140px;
-      }
-      
-      &:nth-child(3) { // Thời gian bắt đầu - 14%
-        width: 14%;
-        min-width: 180px;
-      }
-      
-      &:nth-child(4) { // Thời gian kết thúc - 14%
-        width: 14%;
-        min-width: 180px;
-      }
-      
-      &:nth-child(5) { // Thời gian còn lại - 12%
-        width: 12%;
-        min-width: 150px;
-      }
-      
-      &:nth-child(6) { // Số lượt giá - 8%
-        width: 8%;
-        min-width: 120px;
-        text-align: center;
-      }
-      
-      &:nth-child(7) { // Trạng thái - 10%
-        width: 10%;
-        min-width: 130px;
-        text-align: center;
-      }
-      
-      &:nth-child(8) { // Hành động - 15%
-        width: 15%;
-        min-width: 200px;
-        padding-right: $spacing-6;
-        text-align: center;
-      }
+    &:hover {
+      background-color: $gray-50 !important;
+    }
+    
+    &:last-child .MuiTableCell-root {
+      border-bottom: none !important;
     }
   }
   
-  tbody {
-    tr {
-      border-bottom: 1px solid $border-light;
-      transition: background-color $duration-fast $ease-in-out;
-      
-      &:hover {
-        background-color: $gray-50;
-      }
-      
-      &:last-child {
-        border-bottom: none;
-      }
-    }
-    
-    td {
-      padding: $spacing-5 $spacing-4;
-      vertical-align: middle;
-      
-      &:nth-child(1) { // Sản phẩm
-        white-space: normal; // Allow text wrapping for product name
-      }
-      
-      &:nth-child(2),
-      &:nth-child(3),
-      &:nth-child(4),
-      &:nth-child(5) {
-        white-space: nowrap;
-      }
-      
-      &.empty-cell {
-        text-align: center;
-        padding: $spacing-16 $spacing-4;
-        white-space: normal;
-      }
-    }
+  .empty-cell {
+    text-align: center;
+    padding: $spacing-16 $spacing-4 !important;
+    white-space: normal;
   }
 }
 
@@ -388,53 +312,46 @@
 }
 
 // Price styling
-td {
-  strong {
-    color: $primary-color;
-    font-weight: $font-weight-bold;
-    font-size: $font-size-lg;
-  }
+.price-cell {
+  color: $primary-color !important;
+  font-weight: $font-weight-bold !important;
+  font-size: $font-size-lg !important;
 }
 
-// Time display
-td {
-  color: $text-color;
-  font-size: $font-size-sm;
-  white-space: nowrap;
-}
-
-// Status badge
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 14px;
-  border-radius: $radius-full;
-  font-size: $font-size-xs;
-  font-weight: $font-weight-semibold;
+// Status chip (MUI Chip component)
+.status-chip {
+  font-weight: $font-weight-semibold !important;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  white-space: nowrap;
-  min-width: 100px;
   
-  &.status--live {
-    background-color: lighten($primary-color, 45%);
-    color: $primary-color;
+  &.status-chip--live {
+    background-color: lighten($primary-color, 45%) !important;
+    color: $primary-color !important;
   }
   
-  &.status--scheduled {
-    background-color: lighten($accent-color, 35%);
-    color: darken($accent-color, 15%);
+  &.status-chip--scheduled {
+    background-color: lighten($accent-color, 35%) !important;
+    color: darken($accent-color, 15%) !important;
   }
   
-  &.status--ended {
-    background-color: $gray-100;
-    color: $text-secondary;
+  &.status-chip--pending {
+    background-color: lighten(#f59e0b, 35%) !important;
+    color: darken(#f59e0b, 15%) !important;
   }
   
-  &.status--cancelled {
-    background-color: lighten($error-color, 40%);
-    color: $error-color;
+  &.status-chip--ended {
+    background-color: $gray-100 !important;
+    color: $text-secondary !important;
+  }
+  
+  &.status-chip--cancelled {
+    background-color: lighten($error-color, 40%) !important;
+    color: $error-color !important;
+  }
+  
+  &.status-chip--draft {
+    background-color: $gray-100 !important;
+    color: $text-secondary !important;
   }
 }
 
@@ -465,63 +382,24 @@ td {
   font-size: $font-size-sm;
 }
 
-// Actions cell
-.actions-cell {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: $spacing-2;
-  flex-wrap: wrap;
-}
-
-// Action buttons
+// Action buttons (MUI Button components)
 .action-btn {
-  padding: 8px 16px;
-  border-radius: $radius-base;
-  border: none;
-  cursor: pointer;
-  font-weight: $font-weight-medium;
-  font-size: $font-size-sm;
-  transition: all $duration-fast $ease-in-out;
+  text-transform: none !important;
+  font-weight: $font-weight-medium !important;
+  font-size: $font-size-sm !important;
   white-space: nowrap;
   min-width: 80px;
   
   &:hover {
     transform: translateY(-1px);
     box-shadow: $shadow-sm;
-    opacity: 0.9;
   }
-  
-  &:active {
-    transform: translateY(0);
-  }
-  
-  &.btn--approve {
-    background-color: $primary-color;
-    color: $white-color;
-    
-    &:hover {
-      background-color: darken($primary-color, 8%);
-    }
-  }
-  
-  &.btn--end {
-    background-color: $warning-color;
-    color: $white-color;
-    
-    &:hover {
-      background-color: darken($warning-color, 8%);
-    }
-  }
-  
-  &.btn--reject {
-    background-color: $error-color;
-    color: $white-color;
-    
-    &:hover {
-      background-color: darken($error-color, 8%);
-    }
-  }
+}
+
+.action-btn-details {
+  text-transform: none !important;
+  font-weight: $font-weight-medium !important;
+  font-size: $font-size-sm !important;
 }
 
 .no-actions {
@@ -602,22 +480,22 @@ td {
     }
   }
   
-  .admin-table-container {
+  .mui-table-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
   
-  .admin-table {
+  .mui-table {
     font-size: $font-size-sm;
-    min-width: 1100px; // Slightly smaller min-width for tablet
+    min-width: 800px;
     
-    thead th {
-      padding: $spacing-4 $spacing-3;
-      font-size: $font-size-xs;
+    .mui-table-header {
+      padding: $spacing-4 $spacing-3 !important;
+      font-size: $font-size-xs !important;
     }
     
-    tbody td {
-      padding: $spacing-4 $spacing-3;
+    .MuiTableCell-root {
+      padding: $spacing-4 $spacing-3 !important;
     }
     
     .product-cell {
@@ -648,53 +526,32 @@ td {
     }
   }
   
-  .admin-table-container {
+  .mui-table-container {
     overflow-x: auto;
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     border-radius: $radius-base;
     
-    // Make scrollbar more visible on mobile
     &::-webkit-scrollbar {
       height: 10px;
     }
   }
   
-  .admin-table {
-    min-width: 900px; // Smaller min-width for mobile to allow scrolling
+  .mui-table {
+    min-width: 700px;
     
-    thead th {
-      padding: $spacing-3 $spacing-2;
-      font-size: $font-size-xs;
-      
-      // Reduce min-widths slightly on mobile
-      &:nth-child(1) { min-width: 240px; }
-      &:nth-child(2) { min-width: 120px; }
-      &:nth-child(3) { min-width: 160px; }
-      &:nth-child(4) { min-width: 160px; }
-      &:nth-child(5) { min-width: 130px; }
-      &:nth-child(6) { min-width: 100px; }
-      &:nth-child(7) { min-width: 110px; }
-      &:nth-child(8) { min-width: 180px; }
+    .mui-table-header {
+      padding: $spacing-3 $spacing-2 !important;
+      font-size: $font-size-xs !important;
     }
     
-    tbody td {
-      padding: $spacing-3 $spacing-2;
-      
-      // Reduce min-widths slightly on mobile
-      &:nth-child(1) { min-width: 240px; }
-      &:nth-child(2) { min-width: 120px; }
-      &:nth-child(3) { min-width: 160px; }
-      &:nth-child(4) { min-width: 160px; }
-      &:nth-child(5) { min-width: 130px; }
-      &:nth-child(6) { min-width: 100px; }
-      &:nth-child(7) { min-width: 110px; }
-      &:nth-child(8) { min-width: 180px; }
+    .MuiTableCell-root {
+      padding: $spacing-3 $spacing-2 !important;
     }
     
     .product-cell {
       gap: $spacing-2;
-      min-width: 240px;
+      min-width: 200px;
       
       img {
         width: 60px;
@@ -710,16 +567,6 @@ td {
     
     .pagination-info {
       text-align: center;
-    }
-  }
-  
-  .actions-cell {
-    flex-direction: column;
-    gap: $spacing-2;
-    
-    .action-btn {
-      width: 100%;
-      min-width: unset;
     }
   }
 }

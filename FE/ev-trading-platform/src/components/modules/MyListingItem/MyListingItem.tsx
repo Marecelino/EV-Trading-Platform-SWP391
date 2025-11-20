@@ -70,23 +70,8 @@ const MyListingItem: React.FC<MyListingItemProps> = ({ product }) => {
         </div>
       </div>
 
-      <div className="item-actions">
-        <button className="action-button btn-boost">
-          <Zap size={16} /> Đẩy tin
-        </button>
-        <button className="action-button btn-edit">
-          <Edit size={16} /> Sửa
-        </button>
-        <div className="more-actions">
-          <button className="more-actions__toggle">
-            <MoreHorizontal size={20} />
-          </button>
-          <div className="more-actions__menu">
-            <a href="#">Đã bán</a>
-            <a href="#">Xóa tin</a>
-          </div>
-        </div>
-      </div>
+      
+      
     </div>
   );
 };

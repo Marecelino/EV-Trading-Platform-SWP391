@@ -72,23 +72,23 @@ export async function generateMarketAdvice(
     // Calculate price stats only for price analysis mode
     let priceStats: ReturnType<typeof computePriceStats> | undefined = undefined;
     if (queryType === 'price_analysis') {
-      // 1. Filter samples relevant to the query for STATS calculation
-      const relevantListings = filterRelevantProducts(request.listingSamples, request.query);
-      const relevantAuctions = filterRelevantProducts(request.auctionSamples, request.query);
+    // 1. Filter samples relevant to the query for STATS calculation
+    const relevantListings = filterRelevantProducts(request.listingSamples, request.query);
+    const relevantAuctions = filterRelevantProducts(request.auctionSamples, request.query);
 
-      // 2. Calculate price statistics on RELEVANT samples only
-      let allPrices = [
-        ...relevantListings.map((l) => l.price),
-        ...relevantAuctions.map((a) => a.current_price || a.buy_now_price || 0),
-      ].filter((p) => p > 0);
+    // 2. Calculate price statistics on RELEVANT samples only
+    let allPrices = [
+      ...relevantListings.map((l) => l.price),
+      ...relevantAuctions.map((a) => a.current_price || a.buy_now_price || 0),
+    ].filter((p) => p > 0);
 
-      // 3. Filter outliers (e.g. dummy prices like 1000 VND or accessories)
-      allPrices = allPrices.filter(p => p > 10_000_000);
-      
-      // Optional: IQR filtering if we have enough samples
-      if (allPrices.length > 4) {
-        allPrices = filterOutliers(allPrices);
-      }
+    // 3. Filter outliers (e.g. dummy prices like 1000 VND or accessories)
+    allPrices = allPrices.filter(p => p > 10_000_000);
+    
+    // Optional: IQR filtering if we have enough samples
+    if (allPrices.length > 4) {
+      allPrices = filterOutliers(allPrices);
+    }
 
       priceStats = computePriceStats(allPrices);
     }
@@ -110,9 +110,9 @@ export async function generateMarketAdvice(
       try {
         response = await ai.models.generateContent({
           model: "gemini-2.5-flash",
-          contents: [
-            {
-              role: "user",
+      contents: [
+        {
+          role: "user",
               parts: [{ text: fullPrompt }]
             }
           ],

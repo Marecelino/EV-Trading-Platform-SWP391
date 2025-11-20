@@ -1,5 +1,5 @@
 // src/pages/AdminListingManagementPage/AdminListingManagementPage.tsx
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Package, CheckCircle, Clock, XCircle, TrendingUp } from 'lucide-react';
 import listingApi from '../../api/listingApi';
 import type { Product } from '../../types';
@@ -32,57 +32,66 @@ const mapStatusToApi = (status: ListingStatus): 'draft' | 'pending' | 'active' |
 
 const AdminListingManagementPage: React.FC = () => {
   const [listings, setListings] = useState<Product[]>([]);
-  const [allListingsForStats, setAllListingsForStats] = useState<Product[]>([]); // Store all listings for stats
+  const [statsCounts, setStatsCounts] = useState({
+    total: 0,
+    active: 0,
+    pending: 0,
+    rejected: 0
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ListingStatus>('pending');
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1 });
   const ITEMS_PER_PAGE = 3;
 
-  // Calculate stats from all listings
-  const listingStats = useMemo(() => {
-    const total = allListingsForStats.length;
-    const active = allListingsForStats.filter(l => l.status === 'active').length;
-    const pending = allListingsForStats.filter(l => l.status === 'pending').length;
-    const rejected = allListingsForStats.filter(l => l.status === 'rejected').length;
-    
-    return { total, active, pending, rejected };
-  }, [allListingsForStats]);
-
-  // Fetch all listings for stats (once on mount)
+  // Fetch stats counts directly from API meta
   const fetchAllListingsForStats = useCallback(() => {
-    // Fetch all listings without status filter for stats
     Promise.all([
-      listingApi.getListings({ status: 'pending', page: 1, limit: 100 }),
-      listingApi.getListings({ status: 'active', page: 1, limit: 100 }),
-      listingApi.getListings({ status: 'rejected', page: 1, limit: 100 }),
-      listingApi.getListings({ status: 'draft', page: 1, limit: 100 }),
-      listingApi.getListings({ status: 'sold', page: 1, limit: 100 }),
-      listingApi.getListings({ status: 'expired', page: 1, limit: 100 }),
+      listingApi.getListings({ status: 'pending', page: 1, limit: 1 }),
+      listingApi.getListings({ status: 'active', page: 1, limit: 1 }),
+      listingApi.getListings({ status: 'rejected', page: 1, limit: 1 }),
+      listingApi.getListings({ status: 'draft', page: 1, limit: 1 }),
+      listingApi.getListings({ status: 'sold', page: 1, limit: 1 }),
+      listingApi.getListings({ status: 'expired', page: 1, limit: 1 }),
     ])
       .then((responses) => {
-        let allListingsData: Product[] = [];
-        
-        responses.forEach((response) => {
-          const responseData = response.data as Product[] | PaginatedResponse<Product>;
-          let listingsData: Product[] = [];
+        const counts = {
+          pending: 0,
+          active: 0,
+          rejected: 0,
+          draft: 0,
+          sold: 0,
+          expired: 0
+        };
+
+        const statuses: ListingStatus[] = ['pending', 'active', 'rejected', 'draft', 'sold', 'expired'];
+
+        responses.forEach((response, index) => {
+          const responseData = response.data as PaginatedResponse<Product>;
+          // Check for meta.total first, then pagination.total
+          let total = 0;
           
-          if (Array.isArray(responseData)) {
-            listingsData = responseData;
-          } else if (responseData && typeof responseData === 'object' && 'data' in responseData && Array.isArray(responseData.data)) {
-            listingsData = responseData.data;
+          if (responseData && typeof responseData === 'object') {
+            if ('meta' in responseData && responseData.meta?.total !== undefined) {
+              total = responseData.meta.total;
+            } else if ('pagination' in responseData && responseData.pagination?.total !== undefined) {
+              total = responseData.pagination.total;
+            }
           }
           
-          listingsData = listingsData.filter((listing): listing is Product => {
-            return !!(listing && listing._id);
-          });
-          
-          allListingsData = [...allListingsData, ...listingsData];
+          counts[statuses[index]] = total;
         });
         
-        setAllListingsForStats(allListingsData);
+        const total = Object.values(counts).reduce((a, b) => a + b, 0);
+        
+        setStatsCounts({
+          total,
+          active: counts.active,
+          pending: counts.pending,
+          rejected: counts.rejected
+        });
       })
       .catch(error => {
-        console.error("Error fetching all listings for stats:", error);
+        console.error("Error fetching stats:", error);
       });
   }, []);
 
@@ -224,7 +233,7 @@ const AdminListingManagementPage: React.FC = () => {
           </div>
           <div className="stat-card__content">
             <h3 className="stat-card__label">Tổng tin đăng</h3>
-            <p className="stat-card__value">{listingStats.total.toLocaleString('vi-VN')}</p>
+            <p className="stat-card__value">{statsCounts.total.toLocaleString('vi-VN')}</p>
           </div>
         </div>
 
@@ -234,7 +243,7 @@ const AdminListingManagementPage: React.FC = () => {
           </div>
           <div className="stat-card__content">
             <h3 className="stat-card__label">Đang hiển thị</h3>
-            <p className="stat-card__value">{listingStats.active.toLocaleString('vi-VN')}</p>
+            <p className="stat-card__value">{statsCounts.active.toLocaleString('vi-VN')}</p>
           </div>
         </div>
 
@@ -244,7 +253,7 @@ const AdminListingManagementPage: React.FC = () => {
           </div>
           <div className="stat-card__content">
             <h3 className="stat-card__label">Chờ duyệt</h3>
-            <p className="stat-card__value">{listingStats.pending.toLocaleString('vi-VN')}</p>
+            <p className="stat-card__value">{statsCounts.pending.toLocaleString('vi-VN')}</p>
           </div>
         </div>
 
@@ -254,7 +263,7 @@ const AdminListingManagementPage: React.FC = () => {
           </div>
           <div className="stat-card__content">
             <h3 className="stat-card__label">Bị từ chối</h3>
-            <p className="stat-card__value">{listingStats.rejected.toLocaleString('vi-VN')}</p>
+            <p className="stat-card__value">{statsCounts.rejected.toLocaleString('vi-VN')}</p>
           </div>
         </div>
       </div>

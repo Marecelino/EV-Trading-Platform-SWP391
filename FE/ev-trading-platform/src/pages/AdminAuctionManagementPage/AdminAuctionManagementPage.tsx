@@ -1,11 +1,25 @@
 // src/pages/AdminAuctionManagementPage/AdminAuctionManagementPage.tsx
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Gavel, Clock, CheckCircle, XCircle, AlertCircle, TrendingUp } from "lucide-react";
+import { Gavel, Clock, CheckCircle, XCircle, AlertCircle, TrendingUp, Eye } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Box,
+  Chip,
+  Button,
+  CircularProgress,
+} from "@mui/material";
 import auctionApi from "../../api/auctionApi";
 import type { Auction } from "../../types";
 import { UpdateAuctionStatusDto } from "../../types/api";
 import Pagination from "../../components/common/Pagination/Pagination";
+import AuctionDetailsModal from "../../components/modals/AuctionDetailsModal/AuctionDetailsModal";
 import "./AdminAuctionManagementPage.scss";
 
 type AuctionStatus = "pending" | "draft" | "scheduled" | "live" | "ended" | "cancelled";
@@ -19,6 +33,8 @@ const AdminAuctionManagementPage: React.FC = () => {
     currentPage: 1,
     totalPages: 1,
   });
+  const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const ITEMS_PER_PAGE = 3;
 
   // Calculate paginated auctions
@@ -297,6 +313,18 @@ const AdminAuctionManagementPage: React.FC = () => {
       alert(errorMessage);
     });
   };
+
+  // Handler: Open details modal
+  const handleViewDetails = (auction: Auction) => {
+    setSelectedAuction(auction);
+    setIsModalOpen(true);
+  };
+
+  // Handler: Close details modal
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedAuction(null);
+  };
   return (
     <div className="admin-page">
       <h1>Quản lý Đấu giá</h1>
@@ -383,30 +411,31 @@ const AdminAuctionManagementPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="admin-table-container">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Sản phẩm</th>
-              <th>Giá hiện tại</th>
-              <th>Thời gian bắt đầu</th>
-              <th>Thời gian kết thúc</th>
-              <th>Thời gian còn lại</th>
-              <th>Số lượt giá</th>
-              <th>Trạng thái</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
+      <TableContainer component={Paper} className="mui-table-container">
+        <Table className="mui-table">
+          <TableHead>
+            <TableRow>
+              <TableCell className="mui-table-header">Sản phẩm</TableCell>
+              <TableCell className="mui-table-header">Giá hiện tại</TableCell>
+              <TableCell className="mui-table-header">Thời gian bắt đầu</TableCell>
+              <TableCell className="mui-table-header">Thời gian kết thúc</TableCell>
+              <TableCell className="mui-table-header">Trạng thái</TableCell>
+              <TableCell className="mui-table-header" align="center">Hành động</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {isLoading ? (
-              <tr>
-                <td colSpan={8} className="empty-cell">
-                  <div className="loading-spinner">Đang tải dữ liệu...</div>
-                </td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={6} align="center" className="empty-cell">
+                  <Box display="flex" alignItems="center" justifyContent="center" gap={2} py={4}>
+                    <CircularProgress size={24} />
+                    <span>Đang tải dữ liệu...</span>
+                  </Box>
+                </TableCell>
+              </TableRow>
             ) : paginatedAuctions.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="empty-cell">
+              <TableRow>
+                <TableCell colSpan={6} align="center" className="empty-cell">
                   <div className="empty-state">
                     <p className="empty-state-title">
                       Không có phiên đấu giá nào trong mục này.
@@ -415,8 +444,8 @@ const AdminAuctionManagementPage: React.FC = () => {
                       Hãy thử chuyển sang tab khác hoặc tạo phiên đấu giá mới.
                     </p>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               paginatedAuctions.map((auction) => {
                 // Use auction data directly (flattened structure from backend)
@@ -426,16 +455,12 @@ const AdminAuctionManagementPage: React.FC = () => {
                 
                 // Handle seller_id: can be null, string, or User object
                 const sellerName = auction.seller_id && typeof auction.seller_id === 'object' 
-                  ? (auction.seller_id as any)?.full_name || "N/A"
+                  ? (auction.seller_id as any)?.name || (auction.seller_id as any)?.full_name || "N/A"
                   : "N/A";
 
-                // Calculate time remaining
-                const timeRemaining = auction.end_time ? getTimeRemaining(auction.end_time) : "N/A";
-                const isEnded = auction.status === "ended" || auction.status === "cancelled";
-
                 return (
-                  <tr key={auction._id}>
-                    <td>
+                  <TableRow key={auction._id} hover>
+                    <TableCell>
                       <div className="product-cell">
                         <img 
                           src={firstImage} 
@@ -453,13 +478,13 @@ const AdminAuctionManagementPage: React.FC = () => {
                           </span>
                         </div>
                       </div>
-                    </td>
-                    <td>
-                      <strong style={{ color: "#007bff" }}>
+                    </TableCell>
+                    <TableCell>
+                      <strong className="price-cell">
                         {auction.current_price ? auction.current_price.toLocaleString("vi-VN") + " ₫" : "N/A"}
                       </strong>
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       {auction.start_time 
                         ? new Date(auction.start_time).toLocaleString("vi-VN", {
                             day: "2-digit",
@@ -470,8 +495,8 @@ const AdminAuctionManagementPage: React.FC = () => {
                           })
                         : "N/A"
                       }
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       {auction.end_time 
                         ? new Date(auction.end_time).toLocaleString("vi-VN", {
                             day: "2-digit",
@@ -482,100 +507,112 @@ const AdminAuctionManagementPage: React.FC = () => {
                           })
                         : "N/A"
                       }
-                    </td>
-                    <td>
-                      <span className={isEnded ? "time-ended" : "time-remaining"}>
-                        {timeRemaining}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="bids-count">
-                        {auction.bids ? auction.bids.length : 0}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        className={`status-badge status--${auction.status}`}
-                        title={getStatusLabel(auction.status)}
-                      >
-                        {getStatusLabel(auction.status)}
-                      </span>
-                    </td>
-                    <td className="actions-cell">
-                      {activeTab === "pending" && (
-                        <>
-                          <button
-                            className="action-btn btn--approve"
-                            onClick={() => handleScheduleAuction(auction._id)}
-                            title="Lên lịch phiên đấu giá"
-                          >
-                            Lên lịch
-                          </button>
-                          <button
-                            className="action-btn btn--approve"
-                            onClick={() => handleActivateAuction(auction._id)}
-                            title="Kích hoạt ngay phiên đấu giá"
-                          >
-                            Kích hoạt ngay
-                          </button>
-                          <button
-                            className="action-btn btn--reject"
-                            onClick={() => handleCancelAuction(auction._id, title)}
-                            title="Hủy phiên đấu giá"
-                          >
-                            Hủy
-                          </button>
-                        </>
-                      )}
-                      {activeTab === "scheduled" && (
-                        <>
-                          <button
-                            className="action-btn btn--approve"
-                            onClick={() => handleActivateAuction(auction._id)}
-                            title="Kích hoạt ngay phiên đấu giá"
-                          >
-                            Kích hoạt ngay
-                          </button>
-                          <button
-                            className="action-btn btn--reject"
-                            onClick={() => handleCancelAuction(auction._id, title)}
-                            title="Hủy phiên đấu giá"
-                          >
-                            Hủy
-                          </button>
-                        </>
-                      )}
-                      {activeTab === "live" && !isEnded && (
-                        <>
-                          <button
-                            className="action-btn btn--end"
-                            onClick={() => handleEndAuction(auction._id, title)}
-                            title="Kết thúc phiên đấu giá sớm"
-                          >
-                            Kết thúc
-                          </button>
-                          <button
-                            className="action-btn btn--reject"
-                            onClick={() => handleCancelAuction(auction._id, title)}
-                            title="Hủy phiên đấu giá"
-                          >
-                            Hủy
-                          </button>
-                        </>
-                      )}
-                      {(activeTab === "ended" || activeTab === "cancelled" || activeTab === "draft") && (
-                        <span className="no-actions" style={{ color: "#999", fontStyle: "italic" }}>
-                          Không có hành động
-                        </span>
-                      )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={getStatusLabel(auction.status)}
+                        className={`status-chip status-chip--${auction.status}`}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" gap={1} justifyContent="center" flexWrap="wrap">
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<Eye size={16} />}
+                          onClick={() => handleViewDetails(auction)}
+                          className="action-btn-details"
+                        >
+                          Xem chi tiết
+                        </Button>
+                        {activeTab === "pending" && (
+                          <>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              color="primary"
+                              onClick={() => handleScheduleAuction(auction._id)}
+                              className="action-btn"
+                            >
+                              Lên lịch
+                            </Button>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              color="success"
+                              onClick={() => handleActivateAuction(auction._id)}
+                              className="action-btn"
+                            >
+                              Kích hoạt
+                            </Button>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              color="error"
+                              onClick={() => handleCancelAuction(auction._id, title)}
+                              className="action-btn"
+                            >
+                              Hủy
+                            </Button>
+                          </>
+                        )}
+                        {activeTab === "scheduled" && (
+                          <>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              color="success"
+                              onClick={() => handleActivateAuction(auction._id)}
+                              className="action-btn"
+                            >
+                              Kích hoạt
+                            </Button>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              color="error"
+                              onClick={() => handleCancelAuction(auction._id, title)}
+                              className="action-btn"
+                            >
+                              Hủy
+                            </Button>
+                          </>
+                        )}
+                        {activeTab === "live" && (
+                          <>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              color="warning"
+                              onClick={() => handleEndAuction(auction._id, title)}
+                              className="action-btn"
+                            >
+                              Kết thúc
+                            </Button>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              color="error"
+                              onClick={() => handleCancelAuction(auction._id, title)}
+                              className="action-btn"
+                            >
+                              Hủy
+                            </Button>
+                          </>
+                        )}
+                        {(activeTab === "ended" || activeTab === "cancelled" || activeTab === "draft") && (
+                          <span className="no-actions">-</span>
+                        )}
+                      </Box>
+                    </TableCell>
+                  </TableRow>
                 );
               })
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </TableContainer>
       {!isLoading && paginatedAuctions.length > 0 && (
         <div className="pagination-wrapper">
           <Pagination
@@ -589,6 +626,15 @@ const AdminAuctionManagementPage: React.FC = () => {
             Trang {pagination.currentPage} / {pagination.totalPages}
           </div>
         </div>
+      )}
+
+      {/* Auction Details Modal */}
+      {selectedAuction && (
+        <AuctionDetailsModal
+          auction={selectedAuction}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+        />
       )}
     </div>
   );
