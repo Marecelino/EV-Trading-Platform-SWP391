@@ -73,10 +73,12 @@ async function bootstrap() {
 
   // Enable CORS with proper configuration
   const frontendUrl = process.env.FRONTEND_URL;
+  const appUrl = process.env.APP_URL || `https://ev-trading-platform-be.fly.dev`;
   const allowedOrigins = [
     'http://localhost:5173', // Vite default
     'http://localhost:3000', // Alternative local port
     'http://localhost:5174', // Alternative Vite port
+    appUrl, // App's own domain (for Swagger UI)
   ];
 
   if (frontendUrl) {
@@ -93,8 +95,16 @@ async function bootstrap() {
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      // For production, you might want to be more strict
-      if (process.env.NODE_ENV === 'production' && frontendUrl) {
+      // Allow same-origin requests (for Swagger UI)
+      if (origin.includes('ev-trading-platform-be.fly.dev')) {
+        return callback(null, true);
+      }
+      // For production, allow frontend URL if set
+      if (process.env.NODE_ENV === 'production') {
+        if (frontendUrl && origin === frontendUrl) {
+          return callback(null, true);
+        }
+        // In production, reject unknown origins
         return callback(new Error('Not allowed by CORS'));
       }
       // In development, allow all origins

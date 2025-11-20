@@ -847,4 +847,31 @@ export class PaymentService {
     // Return payment and the created transaction (if any). No commission created.
     return { payment, transaction };
   }
+
+  /**
+   * Get statistics for listing fees
+   * Returns total amount and count of completed listing fee payments
+   */
+  async getListingFeesStats(): Promise<{ total: number; count: number }> {
+    const stats = await this.paymentModel.aggregate([
+      {
+        $match: {
+          is_listing_fee: true,
+          status: PaymentStatus.COMPLETED,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    return {
+      total: stats[0]?.total || 0,
+      count: stats[0]?.count || 0,
+    };
+  }
 }
