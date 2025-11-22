@@ -10,22 +10,18 @@ export default defineConfig({
     assetsDir: 'assets',
     sourcemap: false, // Disable source maps in production for smaller builds
     minify: 'esbuild', // Use esbuild (faster, built-in) instead of terser
-    // Optimize chunk splitting for better caching
+    // Let Vite handle chunk splitting automatically to avoid circular dependency issues
+    // Vite will automatically optimize chunks based on dependencies
     rollupOptions: {
       output: {
+        // Simplified chunk splitting to avoid circular dependency issues with MUI
         manualChunks: (id) => {
-          // Split node_modules into separate chunks
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'react-vendor';
+            // Only split very large, independent packages
+            if (id.includes('chart.js') && !id.includes('react-chartjs')) {
+              return 'chart-core';
             }
-            if (id.includes('@mui') || id.includes('@emotion')) {
-              return 'mui-vendor';
-            }
-            if (id.includes('chart.js') || id.includes('react-chartjs')) {
-              return 'chart-vendor';
-            }
-            // All other node_modules
+            // Keep everything else together to avoid initialization order issues
             return 'vendor';
           }
         },
