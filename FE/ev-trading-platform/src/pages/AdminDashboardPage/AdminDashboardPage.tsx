@@ -5,6 +5,7 @@ import authApi from '../../api/authApi';
 import listingApi from '../../api/listingApi';
 import transactionApi from '../../api/transactionApi';
 import auctionApi from '../../api/auctionApi';
+import paymentApi from '../../api/paymentApi';
 import { PaginatedResponse } from '../../types/api';
 import { ITransaction } from '../../types';
 import './AdminDashboardPage.scss';
@@ -35,6 +36,7 @@ const AdminDashboardPage: React.FC = () => {
                     pendingListingsRes,
                     allAuctionsRes,
                     pendingAuctionsRes,
+                    listingFeesStatsRes,
                     transactionsRes
                 ] = await Promise.allSettled([
                     // 1. Số người dùng - GET /api/auth/users/stats
@@ -47,7 +49,9 @@ const AdminDashboardPage: React.FC = () => {
                     auctionApi.getAllAuctions(undefined, 1, 50),
                     // 5. Số đấu giá chờ duyệt - GET /api/auctions?status=pending
                     auctionApi.getAllAuctions('pending', 1, 50),
-                    // 6. Tất cả transactions để tính doanh thu đăng tin và hoa hồng - GET /api/transactions
+                    // 6. Thống kê phí đăng tin - GET /api/payment/stats/listing-fees
+                    paymentApi.getListingFeesStats(),
+                    // 7. Tất cả transactions để tính doanh thu hoa hồng - GET /api/transactions
                     transactionApi.getTransactions({ page: 1, limit: 1000 })
                 ]);
 
@@ -57,6 +61,7 @@ const AdminDashboardPage: React.FC = () => {
                 const pendingListings = pendingListingsRes.status === 'fulfilled' ? pendingListingsRes.value.data : null;
                 const allAuctions = allAuctionsRes.status === 'fulfilled' ? allAuctionsRes.value.data : null;
                 const pendingAuctions = pendingAuctionsRes.status === 'fulfilled' ? pendingAuctionsRes.value.data : null;
+                const listingFeesStats = listingFeesStatsRes.status === 'fulfilled' ? listingFeesStatsRes.value.data : null;
                 const transactions = transactionsRes.status === 'fulfilled' ? transactionsRes.value.data : null;
 
                 // Tính tổng số tin đăng từ meta.total
@@ -103,33 +108,8 @@ const AdminDashboardPage: React.FC = () => {
                     }
                 }
 
-                // Tính doanh thu đăng tin từ transactions
-                // Filter: status='COMPLETED' và platform_fee === 0 && notes.includes('Listing fee')
-                // Sum: price field (không phải platform_fee)
-                let listingFeeRevenue = 0;
-                if (transactions && typeof transactions === 'object') {
-                    const transactionsResponse = transactions as { data?: ITransaction[] };
-                    const transactionsList = Array.isArray(transactionsResponse.data) 
-                        ? transactionsResponse.data 
-                        : Array.isArray(transactions) 
-                            ? transactions as ITransaction[]
-                            : [];
-                    
-                    // Filter: completed transactions với platform_fee === 0 và notes.includes('Listing fee')
-                    const listingFeeTransactions = transactionsList.filter((tx: ITransaction) => 
-                        (tx.status === 'COMPLETED' || tx.status === 'completed') &&
-                        tx.platform_fee === 0 &&
-                        tx.notes && 
-                        typeof tx.notes === 'string' && 
-                        tx.notes.includes('Listing fee')
-                    );
-                    
-                    // Sum price field (không phải platform_fee)
-                    listingFeeRevenue = listingFeeTransactions.reduce(
-                        (sum: number, tx: ITransaction) => sum + (tx.price || 0), 
-                        0
-                    );
-                }
+                // Lấy doanh thu đăng tin từ API /api/payment/stats/listing-fees
+                const listingFeeRevenue = listingFeesStats?.total || 0;
 
                 // Tính doanh thu hoa hồng từ transactions
                 // Filter: status='COMPLETED' và platform_fee > 0
@@ -158,7 +138,7 @@ const AdminDashboardPage: React.FC = () => {
                     );
                 }
 
-                // Tính tổng doanh thu = Phí đăng tin + Hoa hồng (từ transactions)
+                // Tính tổng doanh thu = Phí đăng tin (từ API /payment/stats/listing-fees) + Hoa hồng (từ transactions)
                 // Total revenue = Listing fee revenue + Commission revenue
                 const totalRevenue = listingFeeRevenue + commissionRevenue;
 

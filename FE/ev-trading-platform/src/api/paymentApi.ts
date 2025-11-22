@@ -38,6 +38,12 @@ const paymentApi = {
   getPaymentStatus: (transactionId: string) => {
     return axiosClient.get(`/payment/status/${transactionId}`);
   },
+
+  // Get listing fees statistics
+  // GET /api/payment/stats/listing-fees
+  getListingFeesStats: () => {
+    return axiosClient.get<{ total: number; count: number }>('/payment/stats/listing-fees');
+  },
 };
 
 export default paymentApi;

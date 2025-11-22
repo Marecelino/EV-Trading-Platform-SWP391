@@ -1,9 +1,10 @@
 // src/pages/AdminTransactionManagementPage/AdminTransactionManagementPage.tsx
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { User, Mail, Phone, DollarSign, Calendar, CreditCard, Info, Search, Filter, Eye, CheckCircle, Clock, TrendingUp, FileText, Copy, X } from 'lucide-react';
+import { User, Mail, Phone, DollarSign, Calendar, CreditCard, Info, Search, Filter, Eye, CheckCircle, TrendingUp, FileText, Copy, X } from 'lucide-react';
 import transactionApi, { GetTransactionsParams } from '../../api/transactionApi';
 import authApi from '../../api/authApi';
+import paymentApi from '../../api/paymentApi';
 import type { ITransaction, PaginatedTransactionsResponse, User as UserType } from '../../types';
 import { toast } from 'react-toastify';
 import Pagination from '../../components/common/Pagination/Pagination';
@@ -201,16 +202,7 @@ const AdminTransactionManagementPage: React.FC = () => {
         normalizeStatus(tx.status) === 'COMPLETED'
       );
 
-      // Listing Fee Revenue: platform_fee === 0 && notes.includes('Listing fee')
-      const listingFeeTxs = completedTxs.filter(tx => 
-        tx.platform_fee === 0 && 
-        tx.notes && 
-        typeof tx.notes === 'string' && 
-        tx.notes.includes('Listing fee')
-      );
-      stats.listingFeeRevenue = listingFeeTxs.reduce((sum, tx) => sum + (tx.price || 0), 0);
-
-      // Commission Revenue: platform_fee > 0
+      // Commission Revenue: platform_fee > 0 (tính từ transactions)
       const commissionTxs = completedTxs.filter(tx => 
         tx.platform_fee !== undefined &&
         tx.platform_fee !== null &&
@@ -218,10 +210,19 @@ const AdminTransactionManagementPage: React.FC = () => {
       );
       stats.commissionRevenue = commissionTxs.reduce((sum, tx) => sum + (tx.platform_fee || 0), 0);
 
-      // Total Revenue
-      stats.totalRevenue = stats.listingFeeRevenue + stats.commissionRevenue;
-
-      setTransactionStats(stats);
+      // Listing Fee Revenue sẽ được lấy từ API /api/payment/stats/listing-fees
+      // (được fetch riêng trong useEffect)
+      // Giữ nguyên listingFeeRevenue hiện tại (nếu đã có từ API) để tính total revenue
+      setTransactionStats((prevStats) => {
+        const currentListingFeeRevenue = prevStats.listingFeeRevenue;
+        const totalRevenue = currentListingFeeRevenue + stats.commissionRevenue;
+        
+        return {
+          ...stats,
+          listingFeeRevenue: currentListingFeeRevenue, // Giữ nguyên giá trị từ API
+          totalRevenue: totalRevenue, // Tính lại tổng doanh thu
+        };
+      });
       
       // Fetch user info for transactions where buyer_id/seller_id are strings
       // Use ref to check cache to avoid dependency issues
@@ -275,10 +276,39 @@ const AdminTransactionManagementPage: React.FC = () => {
     }
   }, [activeTab, pagination.currentPage, fetchUser]);
 
+  // Fetch listing fees stats from API
+  const fetchListingFeesStats = useCallback(async () => {
+    try {
+      const response = await paymentApi.getListingFeesStats();
+      const listingFeesStats = response.data;
+      
+      if (listingFeesStats) {
+        setTransactionStats((prevStats) => ({
+          ...prevStats,
+          listingFeeRevenue: listingFeesStats.total || 0,
+          totalRevenue: (listingFeesStats.total || 0) + prevStats.commissionRevenue,
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching listing fees stats:', error);
+      // Set to 0 if error occurs, nhưng vẫn giữ commission revenue
+      setTransactionStats((prevStats) => ({
+        ...prevStats,
+        listingFeeRevenue: 0,
+        totalRevenue: prevStats.commissionRevenue,
+      }));
+    }
+  }, []);
+
   useEffect(() => {
     fetchTransactions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, pagination.currentPage]); // Only depend on activeTab and pagination.currentPage
+
+  // Fetch listing fees stats on component mount
+  useEffect(() => {
+    fetchListingFeesStats();
+  }, [fetchListingFeesStats]);
 
   const handleTabClick = (tab: TransactionStatus | 'all') => {
     setActiveTab(tab);
